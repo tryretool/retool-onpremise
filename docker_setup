@@ -63,4 +63,8 @@ echo "# Do not include an https:// in the URL below" >> docker.env
 echo "# OKTA_URL=dev-xyz.oktapreview.com" >> docker.env
 echo "# OKTA_CLIENT_ID={YOUR OKTA CLIENT ID}" >> docker.env
 
+echo '' >> docker.env
+echo '## License key' >> docker.env
+echo 'LICENSE_KEY=EXPIRED-LICENSE-KEY-TRIAL' >> docker.env
+
 echo "Cool! Now just run docker-compose up to launch Retool."
