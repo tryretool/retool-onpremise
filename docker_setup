@@ -1,0 +1,66 @@
+#!/bin/bash
+
+postgresPassword=$(cat /dev/urandom | base64 | head -c 64)
+jwtSecret=$(cat /dev/urandom | base64 | head -c 256)
+encryptionKey=$(cat /dev/urandom | base64 | head -c 64)
+publicIpAddress=$(dig +short myip.opendns.com @resolver1.opendns.com)
+
+echo "Hi! I'm here to help you set up a self-hosted Retool."
+echo
+echo "Just one question: Do you have a fully qualified domain pointed at your Retool server?"
+echo
+echo "This is an optional question. If you have a domain that points to your Retool server, the installation scripts can request a Let's Encrypt HTTPS certificate for you automatically. If you do not provide one, a self-signed certificate will be used instead."
+echo
+echo "If you have just created a new cloud server in previous steps, now is a good time to point your fully qualified domain to your server's public address. Make sure the fully qualified domain resolves to the correct IP address before proceeding."
+echo
+echo "Please type your fully qualified domain below. Press enter to skip."
+read -p "Enter it here: (default is your public ip address: ${publicIpAddress}) " hostname
+
+if [ -z "$hostname" ]; then
+  hostname=$publicIpAddress
+fi
+
+if [ -f ./docker.env ]; then
+  mv docker.env docker.env.$(date +"%Y-%m-%d_%H-%M-%S")
+fi
+touch docker.env
+
+echo '## Set node environment to production' >> docker.env
+echo 'NODE_ENV=production' >> docker.env
+echo '' >> docker.env
+echo '## Set the JWT secret for the API server' >> docker.env
+echo "JWT_SECRET=${jwtSecret}" >> docker.env
+echo '' >> docker.env
+
+echo '## Set and generate postgres credentials' >> docker.env
+echo 'POSTGRES_DB=hammerhead_production' >> docker.env
+echo 'POSTGRES_USER=retool_internal_user' >> docker.env
+echo 'POSTGRES_HOST=postgres' >> docker.env
+echo 'POSTGRES_PORT=5432' >> docker.env
+echo "POSTGRES_PASSWORD=${postgresPassword}" >> docker.env
+
+echo 'RT_POSTGRES_USER=retool_internal_user' >> docker.env
+echo 'RT_POSTGRES_HOST=postgres' >> docker.env
+echo 'RT_POSTGRES_PORT=5432' >> docker.env
+echo "RT_POSTGRES_PASSWORD=${postgresPassword}" >> docker.env
+echo '' >> docker.env
+
+echo '## Set variables for the nginx server' >> docker.env
+echo "# Change '${hostname}' to retool.yourcompany.com to set up SSL properly" >> docker.env
+echo "DOMAINS=${hostname} -> http://api:3000" >> docker.env
+echo '' >> docker.env
+
+echo '## Set key to encrypt and decrypt database passwords, etc.' >> docker.env
+echo "ENCRYPTION_KEY=${encryptionKey}" >> docker.env
+echo '' >> docker.env
+
+echo "## Google SSO configuration" >> docker.env
+echo "# CLIENT_ID={YOUR GOOGLE CLIENT ID}" >> docker.env
+echo '' >> docker.env
+
+echo "## Okta configuration" >> docker.env
+echo "# Do not include an https:// in the URL below" >> docker.env
+echo "# OKTA_URL=dev-xyz.oktapreview.com" >> docker.env
+echo "# OKTA_CLIENT_ID={YOUR OKTA CLIENT ID}" >> docker.env
+
+echo "Cool! Now just run docker-compose up to launch Retool."

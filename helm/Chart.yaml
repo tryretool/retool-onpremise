@@ -1,0 +1,7 @@
+apiVersion: v1
+name: retool-onpremise
+version: 2.26.2
+maintainers:
+  - name: Retool Engineering
+    email: engineering@retool.in
+engine: gotpl

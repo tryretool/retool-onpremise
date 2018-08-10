@@ -1,0 +1,9 @@
+## Sample config overrides
+usePostgresContainer: false
+postgresDb: retooldb
+postgresHost: your.database.region.rds.amazonaws.com
+postgresPort: 5432
+postgresUser: retool
+postgresPassword: yourDatabasePassword
+encryptionKey: someEncryptionKeyThatIsKeptConstant
+jwtSecret: someEncryptionKeyThatIsKeptConstant

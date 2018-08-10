@@ -1,0 +1,35 @@
+## Retool image repository
+image: "tryretool/backend"
+## Available tags:
+## ref: https://hub.docker.com/r/tryretool/backend/tags/
+imageTag: "latest"
+
+## Name of your retool deployment
+name: "retool"
+
+## Your license key.
+licenseKey: "EXPIRED-LICENSE-KEY-TRIAL"
+
+## Random secret to encode JWTs. Default is a random string
+# jwtSecret: 
+
+## Random secret to encrypt database credentials. Default is a random string
+# encryptionKey:
+
+## To enable Google SSO - add both the google client id and google client secret
+# googleClientId:
+# googleClientSecret:
+
+## Change this to false to use a externally hosted database like RDS.
+usePostgresContainer: true
+## If you decide to use an externally hosted database, configure these fields.
+# postgresDb:
+# postgresHost:
+# postgresPort
+# postgresUser
+# postgresPassword
+
+## Whether or not to use secure cookies or not
+## By default since the service is not configured with TLS termination
+## we use insecure cookies by default
+useInsecureCookies: true
