@@ -23,6 +23,8 @@ services:
       - postgres
     ports:
       - '3000:3000'
+    volumes:
+      - ssh:/retool_backend/autogen_ssh_keys
 
   db-connector:
     image: tryretool/backend:latest
@@ -36,13 +38,14 @@ services:
 
   db-ssh-connector:
     image: tryretool/backend:latest
-    command: bash -c "./retool_backend"
+    command: bash -c "./docker_scripts/generate_key_pair.sh; ./retool_backend"
     env_file: ./docker.env
     environment:
       - SERVICE_TYPE=DB_SSH_CONNECTOR_SERVICE
     networks:
       - db-ssh-connector-network
     volumes:
+      - ssh:/retool_backend/autogen_ssh_keys
       - ./keys:/retool_backend/keys
     restart: on-failure
 
@@ -84,5 +87,6 @@ networks:
   db-ssh-connector-network:
 
 volumes:
+  ssh:
   data:
   user-data:
