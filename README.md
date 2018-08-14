@@ -69,8 +69,8 @@ To update a Heroku deployment that was created with the button above, you may fi
 
 ```
 $ heroku login
-$ git clone https://github.com/tryretool/retool_onpremise
-$ cd retool_onpremise
+$ git clone https://github.com/tryretool/retool-onpremise
+$ cd retool-onpremise
 $ heroku git:remote -a YOUR_HEROKU_APP_NAME
 ```
 
@@ -86,8 +86,8 @@ $ git push heroku master
 Alternatively, you may follow the following steps to deploy to Heroku
 
 1. Install the Heroku CLI, and login. Documentation for this can be found here: https://devcenter.heroku.com/articles/getting-started-with-nodejs#set-up
-1. Clone this repo `git clone https://github.com/tryretool/retool_onpremise`
-1. Change the working directory to the newly cloned repository `cd ./retool_onpremise`
+1. Clone this repo `git clone https://github.com/tryretool/retool-onpremise`
+1. Change the working directory to the newly cloned repository `cd ./retool-onpremise`
 1. Create a new Heroku app with the stack set to `container` with `heroku create your-app-name --stack=container`
 1. Add a free database: `heroku addons:create heroku-postgresql:hobby-dev`
 1. In the `Settings` page of your Heroku app, add the following environment variables:
