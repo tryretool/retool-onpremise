@@ -24,6 +24,7 @@ services:
     ports:
       - '3000:3000'
     volumes:
+      - ./keys:/root/.ssh
       - ssh:/retool_backend/autogen_ssh_keys
 
   db-connector:
