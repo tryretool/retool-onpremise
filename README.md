@@ -116,6 +116,9 @@ To lockdown the version of Retool used, just edit the first line under `./heroku
 FROM tryretool/backend:X.XX.X
 ```
 
+## Health check endpoint 
+
+Retool also has a health check endpoint that you can set up to monitor liveliness of Retool. You can configure your probe to make a `GET` request to `/api/checkHealth`.
 
 ## Adding Google Login
 
