@@ -68,8 +68,6 @@ spec:
         name: api
         ports:
         - containerPort: 3000
-        - containerPort: 3001
-        - containerPort: 3002
         resources: {}
       restartPolicy: Always
 status: {}
