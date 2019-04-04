@@ -5,7 +5,7 @@ metadata:
   labels:
     io.kompose.service: data
     app: database
-  name: data
+  name: "{{ .Values.name }}-postgres-data"
 spec:
   accessModes:
   - ReadWriteOnce
