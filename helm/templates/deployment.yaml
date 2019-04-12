@@ -1,0 +1,202 @@
+apiVersion: apps/v1beta1
+kind: Deployment
+metadata:
+  labels:
+    app: {{ template "retool.name" . }}
+    chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
+    heritage: {{ .Release.Service }}
+    release: {{ .Release.Name }}
+  name: {{ template "retool.fullname" . }}
+{{- if .Values.deployment.annotations }}
+  annotations:
+{{ toYaml .Values.deployment.annotations | indent 4 }}
+{{- end }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  revisionHistoryLimit: {{ .Values.revisionHistoryLimit }}
+  template:
+    metadata:
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+{{- if .Values.podAnnotations }}
+{{ toYaml .Values.podAnnotations | indent 8 }}
+{{- end }}
+      labels:
+        app: {{ template "retool.name" . }}
+        release: "{{ .Release.Name }}"
+{{- if .Values.podLabels }}
+{{ toYaml .Values.podLabels | indent 8 }}
+{{- end }}
+    spec:
+      serviceAccountName: {{ template "retool.serviceAccountName" . }}
+      {{- if .Values.priorityClassName }}
+      priorityClassName: "{{ .Values.priorityClassName }}"
+      {{- end }}
+{{- if .Values.initContainers }}
+      initContainers:
+{{- range $key, $value := .Values.initContainers }}
+      - name: "{{ $key }}"
+{{ toYaml $value | indent 8 }}
+{{- end }}
+      containers:
+      - name: {{ .Chart.Name }}
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        args:
+          - bash
+          - -c
+          {{ if .Values.postgresHost }}
+          - chmod -R +x ./docker_scripts; sync; ./docker_scripts/wait-for-it.sh -t 0 {{ .Values.postgresHost }}:{{ .Values.postgresPort }};
+            ./docker_scripts/start_api.sh
+          {{ else }}
+          - chmod -R +x ./docker_scripts; sync; ./docker_scripts/wait-for-it.sh -t 0 {{ .Values.name }}-postgres:5432;
+            ./docker_scripts/start_api.sh
+          {{ end }}
+        {{- if .Values.commandline.args }}
+{{ toYaml .Values.commandline.args | indent 10 }}
+        {{- end }}
+        env:
+          - name: NODE_ENV
+            value: production
+
+          - name: LICENSE_KEY
+            valueFrom:
+              secretKeyRef:
+                name: "{{ .Values.name }}-secret"
+                key: license-key
+
+          - name: JWT_SECRET
+            valueFrom:
+              secretKeyRef:
+                name: "{{ .Values.name }}-secret"
+                key: jwt-secret
+
+          - name: ENCRYPTION_KEY
+            valueFrom:
+              secretKeyRef:
+                name: "{{ .Values.name }}-secret"
+                key: encryption-key
+
+          - name: COOKIE_INSECURE
+            valueFrom:
+              configMapKeyRef:
+                name: "{{ .Values.name }}-configmap"
+                key: use-insecure-cookies
+
+          - name: POSTGRES_HOST
+            valueFrom:
+              configMapKeyRef:
+                name: "{{ .Values.name }}-configmap"
+                key: postgres-host
+          - name: POSTGRES_PORT
+            valueFrom:
+              configMapKeyRef:
+                name: "{{ .Values.name }}-configmap"
+                key: postgres-port
+          - name: POSTGRES_DB
+            valueFrom:
+              configMapKeyRef:
+                name: "{{ .Values.name }}-configmap"
+                key: postgres-db
+          - name: POSTGRES_USER
+            valueFrom:
+              configMapKeyRef:
+                name: "{{ .Values.name }}-configmap"
+                key: postgres-user
+          - name: POSTGRES_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: "{{ .Values.name }}-secret"
+                key: postgres-password
+
+          - name: CLIENT_ID
+            valueFrom:
+              configMapKeyRef:
+                name: "{{ .Values.name }}-configmap"
+                key: google-client-id
+          - name: CLIENT_SECRET
+            valueFrom:
+              secretKeyRef:
+                name: "{{ .Values.name }}-secret"
+                key: google-client-secret
+          - name: RESTRICTED_DOMAIN
+            valueFrom:
+              configMapKeyRef:
+                name: "{{ .Values.name }}-configmap"
+                key: restricted-domain
+          {{- range $key, $value := .Values.env }}
+          - name: "{{ $key }}"
+            value: "{{ $value }}"
+          {{- end }}
+        ports:
+        - containerPort: {{ .Values.service.internalPort }}
+          name: {{ template "retool.name" . }}
+          protocol: TCP
+{{- if .Values.livenessProbe.enabled }}
+        livenessProbe:
+          httpGet:
+            path: {{ .Values.livenessProbe.path }}
+            port: {{ .Values.service.internalPort }}
+          initialDelaySeconds: {{ .Values.livenessProbe.initialDelaySeconds }}
+          timeoutSeconds: {{ .Values.livenessProbe.timeoutSeconds }}
+{{- end }}
+{{- if .Values.readinessProbe.enabled }}
+        readinessProbe:
+          httpGet:
+            path: {{ .Values.readinessProbe.path }}
+            port: {{ .Values.service.internalPort }}
+          initialDelaySeconds: {{ .Values.readinessProbe.initialDelaySeconds }}
+          timeoutSeconds: {{ .Values.readinessProbe.timeoutSeconds }}
+          successThreshold: {{ .Values.readinessProbe.successThreshold }}
+          periodSeconds: {{ .Values.readinessProbe.periodSeconds }}
+{{- end }}
+        resources:
+{{ toYaml .Values.resources | indent 10 }}
+        volumeMounts:
+        {{- range $configFile := (keys .Values.files) }}
+        - name: {{ template "retool.name" $ }}
+          mountPath: "/usr/share/retool/config/{{ $configFile }}"
+          subPath: {{ $configFile }}
+        {{- end }}
+{{- if .Values.extraVolumeMounts }}
+{{ toYaml .Values.extraVolumeMounts | indent 8 }}
+{{- end }}
+{{- with .Values.extraContainers }}
+{{ tpl . $ | indent 6 }}
+{{- end }}
+{{- range .Values.extraConfigMapMounts }}
+        - name: {{ .name }}
+          mountPath: {{ .mountPath }}
+          subPath: {{ .subPath }}
+{{- end }}
+    {{- if .Values.image.pullSecrets }}
+      imagePullSecrets:
+{{ toYaml .Values.image.pullSecrets | indent 8 }}
+    {{- end }}
+    {{- if .Values.affinity }}
+      affinity:
+{{ toYaml .Values.affinity | indent 8 }}
+    {{- end }}
+    {{- if .Values.nodeSelector }}
+      nodeSelector:
+{{ toYaml .Values.nodeSelector | indent 8 }}
+    {{- end }}
+      tolerations:
+{{ toYaml .Values.tolerations | indent 8 }}
+{{- if .Values.securityContext.enabled }}
+      securityContext:
+        runAsUser: {{ .Values.securityContext.runAsUser }}
+        fsGroup: {{ .Values.securityContext.fsGroup }}
+{{- end }}
+      volumes:
+        - name: {{ template "retool.name" . }}
+          configMap:
+            name: {{ template "retool.fullname" . }}
+{{- range .Values.extraConfigMapMounts }}
+        - name: {{ .name }}
+          configMap:
+            name: {{ .configMap }}
+{{- end }}
+{{- if .Values.extraVolumes }}
+{{ toYaml .Values.extraVolumes | indent 8 }}
+{{- end }}
