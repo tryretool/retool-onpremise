@@ -12,12 +12,11 @@ config:
   encryptionKey: 
   jwtSecret: 
   
-  postgres: {}
-    # Specify if postgresql subchart is disabled
-    # host:
-    # port:
-    # db:
-    # user:
+  postgres:
+    host: retool-postgres
+    port: 5432
+    db: hammerhead_production
+    user: postgres
     # password: 
 
 image:

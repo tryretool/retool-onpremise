@@ -1,30 +1,23 @@
 kind: ConfigMap
 apiVersion: v1
 metadata:
-  creationTimestamp: 2016-02-18T19:14:38Z
-  name: "{{ .Values.name }}-configmap"
+  name: "{{ template "retool.fullname" . }}-configmap"
 data: 
   use-insecure-cookies: {{ .Values.config.useInsecureCookies | quote }}
-  {{ if .Values.postgres.enabled }}
-  postgres-host: "{{ template "postgresql.fullname" . }}"
-  postgres-port: "{{ template "postgresql.port" . }}"
-  postgres-db: "{{ (include "postgresql.database" .) | quote }}"
-  postgres-user: "{{ (include "postgresql.username" .) | quote }}"
-  {{ else }}
+  
   postgres-host: {{ .Values.config.postgres.host | quote }}
   postgres-port: {{ .Values.config.postgres.port | quote }}
   postgres-db: {{ .Values.config.postgres.db | quote }}
   postgres-user: {{ .Values.config.postgres.user | quote }}
-  {{ end }}
 
-  {{ if .Values.config.auth.google.clientId }}
+  {{- if .Values.config.auth.google.clientId }}
   google-client-id: {{ .Values.config.auth.google.clientId | quote }}
-  {{ else }}
+  {{- else }}
   google-client-id: ""
-  {{ end }}
+  {{- end }}
   
-  {{ if .Values.config.auth.google.domain }}
+  {{- if .Values.config.auth.google.domain }}
   restricted-domain: {{ .Values.config.auth.google.domain | quote }}
-  {{ else }}
+  {{- else }}
   restricted-domain: ""
-  {{ end }}
+  {{- end }}

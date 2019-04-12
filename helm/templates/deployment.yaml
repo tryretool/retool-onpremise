@@ -2,7 +2,7 @@ apiVersion: apps/v1beta1
 kind: Deployment
 metadata:
   labels:
-    app: {{ template "retool.name" . }}
+    app: {{ template "retool.fullname" . }}
     chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
     heritage: {{ .Release.Service }}
     release: {{ .Release.Name }}
@@ -22,7 +22,7 @@ spec:
 {{ toYaml .Values.podAnnotations | indent 8 }}
 {{- end }}
       labels:
-        app: {{ template "retool.name" . }}
+        app: {{ template "retool.fullname" . }}
         release: "{{ .Release.Name }}"
 {{- if .Values.podLabels }}
 {{ toYaml .Values.podLabels | indent 8 }}
@@ -38,6 +38,7 @@ spec:
       - name: "{{ $key }}"
 {{ toYaml $value | indent 8 }}
 {{- end }}
+{{- end }}
       containers:
       - name: {{ .Chart.Name }}
         image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
@@ -46,10 +47,10 @@ spec:
           - bash
           - -c
           {{ if .Values.postgresHost }}
-          - chmod -R +x ./docker_scripts; sync; ./docker_scripts/wait-for-it.sh -t 0 {{ .Values.postgresHost }}:{{ .Values.postgresPort }};
+          - chmod -R +x ./docker_scripts; sync; ./docker_scripts/wait-for-it.sh -t 0 {{ .Values.config.postgres.host }}:{{ .Values.config.postgres.port }};
             ./docker_scripts/start_api.sh
           {{ else }}
-          - chmod -R +x ./docker_scripts; sync; ./docker_scripts/wait-for-it.sh -t 0 {{ .Values.name }}-postgres:5432;
+          - chmod -R +x ./docker_scripts; sync; ./docker_scripts/wait-for-it.sh -t 0 {{ .Values.config.postgres.host }}:{{ .Values.config.postgres.port }};
             ./docker_scripts/start_api.sh
           {{ end }}
         {{- if .Values.commandline.args }}
@@ -62,67 +63,67 @@ spec:
           - name: LICENSE_KEY
             valueFrom:
               secretKeyRef:
-                name: "{{ .Values.name }}-secret"
+                name: "{{ template "retool.fullname" . }}-secret"
                 key: license-key
 
           - name: JWT_SECRET
             valueFrom:
               secretKeyRef:
-                name: "{{ .Values.name }}-secret"
+                name: "{{ template "retool.fullname" . }}-secret"
                 key: jwt-secret
 
           - name: ENCRYPTION_KEY
             valueFrom:
               secretKeyRef:
-                name: "{{ .Values.name }}-secret"
+                name: "{{ template "retool.fullname" . }}-secret"
                 key: encryption-key
 
           - name: COOKIE_INSECURE
             valueFrom:
               configMapKeyRef:
-                name: "{{ .Values.name }}-configmap"
+                name: "{{ template "retool.fullname" . }}-configmap"
                 key: use-insecure-cookies
 
           - name: POSTGRES_HOST
             valueFrom:
               configMapKeyRef:
-                name: "{{ .Values.name }}-configmap"
+                name: "{{ template "retool.fullname" . }}-configmap"
                 key: postgres-host
           - name: POSTGRES_PORT
             valueFrom:
               configMapKeyRef:
-                name: "{{ .Values.name }}-configmap"
+                name: "{{ template "retool.fullname" . }}-configmap"
                 key: postgres-port
           - name: POSTGRES_DB
             valueFrom:
               configMapKeyRef:
-                name: "{{ .Values.name }}-configmap"
+                name: "{{ template "retool.fullname" . }}-configmap"
                 key: postgres-db
           - name: POSTGRES_USER
             valueFrom:
               configMapKeyRef:
-                name: "{{ .Values.name }}-configmap"
+                name: "{{ template "retool.fullname" . }}-configmap"
                 key: postgres-user
           - name: POSTGRES_PASSWORD
             valueFrom:
               secretKeyRef:
-                name: "{{ .Values.name }}-secret"
+                name: "{{ template "retool.fullname" . }}-secret"
                 key: postgres-password
 
           - name: CLIENT_ID
             valueFrom:
               configMapKeyRef:
-                name: "{{ .Values.name }}-configmap"
+                name: "{{ template "retool.fullname" . }}-configmap"
                 key: google-client-id
           - name: CLIENT_SECRET
             valueFrom:
               secretKeyRef:
-                name: "{{ .Values.name }}-secret"
+                name: "{{ template "retool.fullname" . }}-secret"
                 key: google-client-secret
           - name: RESTRICTED_DOMAIN
             valueFrom:
               configMapKeyRef:
-                name: "{{ .Values.name }}-configmap"
+                name: "{{ template "retool.fullname" . }}-configmap"
                 key: restricted-domain
           {{- range $key, $value := .Values.env }}
           - name: "{{ $key }}"
@@ -130,7 +131,7 @@ spec:
           {{- end }}
         ports:
         - containerPort: {{ .Values.service.internalPort }}
-          name: {{ template "retool.name" . }}
+          name: {{ template "retool.fullname" . }}
           protocol: TCP
 {{- if .Values.livenessProbe.enabled }}
         livenessProbe:
@@ -189,7 +190,7 @@ spec:
         fsGroup: {{ .Values.securityContext.fsGroup }}
 {{- end }}
       volumes:
-        - name: {{ template "retool.name" . }}
+        - name: {{ template "retool.fullname" . }}
           configMap:
             name: {{ template "retool.fullname" . }}
 {{- range .Values.extraConfigMapMounts }}
