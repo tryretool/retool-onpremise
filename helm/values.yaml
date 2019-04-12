@@ -1,35 +1,154 @@
-## Retool image repository
-image: "tryretool/backend"
-## Available tags:
-## ref: https://hub.docker.com/r/tryretool/backend/tags/
-imageTag: "latest"
+# nameOverride: 
+# fullNameOverride:
 
-## Name of your retool deployment
-name: "retool"
+config:
+  licenseKey: "EXPIRED-LICENSE-KEY-TRIAL"
+  useInsecureCookies: true
+  auth:
+    google:
+      clientId:
+      clientSecret:
+      domain:
+  encryptionKey: 
+  jwtSecret: 
+  
+  postgresql: {}
+    # Specify if postgresql subchart is disabled
+    # host:
+    # port:
+    # db:
+    # user:
+    # password:
 
-## Your license key.
-licenseKey: "EXPIRED-LICENSE-KEY-TRIAL"
+image:
+  repository: "tryretool/backend"
+  tag: "latest"
+  pullPolicy: "IfNotPresent"
 
-## Random secret to encode JWTs. Default is a random string
-# jwtSecret: 
+commandline:
+  args: []
 
-## Random secret to encrypt database credentials. Default is a random string
-# encryptionKey:
+env: {}
 
-## To enable Google SSO - add both the google client id and google client secret
-# googleClientId:
-# googleClientSecret:
+files: {}
 
-## Change this to false to use a externally hosted database like RDS.
-usePostgresContainer: true
-## If you decide to use an externally hosted database, configure these fields.
-# postgresDb:
-# postgresHost:
-# postgresPort
-# postgresUser
-# postgresPassword
+deployment:
+  annotations: {}
 
-## Whether or not to use secure cookies or not
-## By default since the service is not configured with TLS termination
-## we use insecure cookies by default
-useInsecureCookies: true
+service:
+  type: ClusterIP
+  externalPort: 3000
+  internalPort: 3000
+  # externalIPs:
+  # - 192.168.0.1
+  #
+  ## LoadBalancer IP if service.type is LoadBalancer
+  # loadBalancerIP: 10.2.2.2
+  annotations: {}
+  labels: {}
+  ## Limit load balancer source ips to list of CIDRs (where available)
+  # loadBalancerSourceRanges: []
+  selector: {}
+
+postgresql:
+  enabled: true
+  postgresqlDatabase: hammerhead_production
+  postgresqlUsername: retool
+  postgresqlPassword: retool
+  service:
+    port: 5432
+  # Use the offical docker image rather than bitnami/docker
+  # since Retool depends on the uuid-ossp extension
+  image:
+    repository: "postgres"
+    tag: "10.6"
+  postgresqlDataDir: "/data/pgdata"
+  persistence:
+    enabled: true
+    mountPath: "/data/"
+
+serviceAccount:
+  # Specifies whether a service account should be created
+  create: false
+  # The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template
+  # If set and create is false, the service account must be existing
+  name:
+
+livenessProbe:
+  enabled: true
+  path: /api/checkHealth
+  initialDelaySeconds: 30
+  timeoutSeconds: 10
+
+readinessProbe:
+  enabled: true
+  path: /api/checkHealth
+  initialDelaySeconds: 30
+  timeoutSeconds: 10
+  periodSeconds: 10
+  successThreshold: 5
+
+extraContainers: []
+
+extraVolumeMounts: []
+
+extraVolumes: []
+
+resources: {}
+  # limits:
+  #   cpu: 500m
+  #   memory: 500Mi
+  # requests:
+  #   cpu: 500m
+  #   memory: 500Mi
+
+priorityClassName: ""
+
+# Affinity for pod assignment
+# Ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#affinity-and-anti-affinity
+# affinity: {}
+
+# Tolerations for pod assignment
+# Ref: https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/
+tolerations: []
+
+# Node labels for pod assignment
+# Ref: https://kubernetes.io/docs/user-guide/node-selection/
+nodeSelector: {}
+
+podAnnotations: {}
+replicaCount: 1
+revisionHistoryLimit: 3
+
+# Custom labels for pod assignment
+podLabels: {}
+
+persistentVolumeClaim:
+  # set to true to use pvc
+  enabled: false
+  # set to true to use you own pvc
+  existingClaim: false
+  annotations: {}
+
+  accessModes:
+    - ReadWriteOnce
+  size: "15Gi"
+  ## If defined, storageClassName: <storageClass>
+  ## If set to "-", storageClassName: "", which disables dynamic provisioning
+  ## If undefined (the default) or set to null, no storageClassName spec is
+  ##   set, choosing the default provisioner.  (gp2 on AWS, standard on
+  ##   GKE, AWS & OpenStack)
+  ##
+  # storageClass: "-"
+
+# default security context
+securityContext:
+  enabled: false
+  allowPrivilegeEscalation: false
+  runAsUser: 1000
+  fsGroup: 2000
+
+extraConfigMapMounts: []
+
+initContainers: {}
