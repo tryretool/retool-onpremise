@@ -27,15 +27,12 @@ Repository for deploying Retool
 
 1. A helm chart is included in this repository under the ./helm directory
 2. The available parameters are documented using comments in the ./helm/values.yaml file
-3. By default, Retool will work when the following command is run. It will auto-generate secret values as well as spin up a postgres container using persistent volumes.
 
 ```
 helm install ./helm
 ```
 
-This is NOT recommended as a later helm upgrade will re-generate the secret values and cause your installation to break. At a minimum, you should override the `postgresPassword` and `encryptionKey` value.
-
-4. Persistent volumes are not reliable - we recommend that a long-term installation of Retool host the database on an externally managed database like RDS. A sample values.yaml file is provded under the ./helm/sample.values.yaml file.
+3. Persistent volumes are not reliable - we recommend that a long-term installation of Retool host the database on an externally managed database like RDS. Please disable the included `postgresql` chart by setting `postgresql.enabled` to `false` and then specifying your external database through the `config.postgresql.*` properties.
 
 ### Running Retool on Kubernetes
 
