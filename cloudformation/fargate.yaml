@@ -43,8 +43,8 @@ Resources:
     Properties:
       GroupId: !Ref 'ALBSecurityGroup'
       IpProtocol: tcp
-      FromPort: '80'
-      ToPort: '80'
+      FromPort: '3000'
+      ToPort: '3000'
       CidrIp: '0.0.0.0/0'
 
   CloudwatchLogsGroup:
@@ -70,14 +70,18 @@ Resources:
   RetoolTask:
     Type: AWS::ECS::TaskDefinition
     Properties:
+      NetworkMode: awsvpc
+      Cpu: '256'
+      Memory: '1024'
       Family: 'retool'
       TaskRoleArn: !Ref 'RetoolTaskRole'
+      ExecutionRoleArn: !Ref 'RetoolExecutionRole'
+      RequiresCompatibilities:
+        - FARGATE
       ContainerDefinitions:
       - Name: 'retool'
-        Cpu: '256'
         Essential: 'true'
         Image: !Ref 'Image'
-        Memory: '768'
         LogConfiguration:
           LogDriver: awslogs
           Options:
@@ -108,10 +112,10 @@ Resources:
 
           # Remove below when serving Retool over https
           - Name: COOKIE_INSECURE
-            Value: "true" 
+            Value: "true"
         PortMappings:
         - ContainerPort: '3000'
-          HostPort: '80'
+          # HostPort: '80'
         Command: ["./docker_scripts/start_api.sh"]
 
   RetoolJWTSecret:
@@ -178,7 +182,7 @@ Resources:
       - Type: forward
         TargetGroupArn: !Ref 'ECSTG'
       LoadBalancerArn: !Ref 'ECSALB'
-      Port: '80'
+      Port: '3000'
       Protocol: HTTP
 
   ECSALBListenerRule:
@@ -198,15 +202,16 @@ Resources:
     Type: AWS::ElasticLoadBalancingV2::TargetGroup
     DependsOn: ECSALB
     Properties:
-      HealthCheckIntervalSeconds: 10
+      TargetType: ip
+      HealthCheckIntervalSeconds: 61
       HealthCheckPath: '/api/checkHealth'
       HealthCheckProtocol: HTTP
-      HealthCheckTimeoutSeconds: 5
+      HealthCheckTimeoutSeconds: 60
       HealthyThresholdCount: 4
       Name: !Join ['-', [!Ref 'AWS::StackName', 'tg']]
-      Port: '80'
+      Port: '3000'
       Protocol: HTTP
-      UnhealthyThresholdCount: 2
+      UnhealthyThresholdCount: 10
       VpcId: !Ref 'VpcId'
       TargetGroupAttributes:
       - Key: deregistration_delay.timeout_seconds
@@ -216,8 +221,14 @@ Resources:
     Type: AWS::ECS::Service
     DependsOn: ALBListener
     Properties:
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: ENABLED
+          SecurityGroups: [!Ref 'ALBSecurityGroup']
+          Subnets: !Ref 'SubnetId'
       Cluster: !Ref 'Cluster'
       DesiredCount: !Ref 'DesiredCount'
+      LaunchType: FARGATE
       DeploymentConfiguration:
         MaximumPercent: !Ref 'MaximumPercent'
         MinimumHealthyPercent: !Ref 'MinimumHealthyPercent'
@@ -225,7 +236,7 @@ Resources:
       - ContainerName: 'retool'
         ContainerPort: '3000'
         TargetGroupArn: !Ref 'ECSTG'
-      Role: !Ref 'RetoolServiceRole'
+      # Role: !Ref 'RetoolServiceRole'
       TaskDefinition: !Ref 'RetoolTask'
 
   RetoolServiceRole:
@@ -264,6 +275,30 @@ Resources:
           Action: ['sts:AssumeRole']
       Path: /
       Policies: []
+
+  RetoolExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service: ['ecs-tasks.amazonaws.com']
+          Action: ['sts:AssumeRole']
+      Path: /
+      Policies:
+      - PolicyName: !Join ['-', ['Retool', !Ref 'Environment', 'execution-policy']]
+        PolicyDocument:
+          Statement:
+          - Effect: Allow
+            Action: [
+              "ecr:GetAuthorizationToken",
+              "ecr:BatchCheckLayerAvailability",
+              "ecr:GetDownloadUrlForLayer",
+              "ecr:BatchGetImage",
+              "logs:CreateLogStream",
+              "logs:PutLogEvents"]
+            Resource: '*'
 
 Outputs:
   ECSALB:
