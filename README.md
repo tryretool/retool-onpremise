@@ -65,7 +65,7 @@ $ kubectl set image deploy/api api=tryretool/backend:X.XX.X
 
 ```
 
-The list of available version numbers for X.XX.X are available here: https://updates.retool.in/
+The list of available version numbers for X.XX.X are available here: https://updates.tryretool.com/
 
 ### Deploying to Heroku
 
