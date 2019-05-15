@@ -45,6 +45,12 @@ echo 'RT_POSTGRES_PORT=5432' >> docker.env
 echo "RT_POSTGRES_PASSWORD=${postgresPassword}" >> docker.env
 echo '' >> docker.env
 
+echo '## Set and generate redis credentials' >> docker.env
+echo 'REDIS_HOST=caching-redis' >> docker.env
+echo 'REDIS_PORT=6379' >> docker.env
+echo 'REDIS_DB=0' >> docker.env
+echo "REDIS_PASSWORD=${redisPassword}" >> docker.env
+
 echo '## Set variables for the nginx server' >> docker.env
 echo "# Change '${hostname}' to retool.yourcompany.com to set up SSL properly" >> docker.env
 echo "DOMAINS=${hostname} -> http://api:3000" >> docker.env
