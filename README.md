@@ -130,6 +130,7 @@ FROM tryretool/backend:X.XX.X
         POSTGRES_PASSWORD=your-db-password \
         POSTGRES_PORT=your-db-port \
         POSTGRES_SSL_ENABLED=true \
+        FORCE_SSL=true \
         NODE_ENV=production \
         JWT_SECRET=$(cat /dev/urandom | base64 | head -c 256) \
         ENCRYPTION_KEY=$(cat /dev/urandom | base64 | head -c 64) \
@@ -137,7 +138,7 @@ FROM tryretool/backend:X.XX.X
     ```
 1. Set your git remote which you can find in the Aptible dashboard: `git remote add aptible your-git-url`
 1. Push the code: `git push aptible master`
-1. When you navigate to your Aptible url make sure to put `https://` before it
+1. Navigate to your domain and you should be able to sign up as a new user in your Retool instance
 
 ## Health check endpoint 
 
