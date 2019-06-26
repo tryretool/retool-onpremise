@@ -113,6 +113,32 @@ To lockdown the version of Retool used, just edit the first line under `./heroku
 FROM tryretool/backend:X.XX.X
 ```
 
+### Running Retool using Aptible
+
+1. Add your public SSH key to your Aptible account through the Aptible dashboard
+1. Install the Aptible CLI, and login. Documentation for this can be found here: https://www.aptible.com/documentation/deploy/cli.html
+1. Clone this repo `git clone https://github.com/tryretool/retool-onpremise`
+1. Change the working directory to the newly cloned repository `cd ./retool-onpremise`
+1. Create a new Aptible app with `aptible apps:create your-app-name`
+1. Add a database: `aptible db:create your-database-name --type postgresql`
+1. Set your config variables (your database connection string will be in your Aptible Dashboard and you can parse out the individual values by following these instructions: https://www.aptible.com/documentation/deploy/reference/databases/credentials.html#using-database-credentials):
+    ```
+    aptible config:set --app your-app-name \
+        POSTGRES_DB=your-db \
+        POSTGRES_HOST=your-db-host \
+        POSTGRES_USER=your-user \
+        POSTGRES_PASSWORD=your-db-password \
+        POSTGRES_PORT=your-db-port \
+        POSTGRES_SSL_ENABLED=true \
+        NODE_ENV=production \
+        JWT_SECRET=$(cat /dev/urandom | base64 | head -c 256) \
+        ENCRYPTION_KEY=$(cat /dev/urandom | base64 | head -c 64) \
+        LICENSE_KEY=EXPIRED-LICENSE-KEY-TRIAL
+    ```
+1. Set your git remote which you can find in the Aptible dashboard: `git remote add aptible your-git-url`
+1. Push the code: `git push aptible master`
+1. When you navigate to your Aptible url make sure to put `https://` before it
+
 ## Health check endpoint 
 
 Retool also has a health check endpoint that you can set up to monitor liveliness of Retool. You can configure your probe to make a `GET` request to `/api/checkHealth`.
