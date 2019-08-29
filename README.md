@@ -1,5 +1,15 @@
-# On-premise configs for Retool
-Repository for deploying Retool
+<p align="center">
+    <a href="https://tryretool.com/"><img src="http://tryretool.com/logo.png" alt="Retool logo" height="100"></a> <br><br>
+<b>Retool lets you build custom internal tools in minutes.</b></p>
+
+
+
+
+
+
+# Repository for deploying Retool on-premise
+
+Retool can be setup on premise in around 15 minutes. You should use either Docker, Kubernetes, or Heroku. If you're not sure what to use, use Docker.
 
 ## Getting started
 
