@@ -4,7 +4,7 @@ services:
     image: tryretool/backend:latest
     env_file: ./docker.env
     environment:
-      - SERVICE_TYPE=API_SERVICE
+      - SERVICE_TYPE=MAIN_BACKEND
       - DB_CONNECTOR_HOST=http://db-connector
       - DB_CONNECTOR_PORT=3002
       - DB_SSH_CONNECTOR_HOST=http://db-ssh-connector
@@ -26,6 +26,19 @@ services:
     volumes:
       - ./keys:/root/.ssh
       - ssh:/retool_backend/autogen_ssh_keys
+
+  jobs-runner:
+    image: tryretool/backend:latest
+    env_file: ./docker.env
+    environment:
+      - SERVICE_TYPE=JOBS_RUNNER
+    networks:
+      - backend-network
+    depends_on:
+      - postgres
+    command: bash -c "chmod -R +x ./docker_scripts; sync; ./docker_scripts/wait-for-it.sh postgres:5432; ./docker_scripts/start_api.sh"
+    links:
+      - postgres
 
   db-connector:
     image: tryretool/backend:latest
