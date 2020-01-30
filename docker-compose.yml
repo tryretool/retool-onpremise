@@ -1,7 +1,9 @@
 version: '2'
 services:
   api:
-    image: tryretool/backend:latest
+    build:
+      context: ./
+      dockerfile: Dockerfile
     env_file: ./docker.env
     environment:
       - SERVICE_TYPE=MAIN_BACKEND
@@ -28,7 +30,9 @@ services:
       - ssh:/retool_backend/autogen_ssh_keys
 
   jobs-runner:
-    image: tryretool/backend:latest
+    build:
+      context: ./
+      dockerfile: Dockerfile
     env_file: ./docker.env
     environment:
       - SERVICE_TYPE=JOBS_RUNNER
@@ -41,7 +45,9 @@ services:
       - postgres
 
   db-connector:
-    image: tryretool/backend:latest
+    build:
+      context: ./
+      dockerfile: Dockerfile
     command: bash -c "./retool_backend"
     env_file: ./docker.env
     environment:
@@ -51,7 +57,9 @@ services:
     restart: on-failure
 
   db-ssh-connector:
-    image: tryretool/backend:latest
+    build:
+      context: ./
+      dockerfile: Dockerfile
     command: bash -c "./docker_scripts/generate_key_pair.sh; ./retool_backend"
     env_file: ./docker.env
     environment:
