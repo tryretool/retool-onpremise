@@ -28,7 +28,14 @@ image:
 commandline:
   args: []
 
-env: {}
+## Additional environment variables to set
+extraEnvs: []
+# extraEnvs:
+#   - name: FOO
+#     valueFrom:
+#       secretKeyRef:
+#         key: FOO
+#         name: secret-resource
 
 files: {}
 

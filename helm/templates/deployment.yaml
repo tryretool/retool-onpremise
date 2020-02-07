@@ -101,10 +101,8 @@ spec:
                 key: google-client-secret
           - name: RESTRICTED_DOMAIN
             value: {{ default "" .Values.config.auth.google.domain }}
-
-          {{- range $key, $value := .Values.env }}
-          - name: "{{ $key }}"
-            value: "{{ $value }}"
+          {{- if .Values.extraEnvs }}
+{{ toYaml .Values.extraEnvs | indent 12 }}
           {{- end }}
         ports:
         - containerPort: {{ .Values.service.internalPort }}
