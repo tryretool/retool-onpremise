@@ -28,6 +28,8 @@ image:
 commandline:
   args: []
 
+env: {}
+
 # Support for external secrets https://github.com/godaddy/kubernetes-external-secrets
 externalSecrets:
   enabled: false
