@@ -45,35 +45,31 @@ spec:
         args:
           - bash
           - -c
-          - chmod -R +x ./docker_scripts; sync; ./docker_scripts/wait-for-it.sh -t 0 {{ template "retool.postgresql.host" . }}:{{ template "retool.postgresql.port" . }}; ./docker_scripts/start_api.sh
+          - chmod -R +x ./docker_scripts; sync; ./docker_scripts/wait-for-it.sh -t 0 $(POSTGRES_HOST):$(POSTGRES_PORT); ./docker_scripts/start_api.sh
         {{- if .Values.commandline.args }}
 {{ toYaml .Values.commandline.args | indent 10 }}
         {{- end }}
         env:
           - name: NODE_ENV
             value: production
-
+          - name: COOKIE_INSECURE
+            value: {{ .Values.config.useInsecureCookies | quote }}
+          {{- if not .Values.externalSecrets.enabled }}
           - name: LICENSE_KEY
             valueFrom:
               secretKeyRef:
                 name: {{ template "retool.fullname" . }}
                 key: license-key
-
           - name: JWT_SECRET
             valueFrom:
               secretKeyRef:
                 name: {{ template "retool.fullname" . }}
                 key: jwt-secret
-
           - name: ENCRYPTION_KEY
             valueFrom:
               secretKeyRef:
                 name: {{ template "retool.fullname" . }}
                 key: encryption-key
-
-          - name: COOKIE_INSECURE
-            value: {{ .Values.config.useInsecureCookies | quote }}
-
           - name: POSTGRES_HOST
             value: {{ template "retool.postgresql.host" . }}
           - name: POSTGRES_PORT
@@ -91,7 +87,6 @@ spec:
                 name: {{ template "retool.fullname" . }}
           {{- end }}
                 key: postgresql-password
-
           - name: CLIENT_ID
             value: {{ default "" .Values.config.auth.google.clientId }}
           - name: CLIENT_SECRET
@@ -101,9 +96,12 @@ spec:
                 key: google-client-secret
           - name: RESTRICTED_DOMAIN
             value: {{ default "" .Values.config.auth.google.domain }}
-          {{- if .Values.extraEnvs }}
-{{ toYaml .Values.extraEnvs | indent 12 }}
           {{- end }}
+        {{- if .Values.externalSecrets.enabled }}
+        envFrom:
+        - secretRef:
+            name: {{ .Values.externalSecrets.name }}
+        {{- end }}
         ports:
         - containerPort: {{ .Values.service.internalPort }}
           name: {{ template "retool.name" . }}

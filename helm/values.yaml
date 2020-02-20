@@ -28,14 +28,10 @@ image:
 commandline:
   args: []
 
-## Additional environment variables to set
-extraEnvs: []
-# extraEnvs:
-#   - name: FOO
-#     valueFrom:
-#       secretKeyRef:
-#         key: FOO
-#         name: secret-resource
+# Support for external secrets https://github.com/godaddy/kubernetes-external-secrets
+externalSecrets:
+  enabled: false
+  name: retool-config
 
 files: {}
 
