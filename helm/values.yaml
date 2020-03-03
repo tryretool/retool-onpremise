@@ -1,4 +1,4 @@
-# nameOverride: 
+# nameOverride:
 # fullNameOverride:
 
 config:
@@ -9,9 +9,9 @@ config:
       clientId:
       clientSecret:
       domain:
-  encryptionKey: 
-  jwtSecret: 
-  
+  encryptionKey:
+  jwtSecret:
+
   postgresql: {}
     # Specify if postgresql subchart is disabled
     # host:
@@ -52,6 +52,7 @@ service:
 
 postgresql:
   enabled: true
+  ssl_enabled: false
   postgresqlDatabase: hammerhead_production
   postgresqlUsername: retool
   postgresqlPassword: retool

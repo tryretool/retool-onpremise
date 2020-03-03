@@ -82,6 +82,8 @@ spec:
             value: {{ template "retool.postgresql.db" . }}
           - name: POSTGRES_USER
             value: {{ template "retool.postgresql.user" . }}
+          - name: POSTGRES_SSL_ENABLED
+            value: {{ template "retool.postgresql.ssl_enabled" . }}
           - name: POSTGRES_PASSWORD
             valueFrom:
               secretKeyRef:

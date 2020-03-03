@@ -46,6 +46,17 @@ Create the name of the service account to use
 {{- end -}}
 
 {{/*
+Set postgresql ssl_enabled
+*/}}
+{{- define "retool.postgresql.ssl_enabled" -}}
+{{- if .Values.postgresql.enabled -}}
+{{- .Values.postgresql.ssl_enabled | quote -}}
+{{- else -}}
+{{- .Values.config.postgresql.ssl_enabled | quote -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
 Set postgresql host
 */}}
 {{- define "retool.postgresql.host" -}}
