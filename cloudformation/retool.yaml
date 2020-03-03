@@ -92,7 +92,9 @@ Resources:
           - Name: POSTGRES_DB
             Value: hammerhead_production
           - Name: POSTGRES_HOST
-            Value: !Join ['', [!GetAtt [RetoolRDSInstance, Endpoint.Address]]]
+            Value: !GetAtt [RetoolRDSInstance, Endpoint.Address]
+          - Name: POSTGRES_SSL_ENABLED
+            Value: "true"
           - Name: POSTGRES_PORT
             Value: "5432"
           - Name: POSTGRES_USER
@@ -105,10 +107,9 @@ Resources:
             Value: !Join ['', ['{{resolve:secretsmanager:', !Ref RetoolEncryptionKeySecret, ':SecretString:password}}' ]]
           - Name: LICENSE_KEY
             Value: "EXPIRED-LICENSE-KEY-TRIAL"
-
           # Remove below when serving Retool over https
           - Name: COOKIE_INSECURE
-            Value: "true" 
+            Value: "true"
         PortMappings:
         - ContainerPort: '3000'
           HostPort: '80'
@@ -268,4 +269,4 @@ Resources:
 Outputs:
   ECSALB:
     Description: Your ALB DNS URL
-    Value: !Join ['', [!GetAtt [ECSALB, DNSName]]]
+    Value: !GetAtt [ECSALB, DNSName]
