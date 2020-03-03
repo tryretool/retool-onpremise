@@ -96,7 +96,9 @@ Resources:
           - Name: POSTGRES_DB
             Value: hammerhead_production
           - Name: POSTGRES_HOST
-            Value: !Join ['', [!GetAtt [RetoolRDSInstance, Endpoint.Address]]]
+            Value: !GetAtt [RetoolRDSInstance, Endpoint.Address]
+          - Name: POSTGRES_SSL_ENABLED
+            Value: "true"
           - Name: POSTGRES_PORT
             Value: "5432"
           - Name: POSTGRES_USER
@@ -303,4 +305,4 @@ Resources:
 Outputs:
   ECSALB:
     Description: Your ALB DNS URL
-    Value: !Join ['', [!GetAtt [ECSALB, DNSName]]]
+    Value: !GetAtt [ECSALB, DNSName]
