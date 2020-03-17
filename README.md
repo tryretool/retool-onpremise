@@ -123,6 +123,12 @@ To lockdown the version of Retool used, just edit the first line under `./heroku
 FROM tryretool/backend:X.XX.X
 ```
 
+### Deploying to Render
+
+Just use the Deploy to Render button below!
+
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/render-examples/retool)
+
 ### Running Retool using Aptible
 
 1. Add your public SSH key to your Aptible account through the Aptible dashboard
