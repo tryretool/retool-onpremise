@@ -154,7 +154,8 @@ Just use the Deploy to Render button below!
     ```
 1. Set your git remote which you can find in the Aptible dashboard: `git remote add aptible your-git-url`
 1. Push the code: `git push aptible master`
-1. Navigate to your domain and you should be able to sign up as a new user in your Retool instance
+1. Create a default Aptible endpoint
+1. Navigate to your endpoint and sign up as a new user in your Retool instance
 
 ## Health check endpoint 
 
