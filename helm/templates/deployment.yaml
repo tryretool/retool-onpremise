@@ -52,34 +52,30 @@ spec:
         env:
           - name: NODE_ENV
             value: production
-
-          - name: LICENSE_KEY
-            valueFrom:
-              secretKeyRef:
-                name: {{ template "retool.fullname" . }}
-                key: license-key
-
-          - name: JWT_SECRET
-            valueFrom:
-              secretKeyRef:
-                name: {{ template "retool.fullname" . }}
-                key: jwt-secret
-
-          - name: ENCRYPTION_KEY
-            valueFrom:
-              secretKeyRef:
-                name: {{ template "retool.fullname" . }}
-                key: encryption-key
-
           - name: COOKIE_INSECURE
             value: {{ .Values.config.useInsecureCookies | quote }}
-
           - name: POSTGRES_HOST
             value: {{ template "retool.postgresql.host" . }}
           - name: POSTGRES_PORT
             value: {{ template "retool.postgresql.port" . }}
           - name: POSTGRES_DB
             value: {{ template "retool.postgresql.db" . }}
+          {{- if not .Values.externalSecrets.enabled }}
+          - name: LICENSE_KEY
+            valueFrom:
+              secretKeyRef:
+                name: {{ template "retool.fullname" . }}
+                key: license-key
+          - name: JWT_SECRET
+            valueFrom:
+              secretKeyRef:
+                name: {{ template "retool.fullname" . }}
+                key: jwt-secret
+          - name: ENCRYPTION_KEY
+            valueFrom:
+              secretKeyRef:
+                name: {{ template "retool.fullname" . }}
+                key: encryption-key
           - name: POSTGRES_USER
             value: {{ template "retool.postgresql.user" . }}
           - name: POSTGRES_SSL_ENABLED
@@ -93,7 +89,6 @@ spec:
                 name: {{ template "retool.fullname" . }}
           {{- end }}
                 key: postgresql-password
-
           - name: CLIENT_ID
             value: {{ default "" .Values.config.auth.google.clientId }}
           - name: CLIENT_SECRET
@@ -103,11 +98,16 @@ spec:
                 key: google-client-secret
           - name: RESTRICTED_DOMAIN
             value: {{ default "" .Values.config.auth.google.domain }}
-
+          {{- end }}
           {{- range $key, $value := .Values.env }}
           - name: "{{ $key }}"
             value: "{{ $value }}"
           {{- end }}
+        {{- if .Values.externalSecrets.enabled }}
+        envFrom:
+        - secretRef:
+            name: {{ .Values.externalSecrets.name }}
+        {{- end }}
         ports:
         - containerPort: {{ .Values.service.internalPort }}
           name: {{ template "retool.name" . }}

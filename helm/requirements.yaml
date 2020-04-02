@@ -2,3 +2,4 @@ dependencies:
 - name: postgresql
   repository: "@stable"
   version: "*"
+  condition: postgresql.enabled
