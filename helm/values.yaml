@@ -139,6 +139,8 @@ tolerations: []
 nodeSelector: {}
 
 podAnnotations: {}
+# Increasing replica count will deploy a separate pod for backend and jobs
+# Example: with 3 replicas, you will end up with 3 backends + 1 jobs pod
 replicaCount: 1
 revisionHistoryLimit: 3
 
