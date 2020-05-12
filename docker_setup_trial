@@ -52,6 +52,4 @@ fi
   echo ''
   echo '## License key'
   echo 'LICENSE_KEY=EXPIRED-LICENSE-KEY-TRIAL'
-
-  echo "Cool! Now just run docker-compose up to launch Retool."
 } >> docker.env
