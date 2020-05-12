@@ -5,14 +5,6 @@ jwtSecret="$(base64 /dev/urandom | head -c 256)"
 encryptionKey="$(base64 /dev/urandom | head -c 64)"
 publicIpAddress="$(dig +short myip.opendns.com @resolver1.opendns.com)"
 
-echo "Hi! I'm here to help you set up a self-hosted Retool."
-echo
-echo "Just one question: Do you have a fully qualified domain pointed at your Retool server?"
-echo
-echo "This is an optional question. If you have a domain that points to your Retool server, the installation scripts can request a Let's Encrypt HTTPS certificate for you automatically. If you do not provide one, a self-signed certificate will be used instead."
-echo
-echo "If you have just created a new cloud server in previous steps, now is a good time to point your fully qualified domain to your server's public address. Make sure the fully qualified domain resolves to the correct IP address before proceeding."
-
 hostname='127.0.0.1'
 
 if [ -f ./docker.env ]; then
