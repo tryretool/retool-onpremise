@@ -54,10 +54,11 @@ if [ -z "$POSSIBLE_INSTALL" ] || [ ! -d "$ONPREM_DIRECTORY" ]; then
   mkdir -p retool-local-tryout
   cd retool-local-tryout
 
-  INSTALL_LOCATION="$(pwd)"
-  log_step 'created retool installation directory...' "$INSTALL_LOCATION"
+  ONPREM_DIRECTORY="$(pwd)"
+  log_step 'created retool installation directory...' "$ONPREM_DIRECTORY"
 
   log_step 'downloading...'
+  # cp -r ~/dev/work/retool-onpremise ./retool-onpremise-master
   wget https://github.com/tryretool/retool-onpremise/archive/master.zip
 
   log_step 'unpacking...'
@@ -83,9 +84,13 @@ if [ -z "$POSSIBLE_INSTALL" ] || [ ! -d "$ONPREM_DIRECTORY" ]; then
     log_step '`docker-compose` found!'
   fi
 
-  log_step 'environment variables set'
-  ./docker_setup_trial
+  if retool_containers_present; then
+    log_step 'noticed you have tried Retool before, cleaning up...'
+    docker-compose rm -fsv
+  fi
 
+  log_step 'environment variables set'
+  cp ./docker.env.trial docker.env
 else
   cd "$ONPREM_DIRECTORY" || error_exit "Couldn't \`cd\` into '$ONPREM_DIRECTORY'"
 fi
