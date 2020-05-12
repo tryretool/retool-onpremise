@@ -46,25 +46,31 @@ cleanup_on_exit() {
   log_step "All done. Have a nice day!"
 }
 
-POSSIBLE_INSTALL="$(find "$TMPDIR" -type d -name retool-local-tryout)"
+# NB: trim trailing slash on $TMPDIR as different OS's do it differently
+POSSIBLE_INSTALL="${TMPDIR%/}/retool-local-tryout"
 ONPREM_DIRECTORY="$POSSIBLE_INSTALL/retool-onpremise-master"
 
-if [ -z "$POSSIBLE_INSTALL" ] || [ ! -d "$ONPREM_DIRECTORY" ]; then
+if [ ! -d "$ONPREM_DIRECTORY" ]; then
+  if [ -d "$POSSIBLE_INSTALL" ]; then
+    log_step 'found a partial install, cleaning it up...'
+    rm -rf "$POSSIBLE_INSTALL"
+  fi
+
   cd "$TMPDIR" || error_exit ""
+
+  log_step 'setting up install location...' "$ONPREM_DIRECTORY"
   mkdir -p retool-local-tryout
   cd retool-local-tryout
 
-  ONPREM_DIRECTORY="$(pwd)"
-  log_step 'created retool installation directory...' "$ONPREM_DIRECTORY"
-
   log_step 'downloading...'
-  # cp -r ~/dev/work/retool-onpremise ./retool-onpremise-master
-  wget https://github.com/tryretool/retool-onpremise/archive/master.zip
+  cp -r ~/dev/work/retool-onpremise ./retool-onpremise-master
+  # wget https://github.com/tryretool/retool-onpremise/archive/master.zip
 
-  log_step 'unpacking...'
-  unzip master.zip
+  # log_step 'unpacking...'
+  # unzip master.zip
 
   cd retool-onpremise-master
+  ONPREM_DIRECTORY="$(pwd)"
 
   if ! command_present docker; then
     # shellcheck disable=2016
