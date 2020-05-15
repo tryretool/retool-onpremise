@@ -7,11 +7,17 @@ if [ -t 1 ]; then
   export NORMAL="$(tput sgr0)"
   export RED="$(tput setaf 1)"
   export GREEN="$(tput setaf 2)"
+  export MAGENTA="$(tput setaf 5)"
+  export CYAN="$(tput setaf 6)"
+  export WHITE="$(tput setaf 7)"
   export BOLD="$(tput bold)"
 else
   export NORMAL=""
   export RED=""
   export GREEN=""
+  export MAGENTA=""
+  export CYAN=""
+  export WHITE=""
   export BOLD=""
 fi
 
@@ -39,6 +45,18 @@ command_present() {
   type "$1" >/dev/null 2>&1
 }
 
+retool_containers_present() {
+  # NB: awk is to remove whitespace from `wc`
+  RETOOL_IMAGES="$(docker image ls | grep 'retool-onpremise' | wc -l | awk '{print $1}')"
+  test "$RETOOL_IMAGES" -gt '0'
+}
+
+retool_trial_running() {
+  # NB: awk is to remove whitespace from `wc`
+  CONTAINERS="$(docker-compose ps -q | wc -l | awk '{print $1}')"
+  test "$CONTAINERS" -gt '0'
+}
+
 cleanup_on_exit() {
   log_step "shutting down containers"
   docker-compose down
@@ -47,20 +65,19 @@ cleanup_on_exit() {
 }
 
 # NB: trim trailing slash on $TMPDIR as different OS's do it differently
-POSSIBLE_INSTALL="${TMPDIR%/}/retool-local-tryout"
-ONPREM_DIRECTORY="$POSSIBLE_INSTALL/retool-onpremise-master"
+INSTALL_DIRECTORY="$HOME/retool"
+DOCKER_CONTEXT="$INSTALL_DIRECTORY/retool-onpremise"
 
-if [ ! -d "$ONPREM_DIRECTORY" ]; then
-  if [ -d "$POSSIBLE_INSTALL" ]; then
+if [ ! -d "$INSTALL_DIRECTORY" ]; then
+  if [ -d "$DOCKER_CONTEXT" ]; then
     log_step 'found a partial install, cleaning it up...'
-    rm -rf "$POSSIBLE_INSTALL"
+    rm -rf "$DOCKER_CONTEXT"
   fi
 
-  cd "$TMPDIR" || error_exit ""
+  cd "$HOME"
 
-  log_step 'setting up install location...' "$ONPREM_DIRECTORY"
-  mkdir -p retool-local-tryout
-  cd retool-local-tryout
+  log_step 'setting up install location...' "$INSTALL_DIRECTORY"
+  mkdir retool && cd retool
 
   log_step 'downloading...'
   cp -r ~/dev/work/retool-onpremise ./retool-onpremise-master
@@ -69,8 +86,10 @@ if [ ! -d "$ONPREM_DIRECTORY" ]; then
   # log_step 'unpacking...'
   # unzip master.zip
 
-  cd retool-onpremise-master
-  ONPREM_DIRECTORY="$(pwd)"
+  # NB: this is to make onprem containers to all get named the same.
+  mv retool-onpremise-master retool-onpremise
+  cd retool-onpremise
+  DOCKER_CONTEXT="$(pwd)"
 
   if ! command_present docker; then
     # shellcheck disable=2016
@@ -98,14 +117,32 @@ if [ ! -d "$ONPREM_DIRECTORY" ]; then
   log_step 'environment variables set'
   cp ./docker.env.trial docker.env
 else
-  cd "$ONPREM_DIRECTORY" || error_exit "Couldn't \`cd\` into '$ONPREM_DIRECTORY'"
+  cd "$DOCKER_CONTEXT" || error_exit "Couldn't \`cd\` into '$DOCKER_CONTEXT'"
 fi
 
-log_step 'setting up exit hook'
-trap 'cleanup_on_exit' SIGINT
+if retool_trial_running; then
+  log_step 'restarting Retool...'
+  docker-compose down
+fi
+
+log_step 'updating Retool!'
+docker-compose pull
 
 log_step 'running Retool!'
 docker-compose up -d
 
-log_step 'containers up and running, tailing the logs'
-docker-compose logs -f
+echo ""
+echo " -- ${GREEN}${BOLD}!! RETOOL IS RUNNING !!${NORMAL} --"
+echo ""
+echo "  ${CYAN}Navigate to${NORMAL}:          ${WHITE}${BOLD}http://localhost:3000${NORMAL}"
+# TODO this command won't work from any location - maybe move the installation out of the temp dir.
+echo "  ${CYAN}To STOP Retool, run${NORMAL}:  ${WHITE}${BOLD}docker-compose down${NORMAL}"
+echo ""
+for i in $(seq 10 1); do
+  printf "\r%s%s%s%s%s%s" 'Opening your browser for you in ' "$i" ' seconds... ' "$GREEN" '<Press Ctrl-C to cancel>' "$NORMAL "
+  sleep 1
+done
+# NB: empty stuff to fully wipe out previous line completely
+printf "\r%s%s%s%s%s%s%s%s" "$MAGENTA" 'Check out your ' "$BOLD" 'BROWSER' "$NORMAL$MAGENTA" ' for some awesomeness!!!' "$NORMAL" '                              '
+echo
+open "http://localhost:3000"
