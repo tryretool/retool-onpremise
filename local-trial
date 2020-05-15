@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 
+# NB: local trial script has to be self-contained
 # See https://sipb.mit.edu/doc/safe-shell/
 set -euf -o pipefail
 
@@ -55,13 +56,6 @@ retool_trial_running() {
   # NB: awk is to remove whitespace from `wc`
   CONTAINERS="$(docker-compose ps -q | wc -l | awk '{print $1}')"
   test "$CONTAINERS" -gt '0'
-}
-
-cleanup_on_exit() {
-  log_step "shutting down containers"
-  docker-compose down
-
-  log_step "All done. Have a nice day!"
 }
 
 # NB: trim trailing slash on $TMPDIR as different OS's do it differently
@@ -121,7 +115,7 @@ else
 fi
 
 if retool_trial_running; then
-  log_step 'restarting Retool...'
+  log_step 'stopping Retool for update...'
   docker-compose down
 fi
 
@@ -136,7 +130,7 @@ echo " -- ${GREEN}${BOLD}!! RETOOL IS RUNNING !!${NORMAL} --"
 echo ""
 echo "  ${CYAN}Navigate to${NORMAL}:          ${WHITE}${BOLD}http://localhost:3000${NORMAL}"
 # TODO this command won't work from any location - maybe move the installation out of the temp dir.
-echo "  ${CYAN}To STOP Retool, run${NORMAL}:  ${WHITE}${BOLD}docker-compose down${NORMAL}"
+echo "  ${CYAN}To STOP Retool, run${NORMAL}:  ${WHITE}${BOLD}$DOCKER_CONTEXT/stop-local-trial${NORMAL}"
 echo ""
 for i in $(seq 10 1); do
   printf "\r%s%s%s%s%s%s" 'Opening your browser for you in ' "$i" ' seconds... ' "$GREEN" '<Press Ctrl-C to cancel>' "$NORMAL "
