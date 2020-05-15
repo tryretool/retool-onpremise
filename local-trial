@@ -74,11 +74,10 @@ if [ ! -d "$INSTALL_DIRECTORY" ]; then
   mkdir retool && cd retool
 
   log_step 'downloading...'
-  cp -r ~/dev/work/retool-onpremise ./retool-onpremise-master
-  # wget https://github.com/tryretool/retool-onpremise/archive/master.zip
+  wget https://github.com/tryretool/retool-onpremise/archive/master.zip
 
-  # log_step 'unpacking...'
-  # unzip master.zip
+  log_step 'unpacking...'
+  unzip master.zip
 
   # NB: this is to make onprem containers to all get named the same.
   mv retool-onpremise-master retool-onpremise
