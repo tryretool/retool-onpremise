@@ -102,13 +102,13 @@ if [ ! -d "$INSTALL_DIRECTORY" ]; then
     log_step '`docker-compose` found!'
   fi
 
+  log_step 'setting environment variables'
+  cp ./docker.env.trial docker.env
+
   if retool_containers_present; then
     log_step 'noticed you have tried Retool before, cleaning up...'
     docker-compose rm -fsv
   fi
-
-  log_step 'environment variables set'
-  cp ./docker.env.trial docker.env
 else
   cd "$DOCKER_CONTEXT" || error_exit "Couldn't \`cd\` into '$DOCKER_CONTEXT'"
 fi
