@@ -62,19 +62,19 @@ retool_trial_running() {
 INSTALL_DIRECTORY="$HOME/retool"
 DOCKER_CONTEXT="$INSTALL_DIRECTORY/retool-onpremise"
 
-if [ ! -d "$INSTALL_DIRECTORY" ]; then
-  if [ -d "$DOCKER_CONTEXT" ]; then
+cd "$HOME"
+
+if [ ! -d "$DOCKER_CONTEXT" ]; then
+  if [ -d "$INSTALL_DIRECTORY" ]; then
     log_step 'found a partial install, cleaning it up...'
     rm -rf "$DOCKER_CONTEXT"
   fi
-
-  cd "$HOME"
 
   log_step 'setting up install location...' "$INSTALL_DIRECTORY"
   mkdir retool && cd retool
 
   log_step 'downloading...'
-  wget https://github.com/tryretool/retool-onpremise/archive/master.zip
+  curl -L -XGET -o master.zip https://github.com/tryretool/retool-onpremise/archive/master.zip
 
   log_step 'unpacking...'
   unzip master.zip
@@ -127,7 +127,7 @@ docker-compose up -d
 echo ""
 echo " -- ${GREEN}${BOLD}!! RETOOL IS RUNNING !!${NORMAL} --"
 echo ""
-echo "  ${CYAN}Navigate to${NORMAL}:          ${WHITE}${BOLD}http://localhost:3000${NORMAL}"
+echo "  ${CYAN}Navigate to${NORMAL}:          ${WHITE}${BOLD}http://localhost:3000/auth/signup${NORMAL}"
 # TODO this command won't work from any location - maybe move the installation out of the temp dir.
 echo "  ${CYAN}To STOP Retool, run${NORMAL}:  ${WHITE}${BOLD}$DOCKER_CONTEXT/stop-local-trial${NORMAL}"
 echo ""
@@ -138,4 +138,4 @@ done
 # NB: empty stuff to fully wipe out previous line completely
 printf "\r%s%s%s%s%s%s%s%s" "$MAGENTA" 'Check out your ' "$BOLD" 'BROWSER' "$NORMAL$MAGENTA" ' for some awesomeness!!!' "$NORMAL" '                              '
 echo
-open "http://localhost:3000"
+open "http://localhost:3000/auth/signup"
