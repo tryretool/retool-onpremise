@@ -92,9 +92,9 @@ if [ ! -d "$DOCKER_CONTEXT" ]; then
     log_step '`docker` not found, installing...'
 
     if [[ "$OSTYPE" == "darwin"* ]]; then
-      error_exit "please install \`docker\` manually" "Instructions can be found at ${WHITE}${BOLD}https://docs.docker.com/${NORMAL}"
-    else
       error_exit "please install \`docker\` manually" "Instructions can be found at ${WHITE}${BOLD}https://docs.docker.com/${NORMAL}" "${BOLD}Remember${NORMAL} to start the \`Docker\` app from the UI."
+    else
+      error_exit "please install \`docker\` manually" "Instructions can be found at ${WHITE}${BOLD}https://docs.docker.com/${NORMAL}"
     fi
   else
     # shellcheck disable=2016
