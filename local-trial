@@ -67,7 +67,7 @@ cd "$HOME"
 if [ ! -d "$DOCKER_CONTEXT" ]; then
   if [ -d "$INSTALL_DIRECTORY" ]; then
     log_step 'found a partial install, cleaning it up...'
-    rm -rf "$DOCKER_CONTEXT"
+    rm -rf "$INSTALL_DIRECTORY"
   fi
 
   log_step 'setting up install location...' "$INSTALL_DIRECTORY"
@@ -84,10 +84,18 @@ if [ ! -d "$DOCKER_CONTEXT" ]; then
   cd retool-onpremise
   DOCKER_CONTEXT="$(pwd)"
 
+  log_step 'setting environment variables'
+  cp ./docker.env.trial docker.env
+
   if ! command_present docker; then
     # shellcheck disable=2016
     log_step '`docker` not found, installing...'
-    ./get-docker.sh
+
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+      error_exit "please install \`docker\` manually" "Instructions can be found at ${WHITE}${BOLD}https://docs.docker.com/${NORMAL}"
+    else
+      error_exit "please install \`docker\` manually" "Instructions can be found at ${WHITE}${BOLD}https://docs.docker.com/${NORMAL}" "${BOLD}Remember${NORMAL} to start the \`Docker\` app from the UI."
+    fi
   else
     # shellcheck disable=2016
     log_step '`docker` found!'
@@ -101,9 +109,6 @@ if [ ! -d "$DOCKER_CONTEXT" ]; then
     # shellcheck disable=2016
     log_step '`docker-compose` found!'
   fi
-
-  log_step 'setting environment variables'
-  cp ./docker.env.trial docker.env
 
   if retool_containers_present; then
     log_step 'noticed you have tried Retool before, cleaning up...'
