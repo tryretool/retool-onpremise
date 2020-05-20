@@ -42,6 +42,16 @@ log_step() {
   done
 }
 
+log_warn() {
+  echo ''
+  echo "${GREEN}${BOLD}INFO${NORMAL}${BOLD}: $1${NORMAL}"
+  shift
+  while [ "$#" -gt "0" ]; do
+    echo " - $1"
+    shift
+  done
+}
+
 command_present() {
   type "$1" >/dev/null 2>&1
 }
@@ -89,12 +99,16 @@ if [ ! -d "$DOCKER_CONTEXT" ]; then
 
   if ! command_present docker; then
     # shellcheck disable=2016
-    log_step '`docker` not found, installing...'
+    log_warn '`docker` not found!'
 
     if [[ "$OSTYPE" == "darwin"* ]]; then
-      error_exit "please install \`docker\` manually" "Instructions can be found at ${WHITE}${BOLD}https://docs.docker.com/${NORMAL}" "${BOLD}Remember${NORMAL} to start the \`Docker\` app from the UI."
+      error_exit "please install \`docker\` manually" \
+        "Instructions can be found at ${WHITE}${BOLD}https://docs.docker.com/${NORMAL}" \
+        "${BOLD}Remember${NORMAL} to start the \`Docker\` app from the UI."
     else
-      error_exit "please install \`docker\` manually" "Instructions can be found at ${WHITE}${BOLD}https://docs.docker.com/${NORMAL}"
+      error_exit "please install \`docker\` manually" \
+        "Instructions can be found at ${WHITE}${BOLD}https://docs.docker.com/${NORMAL}" \
+        "${BOLD}Remember${NORMAL} to start the \`docker\` daemon/service."
     fi
   else
     # shellcheck disable=2016
@@ -103,8 +117,19 @@ if [ ! -d "$DOCKER_CONTEXT" ]; then
 
   if ! command_present docker-compose; then
     # shellcheck disable=2016
-    log_step '`docker-compose` not found, installing...'
-    ./get-docker-compose.sh
+    log_warn '`docker-compose` not found!'
+
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+      error_exit "please install \`docker-compose\` manually" \
+        "Usually, \`docker\` and \`docker-compose\` are bundled together, consider uninstalling your existing docker implementation" \
+        "Instructions can be found at ${WHITE}${BOLD}https://docs.docker.com/${NORMAL}" \
+        "${BOLD}Remember${NORMAL} to start the \`Docker\` app from the UI."
+    else
+      error_exit "please install \`docker-compose\` manually" \
+        "Usually, \`docker\` and \`docker-compose\` are bundled together, consider uninstalling your existing docker implementation" \
+        "Instructions can be found at ${WHITE}${BOLD}https://docs.docker.com/${NORMAL}" \
+        "${BOLD}Remember${NORMAL} to start the \`docker\` daemon/service."
+    fi
   else
     # shellcheck disable=2016
     log_step '`docker-compose` found!'
