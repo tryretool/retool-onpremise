@@ -172,49 +172,23 @@ api_running() {
   test -n "$API_DOCKER_CONTAINER"
 }
 
-# TODO remove \n
-printf "%s%s%s%s\n" "Waiting for Retool to start up... " "${RED}${BOLD}" "<Pressing Ctrl-C may prevent proper start-up>" "$NORMAL"
+printf "%s%s%s%s" "Waiting for Retool to start up... " "${RED}${BOLD}" "<Pressing Ctrl-C may prevent proper start-up>" "$NORMAL"
 
 while [ $WAITED -lt 20 ] && api_running; do
-  # TODO remove
-  echo "Still waiting $WAITED"
   WAITED=$((WAITED + 1))
   sleep 1
 done
 
 if ! api_running; then
-  # TODO remove
-  echo "not running, attempting up -d again"
   docker-compose up -d > /dev/null 2>&1
   WAITED=0
   while [ $WAITED -lt 10 ] && api_running; do
-    # TODO remove
-    echo "Still waiting $WAITED"
     WAITED=$((WAITED + 1))
     sleep 1
   done
 fi
 
-# TODO remove \n
 # NB: empty stuff to fully wipe out previous line completely
-printf "\r%s%s%s%s%s%s%s%s\n" "$MAGENTA" 'Check out your ' "$BOLD" 'BROWSER' "${NORMAL}${MAGENTA}" ' for some awesomeness!!!' "$NORMAL" '                              '
+printf "\r%s%s%s%s%s%s%s%s" "$MAGENTA" 'Check out your ' "$BOLD" 'BROWSER' "${NORMAL}${MAGENTA}" ' for some awesomeness!!!' "$NORMAL" '                              '
 echo
-open "http://localhost:3000/auth/signup"
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+open 'http://localhost:3000/auth/signup'
