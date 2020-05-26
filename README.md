@@ -223,6 +223,15 @@ RESTRICTED_DOMAIN=yourcompany.com
 
 Note that, if you are using this in conjuction with Google login, Retool will compare the value supplied to `RESTRICTED_DOMAIN` with the domain of users that attempt to authenticate with Google SSO and reject accounts from different domains.
 
+## Deploy Retool with Multiple Containers
+
+Sometimes, you may want to deploy Retool with multiple containers (for ex., if you would like to add resources, or enable git syncing). In addition to the main Retool api container, you will need to add a separate jobs-runner container (which will run migrations + git-syncing, if enabled).
+
+1. Add a `SERVICE_TYPE` env var in your main Retool api container, and set its value to `MAIN_BACKEND,DB_CONNECTOR`.
+2. Create a second Retool `jobs-runner` container.
+3. In the `jobs-runner`, set the `SERVICE_TYPE` env var to `JOBS_RUNNER`.
+4. (Re)start your containers.  
+
 ## Troubleshooting:
 
 - On Kubernetes, I get the error `SequelizeConnectionError: password authentication failed for user "..."`
