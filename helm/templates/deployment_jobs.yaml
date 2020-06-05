@@ -1,5 +1,5 @@
 {{- if gt .Values.replicaCount 1.0 }}
-apiVersion: apps/v1beta1
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   labels:
@@ -15,6 +15,10 @@ metadata:
 spec:
   replicas: 1
   revisionHistoryLimit: {{ .Values.revisionHistoryLimit }}
+  selector:
+    matchLabels:
+      app: {{ template "retool.fullname" . }}-jobs-runner
+      release: {{ .Release.Name }}
   template:
     metadata:
       annotations:
