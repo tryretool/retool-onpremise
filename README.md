@@ -237,5 +237,5 @@ Sometimes, you may want to deploy Retool with multiple containers (for ex., if y
 - On Kubernetes, I get the error `SequelizeConnectionError: password authentication failed for user "..."`
     - Make sure that the secrets that you encoded in base64 don't have trailing whitespace! You can use `kubectl exec printenv` to help debug this issue.
 - I can't seem to login?
-    - If you have not enabled SSL yet, you will need to add the line `COOKIE_INSECURE=true` to your `docker.env` file / environment configuration so that the authentication cookies can be sent over http.
+    - If you have not enabled SSL yet, you will need to add the line `COOKIE_INSECURE=true` to your `docker.env` file / environment configuration so that the authentication cookies can be sent over http. Make sure to run sudo docker-compose up -d after modifying the docker.env file.
 
