@@ -57,11 +57,12 @@ Resources:
     Type: AWS::EC2::SecurityGroup
     Properties:
       GroupDescription: !Join [" ", [!Ref 'AWS::StackName', 'database security group']]
+      VpcId: !Ref 'VpcId'
 
   RetoolECSPostgresInbound:
     Type: AWS::EC2::SecurityGroupIngress
     Properties:
-      GroupId: !GetAtt [RDSSecurityGroup, GroupId]
+      GroupId: !Ref RDSSecurityGroup
       IpProtocol: tcp
       FromPort: '5432'
       ToPort: '5432'
@@ -150,6 +151,11 @@ Resources:
         PasswordLength: 16
         ExcludeCharacters: '"@/\'
 
+  RDSSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      DBSubnetGroupDescription: Subnets for rds
+      SubnetIds: !Ref SubnetId
 
   RetoolRDSInstance:
     Type: AWS::RDS::DBInstance
@@ -163,7 +169,8 @@ Resources:
       MasterUserPassword: !Join ['', ['{{resolve:secretsmanager:', !Ref RetoolRDSSecret, ':SecretString:password}}' ]]
       Port: "5432"
       PubliclyAccessible: true
-      VPCSecurityGroups: [!GetAtt [RDSSecurityGroup, GroupId]]
+      VPCSecurityGroups: [!Ref RDSSecurityGroup]
+      DBSubnetGroupName: !Ref RDSSubnetGroup
 
   ECSALB:
     Type: AWS::ElasticLoadBalancingV2::LoadBalancer
