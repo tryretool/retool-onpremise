@@ -1,0 +1,643 @@
+Some networks were defined but are not used by any service: db-ssh-connector-network
+Attaching to retool-onpremise_api_1
+[36mapi_1            |[0m wait-for-it.sh: waiting 15 seconds for postgres:5432
+[36mapi_1            |[0m wait-for-it.sh: postgres:5432 is available after 5 seconds
+[36mapi_1            |[0m not untarring the bundle
+[36mapi_1            |[0m yarn run v1.22.4
+[36mapi_1            |[0m warning package.json: Potential typo "script", did you mean "scripts"?
+[36mapi_1            |[0m warning package.json: License should be a valid SPDX license expression
+[36mapi_1            |[0m $ ./node_modules/.bin/sequelize --config ./server/config/config.js db:migrate
+[36mapi_1            |[0m
+[36mapi_1            |[0m [4mSequelize CLI [Node: 10.21.0, CLI: 4.0.0, ORM: 4.43.0][24m
+[36mapi_1            |[0m
+[36mapi_1            |[0m NODE_ENV: 'production'
+[36mapi_1            |[0m COOKIE_INSECURE: true
+[36mapi_1            |[0m Loaded configuration file "server/config/config.js".
+[36mapi_1            |[0m Using environment "production".
+[36mapi_1            |[0m Tue, 01 Sep 2020 05:29:19 GMT sequelize deprecated String based operators are now deprecated. Please use Symbol based operators for better security, read more at http://docs.sequelizejs.com/manual/tutorial/querying.html#operators at node_modules/sequelize/lib/sequelize.js:242:13
+[36mapi_1            |[0m == 20170517054913-create-organization-and-user: migrating =======
+[36mapi_1            |[0m == 20170517054913-create-organization-and-user: migrated (0.026s)
+[36mapi_1            |[0m
+[36mapi_1            |[0m == 20170519200903-create-page: migrating =======
+[36mapi_1            |[0m == 20170519200903-create-page: migrated (0.009s)
+[36mapi_1            |[0m
+[36mapi_1            |[0m == 20170519213338-create-page-save: migrating =======
+[36mapi_1            |[0m == 20170519213338-create-page-save: migrated (0.009s)
+[36mapi_1            |[0m
+[36mapi_1            |[0m == 20170521042445-create-resource: migrating =======
+[36mapi_1            |[0m == 20170521042445-create-resource: migrated (0.010s)
+[36mapi_1            |[0m
+[36mapi_1            |[0m == 20170605055605-remove-non-null-constraint-on-organizations-domain: migrating =======
+[36mapi_1            |[0m == 20170605055605-remove-non-null-constraint-on-organizations-domain: migrated (0.010s)
+[36mapi_1            |[0m
+[36mapi_1            |[0m == 20170626044218-relax-constraints-for-non-db-resources: migrating =======
+[36mapi_1            |[0m == 20170626044218-relax-constraints-for-non-db-resources: migrated (0.016s)
+[36mapi_1            |[0m
+[36mapi_1            |[0m == 20170627021252-change-user-google-token-to-text-type: migrating =======
+[36mapi_1            |[0m == 20170627021252-change-user-google-token-to-text-type: migrated (0.006s)
+[36mapi_1            |[0m
+[36mapi_1            |[0m == 20170718030743-create-embed: migrating =======
+[36mapi_1            |[0m == 20170718030743-create-embed: migrated (0.011s)
+[36mapi_1            |[0m
+[36mapi_1            |[0m == 20170725114241-create-retool-tables: migrating =======
+[36mapi_1            |[0m == 20170725114241-create-retool-tables: migrated (0.017s)
+[36mapi_1            |[0m
+[36mapi_1            |[0m == 20170801045015-add-database-id-table-name-uniq-constraint: migrating =======
+[36mapi_1            |[0m == 20170801045015-add-database-id-table-name-uniq-constraint: migrated (0.007s)
+[36mapi_1            |[0m
+[36mapi_1            |[0m == 20170801051119-add-ssl-column-to-resources: migrating =======
+[36mapi_1            |[0m == 20170801051119-add-ssl-column-to-resources: migrated (0.011s)
+[36mapi_1            |[0m
+[36mapi_1            |[0m == 20170827134431-add-edit-privilege-to-resources: migrating =======
+[36mapi_1            |[0m == 20170827134431-add-edit-privilege-to-resources: migrated (0.008s)
+[36mapi_1            |[0m
+[36mapi_1            |[0m == 20170901033536-create-user-invites: migrating =======
+[36mapi_1            |[0m == 20170901033536-create-user-invites: migrated (0.010s)
+[36mapi_1            |[0m
+[36mapi_1            |[0m == 20170904120915-add-option-column-to-resource: migrating =======
+[36mapi_1            |[0m == 20170904120915-add-option-column-to-resource: migrated (0.006s)
+[36mapi_1            |[0m
+[36mapi_1            |[0m == 20170905163559-add-claimed-data-to-user-invites: migrating =======
+[36mapi_1            |[0m == 20170905163559-add-claimed-data-to-user-invites: migrated (0.008s)
+[36mapi_1            |[0m
+[36mapi_1            |[0m == 20170908044721-camel-case-organization-id: migrating =======
+[36mapi_1            |[0m == 20170908044721-camel-case-organization-id: migrated (0.056s)
+[36mapi_1            |[0m
+[36mapi_1            |[0m == 20170908045940-camel-case-foreign-keys: migrating =======
+[36mapi_1            |[0m == 20170908045940-camel-case-foreign-keys: migrated (0.154s)
+[36mapi_1            |[0m
+[36mapi_1            |[0m == 20170908072236-create-groups: migrating =======
+[36mapi_1            |[0m == 20170908072236-create-groups: migrated (0.012s)
+[36mapi_1            |[0m
+[36mapi_1            |[0m == 20170910220055-create-group-pages: migrating =======
+[36mapi_1            |[0m == 20170910220055-create-group-pages: migrated (0.014s)
+[36mapi_1            |[0m
+[36mapi_1            |[0m == 20170911174211-add-unique-constraints-to-group-relations: migrating =======
+[36mapi_1            |[0m == 20170911174211-add-unique-constraints-to-group-relations: migrated (0.016s)
+[36mapi_1            |[0m
+[36mapi_1            |[0m == 20170913082842-change-json-columns-to-jsonb: migrating =======
+[36mapi_1            |[0m == 20170913082842-change-json-columns-to-jsonb: migrated (0.030s)
+[36mapi_1            |[0m
+[36mapi_1            |[0m == 20171007195513-create-user-invite-groups: migrating =======
+[36mapi_1            |[0m == 20171007195513-create-user-invite-groups: migrated (0.013s)
+[36mapi_1            |[0m
+[36mapi_1            |[0m == 20171128020917-add-password-to-embeds: migrating =======
+[36mapi_1            |[0m == 20171128020917-add-password-to-embeds: migrated (0.007s)
+[36mapi_1            |[0m
+[36mapi_1            |[0m == 20171211042535-add-verified-to-organizations: migrating =======
+[36mapi_1            |[0m == 20171211042535-add-verified-to-organizations: migrated (0.008s)
+[36mapi_1            |[0m
+[36mapi_1            |[0m == 20171211043343-add-unique-constraint-to-organizations-name: migrating =======
+[36mapi_1            |[0m == 20171211043343-add-unique-constraint-to-organizations-name: migrated (0.007s)
+[36mapi_1            |[0m
+[36mapi_1            |[0m == 20180105093546-create-audit-trail: migrating =======
+[36mapi_1            |[0m == 20180105093546-create-audit-trail: migrated (0.010s)
+[36mapi_1            |[0m
+[36mapi_1            |[0m == 20180121060558-add-last-logged-in-to-users: migrating =======
+[36mapi_1            |[0m == 20180121060558-add-last-logged-in-to-users: migrated (0.005s)
+[36mapi_1            |[0m
+[36mapi_1            |[0m == 20180121081341-add-subdomain-to-organizations: migrating =======
+[36mapi_1            |[0m == 20180121081341-add-subdomain-to-organizations: migrated (0.006s)
+[36mapi_1            |[0m
+[36mapi_1            |[0m == 20180125074833-add-metadata-to-audit-trail-event: migrating =======
+[36mapi_1            |[0m == 20180125074833-add-metadata-to-audit-trail-event: migrated (0.007s)
+[36mapi_1            |[0m
+[36mapi_1            |[0m == 20180314185313-create-folders: migrating =======
+[36mapi_1            |[0m == 20180314185313-create-folders: migrated (0.014s)
+[36mapi_1            |[0m
+[36mapi_1            |[0m == 20180315005524-create-root-folders-for-orgs: migrating =======
+[36mapi_1            |[0m == 20180315005524-create-root-folders-for-orgs: migrated (0.017s)
+[36mapi_1            |[0m
+[36mapi_1            |[0m == 20180315070506-add-uuid-to-pages: migrating =======
+[36mapi_1            |[0m == 20180315070506-add-uuid-to-pages: migrated (0.016s)
+[36mapi_1            |[0m
+[36mapi_1            |[0m == 20180315202022-migrate-retool-buttons: migrating =======
+[36mapi_1            |[0m == 20180315202022-migrate-retool-buttons: migrated (0.037s)
+[36mapi_1            |[0m
+[36mapi_1            |[0m == 20180325033649-fix-root-archive-structure: migrating =======
+[36mapi_1            |[0m == 20180325033649-fix-root-archive-structure: migrated (0.009s)
+[36mapi_1            |[0m
+[36mapi_1            |[0m == 20180411230500-create-block: migrating =======
+[36mapi_1            |[0m == 20180411230500-create-block: migrated (0.018s)
+[36mapi_1            |[0m
+[36mapi_1            |[0m == 20180501214644-add-all-users-groups: migrating =======
+[36mapi_1            |[0m == 20180501214644-add-all-users-groups: migrated (0.006s)
+[36mapi_1            |[0m
+[36mapi_1            |[0m == 20180509014253-create-tags-for-page-saves: migrating =======
+[36mapi_1            |[0m == 20180509014253-create-tags-for-page-saves: migrated (0.012s)
+[36mapi_1            |[0m
+[36mapi_1            |[0m == 20180512065556-add-enabled-to-users: migrating =======
+[36mapi_1            |[0m == 20180512065556-add-enabled-to-users: migrated (0.012s)
+[36mapi_1            |[0m
+[36mapi_1            |[0m == 20180525085038-add-environment-to-resources: migrating =======
+[36mapi_1            |[0m == 20180525085038-add-environment-to-resources: migrated (0.013s)
+[36mapi_1            |[0m
+[36mapi_1            |[0m == 20180601052843-create-user-session-state: migrating =======
+[36mapi_1            |[0m == 20180601052843-create-user-session-state: migrated (0.011s)
+[36mapi_1            |[0m
+[36mapi_1            |[0m == 20180621213631-convert-user-session-state-value-to-text: migrating =======
+[36mapi_1            |[0m == 20180621213631-convert-user-session-state-value-to-text: migrated (0.006s)
+[36mapi_1            |[0m
+[36mapi_1            |[0m == 20180626225357-add-dynamically-queryable-to-resources: migrating =======
+[36mapi_1            |[0m == 20180626225357-add-dynamically-queryable-to-resources: migrated (0.010s)
+[36mapi_1            |[0m
+[36mapi_1            |[0m == 20180717013847-add-trial-to-cloud-users: migrating =======
+[36mapi_1            |[0m == 20180717013847-add-trial-to-cloud-users: migrated (0.005s)
+[36mapi_1            |[0m
+[36mapi_1            |[0m == 20180719084641-create-sessions: migrating =======
+[36mapi_1            |[0m == 20180719084641-create-sessions: migrated (0.009s)
+[36mapi_1            |[0m
+[36mapi_1            |[0m == 20180720192034-add-reset-password: migrating =======
+[36mapi_1            |[0m == 20180720192034-add-reset-password: migrated (0.015s)
+[36mapi_1            |[0m
+[36mapi_1            |[0m == 20180722013936-add-preload-javascript-and-javascript-links-to-organization: migrating =======
+[36mapi_1            |[0m == 20180722013936-add-preload-javascript-and-javascript-links-to-organization: migrated (0.019s)
+[36mapi_1            |[0m
+[36mapi_1            |[0m == 20180722022334-add-git-url-to-organization: migrating =======
+[36mapi_1            |[0m == 20180722022334-add-git-url-to-organization: migrated (0.006s)
+[36mapi_1            |[0m
+[36mapi_1            |[0m == 20180722034753-add-changes-record-to-page-saves: migrating =======
+[36mapi_1            |[0m == 20180722034753-add-changes-record-to-page-saves: migrated (0.010s)
+[36mapi_1            |[0m
+[36mapi_1            |[0m == 20180724231554-add-user-to-page-save: migrating =======
+[36mapi_1            |[0m == 20180724231554-add-user-to-page-save: migrated (0.007s)
+[36mapi_1            |[0m
+[36mapi_1            |[0m == 20180730035637-create-plan: migrating =======
+[36mapi_1            |[0m == 20180730035637-create-plan: migrated (0.010s)
+[36mapi_1            |[0m
+[36mapi_1            |[0m == 20180730041107-create-feature: migrating =======
+[36mapi_1            |[0m == 20180730041107-create-feature: migrated (0.012s)
+[36mapi_1            |[0m
+[36mapi_1            |[0m == 20180806190311-add-stripe-customer-to-orgs: migrating =======
+[36mapi_1            |[0m == 20180806190311-add-stripe-customer-to-orgs: migrated (0.007s)
+[36mapi_1            |[0m
+[36mapi_1            |[0m == 20180807005222-store-card-identifiers: migrating =======
+[36mapi_1            |[0m == 20180807005222-store-card-identifiers: migrated (0.019s)
+[36mapi_1            |[0m
+[36mapi_1            |[0m == 20180807231432-add-stripe-reference-to-plans: migrating =======
+[36mapi_1            |[0m == 20180807231432-add-stripe-reference-to-plans: migrated (0.006s)
+[36mapi_1            |[0m
+[36mapi_1            |[0m == 20180808035938-add-subscriptions-to-organizations: migrating =======
+[36mapi_1            |[0m == 20180808035938-add-subscriptions-to-organizations: migrated (0.014s)
+[36mapi_1            |[0m
+[36mapi_1            |[0m == 20180820212043-add-billing-metadata-to-organizations: migrating =======
+[36mapi_1            |[0m == 20180820212043-add-billing-metadata-to-organizations: migrated (0.020s)
+[36mapi_1            |[0m
+[36mapi_1            |[0m == 20180823030603-add-min-seats-to-plans: migrating =======
+[36mapi_1            |[0m == 20180823030603-add-min-seats-to-plans: migrated (0.014s)
+[36mapi_1            |[0m
+[36mapi_1            |[0m == 20180910200222-add-preloaded-css: migrating =======
+[36mapi_1            |[0m == 20180910200222-add-preloaded-css: migrated (0.017s)
+[36mapi_1            |[0m
+[36mapi_1            |[0m == 20180910201302-convert-preloaded-to-text: migrating =======
+[36mapi_1            |[0m == 20180910201302-convert-preloaded-to-text: migrated (0.007s)
+[36mapi_1            |[0m
+[36mapi_1            |[0m == 20181001021553-add-public-id-to-users: migrating =======
+[36mapi_1            |[0m == 20181001021553-add-public-id-to-users: migrated (0.015s)
+[36mapi_1            |[0m
+[36mapi_1            |[0m == 20181004031428-add-phone-and-company: migrating =======
+[36mapi_1            |[0m == 20181004031428-add-phone-and-company: migrated (0.031s)
+[36mapi_1            |[0m
+[36mapi_1            |[0m == 20181025035442-add-user-name-to-users: migrating =======
+[36mapi_1            |[0m == 20181025035442-add-user-name-to-users: migrated (0.008s)
+[36mapi_1            |[0m
+[36mapi_1            |[0m == 20190116012339-create-ssh-keys: migrating =======
+[36mapi_1            |[0m == 20190116012339-create-ssh-keys: migrated (0.009s)
+[36mapi_1            |[0m
+[36mapi_1            |[0m == 20190121071059-add-git-branch-to-organizations: migrating =======
+[36mapi_1            |[0m == 20190121071059-add-git-branch-to-organizations: migrated (0.006s)
+[36mapi_1            |[0m
+[36mapi_1            |[0m == 20190128005542-add-indices-to-audit-trail-events: migrating =======
+[36mapi_1            |[0m == 20190128005542-add-indices-to-audit-trail-events: migrated (0.014s)
+[36mapi_1            |[0m
+[36mapi_1            |[0m == 20190131050840-add-2fa-token-to-users: migrating =======
+[36mapi_1            |[0m == 20190131050840-add-2fa-token-to-users: migrated (0.006s)
+[36mapi_1            |[0m
+[36mapi_1            |[0m == 20190203223343-add-more-indices-to-audit-trail-events: migrating =======
+[36mapi_1            |[0m == 20190203223343-add-more-indices-to-audit-trail-events: migrated (0.010s)
+[36mapi_1            |[0m
+[36mapi_1            |[0m == 20190206130245-add-2fa-required-to-organizations: migrating =======
+[36mapi_1            |[0m == 20190206130245-add-2fa-required-to-organizations: migrated (0.010s)
+[36mapi_1            |[0m
+[36mapi_1            |[0m == 20190501042420-create-playground-query-and-playground-query-save: migrating =======
+[36mapi_1            |[0m == 20190501042420-create-playground-query-and-playground-query-save: migrated (0.025s)
+[36mapi_1            |[0m
+[36mapi_1            |[0m == 20190505070623-add-last-active-to-users: migrating =======
+[36mapi_1            |[0m == 20190505070623-add-last-active-to-users: migrated (0.008s)
+[36mapi_1            |[0m
+[36mapi_1            |[0m == 20190517153817-create-page-favorites: migrating =======
+[36mapi_1            |[0m == 20190517153817-create-page-favorites: migrated (0.009s)
+[36mapi_1            |[0m
+[36mapi_1            |[0m == 20190519110549-add-column-pages-photo-url: migrating =======
+[36mapi_1            |[0m == 20190519110549-add-column-pages-photo-url: migrated (0.007s)
+[36mapi_1            |[0m
+[36mapi_1            |[0m == 20190523163036-add-column-homepage-preloaded-css: migrating =======
+[36mapi_1            |[0m == 20190523163036-add-column-homepage-preloaded-css: migrated (0.013s)
+[36mapi_1            |[0m
+[36mapi_1            |[0m == 20190526195058-create-group-resources: migrating =======
+[36mapi_1            |[0m == 20190526195058-create-group-resources: migrated (0.018s)
+[36mapi_1            |[0m
+[36mapi_1            |[0m == 20190528141948-create-page-user-heartbeats: migrating =======
+[36mapi_1            |[0m == 20190528141948-create-page-user-heartbeats: migrated (0.011s)
+[36mapi_1            |[0m
+[36mapi_1            |[0m == 20190529143048-add-column-pages-deleted: migrating =======
+[36mapi_1            |[0m == 20190529143048-add-column-pages-deleted: migrated (0.010s)
+[36mapi_1            |[0m
+[36mapi_1            |[0m == 20190629001631-add-column-onboarding-checklist: migrating =======
+[36mapi_1            |[0m == 20190629001631-add-column-onboarding-checklist: migrated (0.005s)
+[36mapi_1            |[0m
+[36mapi_1            |[0m == 20190710194607-set-playground-query-save-on-delete-cascade: migrating =======
+[36mapi_1            |[0m == 20190710194607-set-playground-query-save-on-delete-cascade: migrated (0.008s)
+[36mapi_1            |[0m
+[36mapi_1            |[0m == 20190804182451-add-column-tag-description: migrating =======
+[36mapi_1            |[0m == 20190804182451-add-column-tag-description: migrated (0.010s)
+[36mapi_1            |[0m
+[36mapi_1            |[0m == 20190809180847-create-experiments: migrating =======
+[36mapi_1            |[0m == 20190809180847-create-experiments: migrated (0.015s)
+[36mapi_1            |[0m
+[36mapi_1            |[0m == 20190812022830-create-experiments-deleted-at-column: migrating =======
+[36mapi_1            |[0m == 20190812022830-create-experiments-deleted-at-column: migrated (0.007s)
+[36mapi_1            |[0m
+[36mapi_1            |[0m == 20190820051248-create-idpMetadataXML-column: migrating =======
+[36mapi_1            |[0m == 20190820051248-create-idpMetadataXML-column: migrated (0.005s)
+[36mapi_1            |[0m
+[36mapi_1            |[0m == 20190825193917-idpMetadataXML-to-text: migrating =======
+[36mapi_1            |[0m == 20190825193917-idpMetadataXML-to-text: migrated (0.009s)
+[36mapi_1            |[0m
+[36mapi_1            |[0m == 20190830021143-add-state-to-sessions: migrating =======
+[36mapi_1            |[0m == 20190830021143-add-state-to-sessions: migrated (0.006s)
+[36mapi_1            |[0m
+[36mapi_1            |[0m == 20190913004256-create-retool-managed-note: migrating =======
+[36mapi_1            |[0m == 20190913004256-create-retool-managed-note: migrated (0.011s)
+[36mapi_1            |[0m
+[36mapi_1            |[0m == 20190926185409-add-uuid-to-playground-query: migrating =======
+[36mapi_1            |[0m == 20190926185409-add-uuid-to-playground-query: migrated (0.019s)
+[36mapi_1            |[0m
+[36mapi_1            |[0m == 20190926225559-create-page-save-query-save-table: migrating =======
+[36mapi_1            |[0m == 20190926225559-create-page-save-query-save-table: migrated (0.010s)
+[36mapi_1            |[0m
+[36mapi_1            |[0m == 20191004073210-add-jit-saml-user-provisioning-to-organizations: migrating =======
+[36mapi_1            |[0m == 20191004073210-add-jit-saml-user-provisioning-to-organizations: migrated (0.010s)
+[36mapi_1            |[0m
+[36mapi_1            |[0m == 20191007004015-drop-organizations-verified-column: migrating =======
+[36mapi_1            |[0m == 20191007004015-drop-organizations-verified-column: migrated (0.005s)
+[36mapi_1            |[0m
+[36mapi_1            |[0m == 20191007225034-create-approval-table: migrating =======
+[36mapi_1            |[0m == 20191007225034-create-approval-table: migrated (0.022s)
+[36mapi_1            |[0m
+[36mapi_1            |[0m == 20191022003213-create-retool-managed-note-comment: migrating =======
+[36mapi_1            |[0m creating the retool_managed_note_comment table
+[36mapi_1            |[0m creating index on retoolManagedNoteId
+[36mapi_1            |[0m backfilling comments with existing note values
+[36mapi_1            |[0m == 20191022003213-create-retool-managed-note-comment: migrated (0.014s)
+[36mapi_1            |[0m
+[36mapi_1            |[0m == 20191025190326-google-photo-as-text-field: migrating =======
+[36mapi_1            |[0m == 20191025190326-google-photo-as-text-field: migrated (0.007s)
+[36mapi_1            |[0m
+[36mapi_1            |[0m == 20191029012607-create-api-keys: migrating =======
+[36mapi_1            |[0m == 20191029012607-create-api-keys: migrated (0.009s)
+[36mapi_1            |[0m
+[36mapi_1            |[0m == 20191115211147-add-library-access-controls-to-groups: migrating =======
+[36mapi_1            |[0m == 20191115211147-add-library-access-controls-to-groups: migrated (0.012s)
+[36mapi_1            |[0m
+[36mapi_1            |[0m == 20191116032755-add-page-id-query-id-to-page-save-playground-query-save: migrating =======
+[36mapi_1            |[0m == 20191116032755-add-page-id-query-id-to-page-save-playground-query-save: migrated (0.007s)
+[36mapi_1            |[0m
+[36mapi_1            |[0m == 20191119183055-backfill-page-save-playground-query-save: migrating =======
+[36mapi_1            |[0m backfilling comments with existing note values
+[36mapi_1            |[0m == 20191119183055-backfill-page-save-playground-query-save: migrated (0.010s)
+[36mapi_1            |[0m
+[36mapi_1            |[0m == 20191204200513-approval-task-on-delete-cascade: migrating =======
+[36mapi_1            |[0m == 20191204200513-approval-task-on-delete-cascade: migrated (0.007s)
+[36mapi_1            |[0m
+[36mapi_1            |[0m == 20191204224653-create-app-metadata-tables: migrating =======
+[36mapi_1            |[0m == 20191204224653-create-app-metadata-tables: migrated (0.017s)
+[36mapi_1            |[0m
+[36mapi_1            |[0m == 20200117001411-add-indices-to-metadata-tables: migrating =======
+[36mapi_1            |[0m == 20200117001411-add-indices-to-metadata-tables: migrated (0.007s)
+[36mapi_1            |[0m
+[36mapi_1            |[0m == 20200117221101-add-page-id-sorted-index-to-page-saves: migrating =======
+[36mapi_1            |[0m == 20200117221101-add-page-id-sorted-index-to-page-saves: migrated (0.005s)
+[36mapi_1            |[0m
+[36mapi_1            |[0m == 20200314001058-add-onboardingStage-to-user: migrating =======
+[36mapi_1            |[0m == 20200314001058-add-onboardingStage-to-user: migrated (0.015s)
+[36mapi_1            |[0m
+[36mapi_1            |[0m == 20200317004832-remove-onboardingStage-from-user: migrating =======
+[36mapi_1            |[0m == 20200317004832-remove-onboardingStage-from-user: migrated (0.005s)
+[36mapi_1            |[0m
+[36mapi_1            |[0m == 20200317020210-create-recently_visited_apps-table: migrating =======
+[36mapi_1            |[0m == 20200317020210-create-recently_visited_apps-table: migrated (0.009s)
+[36mapi_1            |[0m
+[36mapi_1            |[0m == 20200318230009-wipe-out-onboardingChecklist: migrating =======
+[36mapi_1            |[0m == 20200318230009-wipe-out-onboardingChecklist: migrated (0.006s)
+[36mapi_1            |[0m
+[36mapi_1            |[0m == 20200319001351-add-salesCTADismissed-to-user: migrating =======
+[36mapi_1            |[0m == 20200319001351-add-salesCTADismissed-to-user: migrated (0.018s)
+[36mapi_1            |[0m
+[36mapi_1            |[0m == 20200319001405-add-tutorialCTADismissed-to-user: migrating =======
+[36mapi_1            |[0m == 20200319001405-add-tutorialCTADismissed-to-user: migrated (0.018s)
+[36mapi_1            |[0m
+[36mapi_1            |[0m == 20200319080412-add-onboardingStage-to-user: migrating =======
+[36mapi_1            |[0m == 20200319080412-add-onboardingStage-to-user: migrated (0.017s)
+[36mapi_1            |[0m
+[36mapi_1            |[0m == 20200410092658-add-lastEditedBy: migrating =======
+[36mapi_1            |[0m == 20200410092658-add-lastEditedBy: migrated (0.006s)
+[36mapi_1            |[0m
+[36mapi_1            |[0m == 20200410161606-add-theme-id-to-organization-and-create-themes: migrating =======
+[36mapi_1            |[0m == 20200410161606-add-theme-id-to-organization-and-create-themes: migrated (0.011s)
+[36mapi_1            |[0m
+[36mapi_1            |[0m == 20200412171634-create-workspaces: migrating =======
+[36mapi_1            |[0m == 20200412171634-create-workspaces: migrated (0.009s)
+[36mapi_1            |[0m
+[36mapi_1            |[0m == 20200416084658-create-user-invite-suggestions-table: migrating =======
+[36mapi_1            |[0m == 20200416084658-create-user-invite-suggestions-table: migrated (0.012s)
+[36mapi_1            |[0m
+[36mapi_1            |[0m == 20200419010412-add-favorited-to-folders: migrating =======
+[36mapi_1            |[0m == 20200419010412-add-favorited-to-folders: migrated (0.009s)
+[36mapi_1            |[0m
+[36mapi_1            |[0m == 20200513233128-create-v1-flows-tables: migrating =======
+[36mapi_1            |[0m == 20200513233128-create-v1-flows-tables: migrated (0.030s)
+[36mapi_1            |[0m
+[36mapi_1            |[0m == 20200519224444-add-licenseVerification-to-organizations: migrating =======
+[36mapi_1            |[0m == 20200519224444-add-licenseVerification-to-organizations: migrated (0.005s)
+[36mapi_1            |[0m
+[36mapi_1            |[0m == 20200522163652-add-column-required-and-unique-to-flow-input-schemas: migrating =======
+[36mapi_1            |[0m == 20200522163652-add-column-required-and-unique-to-flow-input-schemas: migrated (0.012s)
+[36mapi_1            |[0m
+[36mapi_1            |[0m == 20200623174842-create-flow-task-histories: migrating =======
+[36mapi_1            |[0m == 20200623174842-create-flow-task-histories: migrated (0.010s)
+[36mapi_1            |[0m
+[36mapi_1            |[0m == 20200705213318-add-column-pages-is-global-widget: migrating =======
+[36mapi_1            |[0m == 20200705213318-add-column-pages-is-global-widget: migrated (0.005s)
+[36mapi_1            |[0m
+[36mapi_1            |[0m == 20200803175920-add-user-list-access-to-groups: migrating =======
+[36mapi_1            |[0m == 20200803175920-add-user-list-access-to-groups: migrated (0.010s)
+[36mapi_1            |[0m
+[36mapi_1            |[0m Done in 2.95s.
+[36mapi_1            |[0m NODE_ENV: 'production'
+[36mapi_1            |[0m COOKIE_INSECURE: true
+[36mapi_1            |[0m Setting http and https agent maxSockets to 25
+[36mapi_1            |[0m Running node v10.21.0
+[36mapi_1            |[0m ARGV: []
+[36mapi_1            |[0m Tue, 01 Sep 2020 05:29:22 GMT sequelize deprecated String based operators are now deprecated. Please use Symbol based operators for better security, read more at http://docs.sequelizejs.com/manual/tutorial/querying.html#operators at ../snapshot/retool/node_modules/sequelize/lib/sequelize.js:242:13
+[36mapi_1            |[0m Tue, 01 Sep 2020 05:29:23 GMT body-parser deprecated bodyParser: use individual json/urlencoded middlewares at ../snapshot/retool/server/app.js:0:0
+[36mapi_1            |[0m Tue, 01 Sep 2020 05:29:23 GMT body-parser deprecated undefined extended: provide extended option at ../snapshot/retool/node_modules/body-parser/index.js:105:29
+[36mapi_1            |[0m main web boot-up: 826.375ms
+[36mapi_1            |[0m [pid: 64] Memory Stats for process:  { rss: '211.767296 MB',
+[36mapi_1            |[0m   heapTotal: '159.576064 MB',
+[36mapi_1            |[0m   heapUsed: '129.050096 MB',
+[36mapi_1            |[0m   percentageHeapUsed: '80.87%' }
+[36mapi_1            |[0m [pid: 64] CPU Usage % for process:  52.15%
+[36mapi_1            |[0m [pid: 64] Memory Stats for container:  { freeSystemMemory: '1256.67328 MB',
+[36mapi_1            |[0m   totalSystemMemory: '2622.877696 MB',
+[36mapi_1            |[0m   percentageFreeMemory: '47.91%' }
+[36mapi_1            |[0m Rechecking license status...
+[36mapi_1            |[0m [pid: 64] Memory Stats for process:  { rss: '211.894272 MB',
+[36mapi_1            |[0m   heapTotal: '159.576064 MB',
+[36mapi_1            |[0m   heapUsed: '129.260376 MB',
+[36mapi_1            |[0m   percentageHeapUsed: '81%' }
+[36mapi_1            |[0m [pid: 64] CPU Usage % for process:  Infinity%
+[36mapi_1            |[0m [pid: 64] Memory Stats for container:  { freeSystemMemory: '1256.538112 MB',
+[36mapi_1            |[0m   totalSystemMemory: '2622.877696 MB',
+[36mapi_1            |[0m   percentageFreeMemory: '47.91%' }
+[36mapi_1            |[0m Updated license status from licensing server
+[36mapi_1            |[0m [Master] Detected 1  cpus, starting 1 workers
+[36mapi_1            |[0m (node:64) UnhandledPromiseRejectionWarning: TypeError: Cannot set property 'licenseVerification' of null
+[36mapi_1            |[0m     at setDBLicenseStatus (/snapshot/retool/server/modules/licensing.js:0:0)
+[36mapi_1            |[0m (node:64) UnhandledPromiseRejectionWarning: Unhandled promise rejection. This error originated either by throwing inside of an async function without a catch block, or by rejecting a promise which was not handled with .catch(). (rejection id: 1)
+[36mapi_1            |[0m (node:64) [DEP0018] DeprecationWarning: Unhandled promise rejections are deprecated. In the future, promise rejections that are not handled will terminate the Node.js process with a non-zero exit code.
+[36mapi_1            |[0m (node:64) UnhandledPromiseRejectionWarning: TypeError: Cannot read property 'name' of null
+[36mapi_1            |[0m     at trackLicenseKeyChecked (/snapshot/retool/server/modules/analytics.js:0:0)
+[36mapi_1            |[0m (node:64) UnhandledPromiseRejectionWarning: Unhandled promise rejection. This error originated either by throwing inside of an async function without a catch block, or by rejecting a promise which was not handled with .catch(). (rejection id: 2)
+[36mapi_1            |[0m NODE_ENV: 'production'
+[36mapi_1            |[0m COOKIE_INSECURE: true
+[36mapi_1            |[0m Setting http and https agent maxSockets to 25
+[36mapi_1            |[0m Running node v10.21.0
+[36mapi_1            |[0m ARGV: []
+[36mapi_1            |[0m Tue, 01 Sep 2020 05:29:25 GMT sequelize deprecated String based operators are now deprecated. Please use Symbol based operators for better security, read more at http://docs.sequelizejs.com/manual/tutorial/querying.html#operators at ../snapshot/retool/node_modules/sequelize/lib/sequelize.js:242:13
+[36mapi_1            |[0m Tue, 01 Sep 2020 05:29:25 GMT body-parser deprecated bodyParser: use individual json/urlencoded middlewares at ../snapshot/retool/server/app.js:0:0
+[36mapi_1            |[0m Tue, 01 Sep 2020 05:29:25 GMT body-parser deprecated undefined extended: provide extended option at ../snapshot/retool/node_modules/body-parser/index.js:105:29
+[36mapi_1            |[0m main web boot-up: 819.233ms
+[36mapi_1            |[0m [pid: 88] Memory Stats for process:  { rss: '210.804736 MB',
+[36mapi_1            |[0m   heapTotal: '159.576064 MB',
+[36mapi_1            |[0m   heapUsed: '129.160576 MB',
+[36mapi_1            |[0m   percentageHeapUsed: '80.94%' }
+[36mapi_1            |[0m [pid: 88] CPU Usage % for process:  120.60%
+[36mapi_1            |[0m [pid: 88] Memory Stats for container:  { freeSystemMemory: '1073.967104 MB',
+[36mapi_1            |[0m   totalSystemMemory: '2622.877696 MB',
+[36mapi_1            |[0m   percentageFreeMemory: '40.95%' }
+[36mapi_1            |[0m [Worker] Worker 88 started and listening on 3001
+[36mapi_1            |[0m Starting database connector server on port 3002
+[36mapi_1            |[0m Running node v10.21.0
+[36mapi_1            |[0m ARGV: []
+[36mapi_1            |[0m Tue, 01 Sep 2020 05:29:27 GMT body-parser deprecated bodyParser: use individual json/urlencoded middlewares at ../snapshot/retool/dbconnector/app.js:0:0
+[36mapi_1            |[0m dbconnector boot-up: 1424.356ms
+[36mapi_1            |[0m Running node v10.21.0
+[36mapi_1            |[0m ARGV: []
+[36mapi_1            |[0m [HPM] Proxy created: /  ->  http://localhost:3001
+[36mapi_1            |[0m [HPM] Proxy created: /  ->  http://localhost:3001
+[36mapi_1            |[0m [HPM] Proxy created: /  ->  http://localhost:3001
+[36mapi_1            |[0m [HPM] Proxy created: /  ->  http://localhost:3001/api
+[36mapi_1            |[0m [HPM] Proxy created: /  ->  http://localhost:3001/api
+[36mapi_1            |[0m [HPM] Proxy created: /  ->  http://localhost:3001
+[36mapi_1            |[0m [HPM] Proxy created: /  ->  http://localhost:3001
+[36mapi_1            |[0m [HPM] Proxy created: /  ->  http://localhost:3001
+[36mapi_1            |[0m [HPM] Proxy created: /  ->  http://localhost:3001
+[36mapi_1            |[0m [HPM] Proxy created: /  ->  http://localhost:3001
+[36mapi_1            |[0m [HPM] Proxy created: /  ->  http://localhost:3001
+[36mapi_1            |[0m Starting static http server on port 3000
+[36mapi_1            |[0m [pid: 64] Memory Stats for process:  { rss: '211.709952 MB',
+[36mapi_1            |[0m   heapTotal: '159.981568 MB',
+[36mapi_1            |[0m   heapUsed: '96.482672 MB',
+[36mapi_1            |[0m   percentageHeapUsed: '60.31%' }
+[36mapi_1            |[0m [pid: 64] CPU Usage % for process:  0.98%
+[36mapi_1            |[0m [pid: 64] Memory Stats for container:  { freeSystemMemory: '975.536128 MB',
+[36mapi_1            |[0m   totalSystemMemory: '2622.877696 MB',
+[36mapi_1            |[0m   percentageFreeMemory: '37.19%' }
+[36mapi_1            |[0m [pid: 64] Memory Stats for process:  { rss: '211.709952 MB',
+[36mapi_1            |[0m   heapTotal: '159.981568 MB',
+[36mapi_1            |[0m   heapUsed: '96.495056 MB',
+[36mapi_1            |[0m   percentageHeapUsed: '60.32%' }
+[36mapi_1            |[0m [pid: 64] CPU Usage % for process:  0.95%
+[36mapi_1            |[0m [pid: 64] Memory Stats for container:  { freeSystemMemory: '975.536128 MB',
+[36mapi_1            |[0m   totalSystemMemory: '2622.877696 MB',
+[36mapi_1            |[0m   percentageFreeMemory: '37.19%' }
+[36mapi_1            |[0m {"requestId":"aed3ba75-9edd-4b6f-9118-120114831256","message":{"type":"REQUEST","method":"GET","url":"/preAuthData","hostname":"http://192.168.99.100:3000","statusCode":200},"level":"info","timestamp":"2020-09-01T05:29:46.029Z"}
+[36mapi_1            |[0m [pid: 88] Memory Stats for process:  { rss: '327.10656 MB',
+[36mapi_1            |[0m   heapTotal: '250.75712 MB',
+[36mapi_1            |[0m   heapUsed: '206.13284 MB',
+[36mapi_1            |[0m   percentageHeapUsed: '82.2%' }
+[36mapi_1            |[0m [pid: 88] CPU Usage % for process:  7.55%
+[36mapi_1            |[0m [pid: 88] Memory Stats for container:  { freeSystemMemory: '971.575296 MB',
+[36mapi_1            |[0m   totalSystemMemory: '2622.877696 MB',
+[36mapi_1            |[0m   percentageFreeMemory: '37.04%' }
+[36mapi_1            |[0m [pid: 64] Memory Stats for process:  { rss: '211.709952 MB',
+[36mapi_1            |[0m   heapTotal: '159.981568 MB',
+[36mapi_1            |[0m   heapUsed: '96.760064 MB',
+[36mapi_1            |[0m   percentageHeapUsed: '60.48%' }
+[36mapi_1            |[0m [pid: 64] CPU Usage % for process:  0.54%
+[36mapi_1            |[0m [pid: 64] Memory Stats for container:  { freeSystemMemory: '970.625024 MB',
+[36mapi_1            |[0m   totalSystemMemory: '2622.877696 MB',
+[36mapi_1            |[0m   percentageFreeMemory: '37.01%' }
+[36mapi_1            |[0m [pid: 64] Memory Stats for process:  { rss: '211.709952 MB',
+[36mapi_1            |[0m   heapTotal: '159.981568 MB',
+[36mapi_1            |[0m   heapUsed: '96.77136 MB',
+[36mapi_1            |[0m   percentageHeapUsed: '60.49%' }
+[36mapi_1            |[0m [pid: 64] CPU Usage % for process:  0.52%
+[36mapi_1            |[0m [pid: 64] Memory Stats for container:  { freeSystemMemory: '970.625024 MB',
+[36mapi_1            |[0m   totalSystemMemory: '2622.877696 MB',
+[36mapi_1            |[0m   percentageFreeMemory: '37.01%' }
+[36mapi_1            |[0m {"requestId":"08183bf4-4ec4-47fa-a369-d67c1181cc39","message":{"type":"REQUEST","method":"POST","url":"/api/signup","hostname":"http://192.168.99.100:3000","statusCode":200},"level":"info","timestamp":"2020-09-01T05:30:04.798Z"}
+[36mapi_1            |[0m {"requestId":"b07c7667-ae98-4080-80dd-0c5204bbce33","message":{"type":"REQUEST","method":"POST","url":"/api/auth/saveAuth","hostname":"http://192.168.99.100:3000","statusCode":200},"level":"info","timestamp":"2020-09-01T05:30:04.836Z"}
+[36mapi_1            |[0m Could not generate hash for intercom TypeError [ERR_INVALID_ARG_TYPE]: The "key" argument must be one of type string, TypedArray, or DataView. Received type undefined
+[36mapi_1            |[0m     at new Hmac (internal/crypto/hash.js:88:11)
+[36mapi_1            |[0m     at Object.createHmac (crypto.js:133:10)
+[36mapi_1            |[0m     at generateIntercomUserHash (/snapshot/retool/server/common/cryptoUtils.js:0:0)
+[36mapi_1            |[0m     at compose (/snapshot/retool/server/controllers/users.js:0:0)
+[36mapi_1            |[0m {"pid":88,"requestId":"f1baf1e8-81d6-458b-8146-8bb300afb4f1","user":{"email":"jon@upowr.com.au","sid":"user_81aaba17ccf14e30afd26bf4893bbe94"},"organization":{"id":1,"name":"jon@upowr.com.au"},"message":{"type":"REQUEST","method":"GET","url":"/api/user","hostname":"http://192.168.99.100:3000","statusCode":200},"level":"info","timestamp":"2020-09-01T05:30:05.035Z"}
+[36mapi_1            |[0m {"pid":88,"requestId":"c10c2f16-dce6-4c18-8b56-f4a2835774c8","user":{"email":"jon@upowr.com.au","sid":"user_81aaba17ccf14e30afd26bf4893bbe94"},"organization":{"id":1,"name":"jon@upowr.com.au"},"message":{"type":"REQUEST","method":"POST","url":"/api/refreshtoken","hostname":"http://192.168.99.100:3000","statusCode":200},"level":"info","timestamp":"2020-09-01T05:30:05.086Z"}
+[36mapi_1            |[0m Could not generate hash for intercom TypeError [ERR_INVALID_ARG_TYPE]: The "key" argument must be one of type string, TypedArray, or DataView. Received type undefined
+[36mapi_1            |[0m     at new Hmac (internal/crypto/hash.js:88:11)
+[36mapi_1            |[0m     at Object.createHmac (crypto.js:133:10)
+[36mapi_1            |[0m     at generateIntercomUserHash (/snapshot/retool/server/common/cryptoUtils.js:0:0)
+[36mapi_1            |[0m     at compose (/snapshot/retool/server/controllers/users.js:0:0)
+[36mapi_1            |[0m {"pid":88,"requestId":"bdcdcfe1-0ff2-4e58-917b-8af5bb5d3c23","user":{"email":"jon@upowr.com.au","sid":"user_81aaba17ccf14e30afd26bf4893bbe94"},"organization":{"id":1,"name":"jon@upowr.com.au"},"message":{"type":"REQUEST","method":"GET","url":"/api/user","hostname":"http://192.168.99.100:3000","statusCode":304},"level":"info","timestamp":"2020-09-01T05:30:05.112Z"}
+[36mapi_1            |[0m {"pid":88,"requestId":"615cadc5-c1e2-4a53-a8b7-e087a4e9542c","user":{"email":"jon@upowr.com.au","sid":"user_81aaba17ccf14e30afd26bf4893bbe94"},"organization":{"id":1,"name":"jon@upowr.com.au"},"message":{"type":"REQUEST","method":"POST","url":"/api/refreshtoken","hostname":"http://192.168.99.100:3000","statusCode":200},"level":"info","timestamp":"2020-09-01T05:30:05.172Z"}
+[36mapi_1            |[0m {"pid":88,"requestId":"1dcc17a5-bddb-4557-983e-928fe2867f62","user":{"email":"jon@upowr.com.au","sid":"user_81aaba17ccf14e30afd26bf4893bbe94"},"organization":{"id":1,"name":"jon@upowr.com.au"},"message":{"type":"REQUEST","method":"GET","url":"/","hostname":"http://192.168.99.100:3000","statusCode":200},"level":"info","timestamp":"2020-09-01T05:30:05.184Z"}
+[36mapi_1            |[0m {"pid":88,"requestId":"40616254-145e-4b6b-86b4-f9d279430684","user":{"email":"jon@upowr.com.au","sid":"user_81aaba17ccf14e30afd26bf4893bbe94"},"organization":{"id":1,"name":"jon@upowr.com.au"},"message":{"type":"REQUEST","method":"GET","url":"/","hostname":"http://192.168.99.100:3000","statusCode":304},"level":"info","timestamp":"2020-09-01T05:30:05.214Z"}
+[36mapi_1            |[0m [pid: 88] Memory Stats for process:  { rss: '302.211072 MB',
+[36mapi_1            |[0m   heapTotal: '225.067008 MB',
+[36mapi_1            |[0m   heapUsed: '201.058568 MB',
+[36mapi_1            |[0m   percentageHeapUsed: '89.33%' }
+[36mapi_1            |[0m [pid: 88] CPU Usage % for process:  4.98%
+[36mapi_1            |[0m [pid: 88] Memory Stats for container:  { freeSystemMemory: '1039.21664 MB',
+[36mapi_1            |[0m   totalSystemMemory: '2622.877696 MB',
+[36mapi_1            |[0m   percentageFreeMemory: '39.62%' }
+[36mapi_1            |[0m {"pid":88,"requestId":"c6b4ba8a-8d9c-485f-b24d-d766924dabb7","user":{"email":"jon@upowr.com.au","sid":"user_81aaba17ccf14e30afd26bf4893bbe94"},"organization":{"id":1,"name":"jon@upowr.com.au"},"message":{"type":"REQUEST","method":"GET","url":"/","hostname":"http://192.168.99.100:3000","statusCode":304},"level":"info","timestamp":"2020-09-01T05:30:09.003Z"}
+[36mapi_1            |[0m {"pid":88,"requestId":"0ae4dde0-7849-48c9-8a58-915b62598887","user":{"email":"jon@upowr.com.au","sid":"user_81aaba17ccf14e30afd26bf4893bbe94"},"organization":{"id":1,"name":"jon@upowr.com.au"},"message":{"type":"REQUEST","method":"GET","url":"/","hostname":"http://192.168.99.100:3000","statusCode":200},"level":"info","timestamp":"2020-09-01T05:30:09.055Z"}
+[36mapi_1            |[0m {"pid":88,"requestId":"3ca4693f-748c-489c-85f2-4cd9522903c8","user":{"email":"jon@upowr.com.au","sid":"user_81aaba17ccf14e30afd26bf4893bbe94"},"organization":{"id":1,"name":"jon@upowr.com.au"},"message":{"type":"REQUEST","method":"GET","url":"/","hostname":"http://192.168.99.100:3000","statusCode":304},"level":"info","timestamp":"2020-09-01T05:30:09.065Z"}
+[36mapi_1            |[0m [pid: 64] Memory Stats for process:  { rss: '149.74976 MB',
+[36mapi_1            |[0m   heapTotal: '97.550336 MB',
+[36mapi_1            |[0m   heapUsed: '83.959112 MB',
+[36mapi_1            |[0m   percentageHeapUsed: '86.07%' }
+[36mapi_1            |[0m [pid: 64] CPU Usage % for process:  1.03%
+[36mapi_1            |[0m [pid: 64] Memory Stats for container:  { freeSystemMemory: '1046.151168 MB',
+[36mapi_1            |[0m   totalSystemMemory: '2622.877696 MB',
+[36mapi_1            |[0m   percentageFreeMemory: '39.89%' }
+[36mapi_1            |[0m [pid: 64] Memory Stats for process:  { rss: '149.74976 MB',
+[36mapi_1            |[0m   heapTotal: '97.550336 MB',
+[36mapi_1            |[0m   heapUsed: '83.972128 MB',
+[36mapi_1            |[0m   percentageHeapUsed: '86.08%' }
+[36mapi_1            |[0m [pid: 64] CPU Usage % for process:  1.02%
+[36mapi_1            |[0m [pid: 64] Memory Stats for container:  { freeSystemMemory: '1046.151168 MB',
+[36mapi_1            |[0m   totalSystemMemory: '2622.877696 MB',
+[36mapi_1            |[0m   percentageFreeMemory: '39.89%' }
+[36mapi_1            |[0m [pid: 88] Memory Stats for process:  { rss: '301.580288 MB',
+[36mapi_1            |[0m   heapTotal: '225.067008 MB',
+[36mapi_1            |[0m   heapUsed: '201.892136 MB',
+[36mapi_1            |[0m   percentageHeapUsed: '89.7%' }
+[36mapi_1            |[0m [pid: 88] CPU Usage % for process:  7.59%
+[36mapi_1            |[0m [pid: 88] Memory Stats for container:  { freeSystemMemory: '1046.142976 MB',
+[36mapi_1            |[0m   totalSystemMemory: '2622.877696 MB',
+[36mapi_1            |[0m   percentageFreeMemory: '39.89%' }
+[36mapi_1            |[0m ::ffff:127.0.0.1 - - [01/Sep/2020:05:30:39 +0000] "POST /api/testConnection HTTP/1.1" 200 445 "-" "node-fetch/1.0 (+https://github.com/bitinn/node-fetch)"
+[36mapi_1            |[0m {"pid":88,"requestId":"731671a0-9bed-42a4-967c-028e344b76f5","user":{"email":"jon@upowr.com.au","sid":"user_81aaba17ccf14e30afd26bf4893bbe94"},"organization":{"id":1,"name":"jon@upowr.com.au"},"message":{"type":"REQUEST","method":"POST","url":"/testConnection","hostname":"http://192.168.99.100:3000","statusCode":200},"level":"info","timestamp":"2020-09-01T05:30:39.966Z"}
+[36mapi_1            |[0m ::ffff:127.0.0.1 - - [01/Sep/2020:05:30:42 +0000] "POST /api/testConnection HTTP/1.1" 200 418 "-" "node-fetch/1.0 (+https://github.com/bitinn/node-fetch)"
+[36mapi_1            |[0m /snapshot/retool/node_modules/pg-pool/index.js:353
+[36mapi_1            |[0m           return cb(undefined, res)
+[36mapi_1            |[0m                  ^
+[36mapi_1            |[0m
+[36mapi_1            |[0m TypeError: Cannot destructure property `customReadOperations` of 'undefined' or 'null'.
+[36mapi_1            |[0m     at extractPrivileges (/snapshot/retool/common/utils.js:0:0)
+[36mapi_1            |[0m     at pool.query (/snapshot/retool/dbconnector/connectors/postgres.js:0:0)
+[36mapi_1            |[0m     at Query.query.connect.client.query (/snapshot/retool/node_modules/pg-pool/index.js:353:18)
+[36mapi_1            |[0m     at Query.handleReadyForQuery (/snapshot/retool/node_modules/pg/lib/query.js:128:10)
+[36mapi_1            |[0m     at Connection.<anonymous> (/snapshot/retool/node_modules/pg/lib/client.js:247:19)
+[36mapi_1            |[0m     at Connection.emit (events.js:198:13)
+[36mapi_1            |[0m     at Connection.EventEmitter.emit (domain.js:448:20)
+[36mapi_1            |[0m     at Socket.<anonymous> (/snapshot/retool/node_modules/pg/lib/connection.js:134:12)
+[36mapi_1            |[0m     at Socket.emit (events.js:198:13)
+[36mapi_1            |[0m     at Socket.EventEmitter.emit (domain.js:448:20)
+[36mapi_1            |[0m     at addChunk (_stream_readable.js:288:12)
+[36mapi_1            |[0m     at readableAddChunk (_stream_readable.js:269:11)
+[36mapi_1            |[0m     at Socket.Readable.push (_stream_readable.js:224:10)
+[36mapi_1            |[0m     at TCP.onStreamRead [as onread] (internal/stream_base_commons.js:94:17)
+[36mapi_1            |[0m [Master] Worker 88 died. 0 workers left
+[36mapi_1            |[0m [Master] replacing worker
+[36mapi_1            |[0m NODE_ENV: 'production'
+[36mapi_1            |[0m COOKIE_INSECURE: true
+[36mapi_1            |[0m Setting http and https agent maxSockets to 25
+[36mapi_1            |[0m Running node v10.21.0
+[36mapi_1            |[0m ARGV: []
+[36mapi_1            |[0m Tue, 01 Sep 2020 05:30:42 GMT sequelize deprecated String based operators are now deprecated. Please use Symbol based operators for better security, read more at http://docs.sequelizejs.com/manual/tutorial/querying.html#operators at ../snapshot/retool/node_modules/sequelize/lib/sequelize.js:242:13
+[36mapi_1            |[0m Tue, 01 Sep 2020 05:30:43 GMT body-parser deprecated bodyParser: use individual json/urlencoded middlewares at ../snapshot/retool/server/app.js:0:0
+[36mapi_1            |[0m Tue, 01 Sep 2020 05:30:43 GMT body-parser deprecated undefined extended: provide extended option at ../snapshot/retool/node_modules/body-parser/index.js:105:29
+[36mapi_1            |[0m main web boot-up: 857.311ms
+[36mapi_1            |[0m [pid: 112] Memory Stats for process:  { rss: '211.98848 MB',
+[36mapi_1            |[0m   heapTotal: '159.576064 MB',
+[36mapi_1            |[0m   heapUsed: '128.934112 MB',
+[36mapi_1            |[0m   percentageHeapUsed: '80.8%' }
+[36mapi_1            |[0m [pid: 112] CPU Usage % for process:  54.10%
+[36mapi_1            |[0m [pid: 112] Memory Stats for container:  { freeSystemMemory: '1129.332736 MB',
+[36mapi_1            |[0m   totalSystemMemory: '2622.877696 MB',
+[36mapi_1            |[0m   percentageFreeMemory: '43.06%' }
+[36mapi_1            |[0m [Worker] Worker 112 started and listening on 3001
+[36mapi_1            |[0m Starting database connector server on port 3002
+[36mapi_1            |[0m Running node v10.21.0
+[36mapi_1            |[0m ARGV: []
+[36mapi_1            |[0m [pid: 64] Memory Stats for process:  { rss: '150.360064 MB',
+[36mapi_1            |[0m   heapTotal: '97.550336 MB',
+[36mapi_1            |[0m   heapUsed: '84.592488 MB',
+[36mapi_1            |[0m   percentageHeapUsed: '86.72%' }
+[36mapi_1            |[0m [pid: 64] CPU Usage % for process:  0.80%
+[36mapi_1            |[0m [pid: 64] Memory Stats for container:  { freeSystemMemory: '1127.174144 MB',
+[36mapi_1            |[0m   totalSystemMemory: '2622.877696 MB',
+[36mapi_1            |[0m   percentageFreeMemory: '42.97%' }
+[36mapi_1            |[0m [pid: 64] Memory Stats for process:  { rss: '150.360064 MB',
+[36mapi_1            |[0m   heapTotal: '97.550336 MB',
+[36mapi_1            |[0m   heapUsed: '84.603544 MB',
+[36mapi_1            |[0m   percentageHeapUsed: '86.73%' }
+[36mapi_1            |[0m [pid: 64] CPU Usage % for process:  0.80%
+[36mapi_1            |[0m [pid: 64] Memory Stats for container:  { freeSystemMemory: '1127.174144 MB',
+[36mapi_1            |[0m   totalSystemMemory: '2622.877696 MB',
+[36mapi_1            |[0m   percentageFreeMemory: '42.97%' }
+[36mapi_1            |[0m Tue, 01 Sep 2020 05:30:45 GMT body-parser deprecated bodyParser: use individual json/urlencoded middlewares at ../snapshot/retool/dbconnector/app.js:0:0
+[36mapi_1            |[0m dbconnector boot-up: 1519.960ms
+[36mapi_1            |[0m Running node v10.21.0
+[36mapi_1            |[0m ARGV: []
+[36mapi_1            |[0m [HPM] Proxy created: /  ->  http://localhost:3001
+[36mapi_1            |[0m [HPM] Proxy created: /  ->  http://localhost:3001
+[36mapi_1            |[0m [HPM] Proxy created: /  ->  http://localhost:3001
+[36mapi_1            |[0m [HPM] Proxy created: /  ->  http://localhost:3001/api
+[36mapi_1            |[0m [HPM] Proxy created: /  ->  http://localhost:3001/api
+[36mapi_1            |[0m [HPM] Proxy created: /  ->  http://localhost:3001
+[36mapi_1            |[0m [HPM] Proxy created: /  ->  http://localhost:3001
+[36mapi_1            |[0m [HPM] Proxy created: /  ->  http://localhost:3001
+[36mapi_1            |[0m [HPM] Proxy created: /  ->  http://localhost:3001
+[36mapi_1            |[0m [HPM] Proxy created: /  ->  http://localhost:3001
+[36mapi_1            |[0m [HPM] Proxy created: /  ->  http://localhost:3001
+[36mapi_1            |[0m Starting static http server on port 3000
+[36mapi_1            |[0m [pid: 112] Memory Stats for process:  { rss: '326.070272 MB',
+[36mapi_1            |[0m   heapTotal: '249.708544 MB',
+[36mapi_1            |[0m   heapUsed: '202.821648 MB',
+[36mapi_1            |[0m   percentageHeapUsed: '81.22%' }
+[36mapi_1            |[0m [pid: 112] CPU Usage % for process:  7.70%
+[36mapi_1            |[0m [pid: 112] Memory Stats for container:  { freeSystemMemory: '1032.06912 MB',
+[36mapi_1            |[0m   totalSystemMemory: '2622.877696 MB',
+[36mapi_1            |[0m   percentageFreeMemory: '39.35%' }
+[36mapi_1            |[0m [pid: 64] Memory Stats for process:  { rss: '150.7328 MB',
+[36mapi_1            |[0m   heapTotal: '97.550336 MB',
+[36mapi_1            |[0m   heapUsed: '85.020728 MB',
+[36mapi_1            |[0m   percentageHeapUsed: '87.16%' }
+[36mapi_1            |[0m [pid: 64] CPU Usage % for process:  0.66%
+[36mapi_1            |[0m [pid: 64] Memory Stats for container:  { freeSystemMemory: '1032.06912 MB',
+[36mapi_1            |[0m   totalSystemMemory: '2622.877696 MB',
+[36mapi_1            |[0m   percentageFreeMemory: '39.35%' }
+[36mapi_1            |[0m [pid: 64] Memory Stats for process:  { rss: '150.7328 MB',
+[36mapi_1            |[0m   heapTotal: '97.550336 MB',
+[36mapi_1            |[0m   heapUsed: '85.031736 MB',
+[36mapi_1            |[0m   percentageHeapUsed: '87.17%' }
+[36mapi_1            |[0m [pid: 64] CPU Usage % for process:  0.66%
+[36mapi_1            |[0m [pid: 64] Memory Stats for container:  { freeSystemMemory: '1032.06912 MB',
+[36mapi_1            |[0m   totalSystemMemory: '2622.877696 MB',
+[36mapi_1            |[0m   percentageFreeMemory: '39.35%' }
