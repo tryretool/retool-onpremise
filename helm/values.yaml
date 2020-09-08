@@ -54,6 +54,7 @@ service:
   ## Limit load balancer source ips to list of CIDRs (where available)
   # loadBalancerSourceRanges: []
   selector: {}
+  # portName: service-port
 
 ingress:
   enabled: false
@@ -69,6 +70,7 @@ ingress:
   # - secretName: retool.example.com
   #   hosts:
   #     - retool.example.com
+  # servicePort: service-port
 
 postgresql:
   enabled: true
