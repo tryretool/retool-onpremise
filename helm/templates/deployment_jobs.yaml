@@ -14,6 +14,10 @@ metadata:
 {{- end }}
 spec:
   replicas: 1
+  selector:
+    matchLabels:
+      app: {{ template "retool.fullname" . }}-jobs-runner
+      release: "{{ .Release.Name }}"
   revisionHistoryLimit: {{ .Values.revisionHistoryLimit }}
   template:
     metadata:
