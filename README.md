@@ -137,7 +137,7 @@ Just use the Deploy to Render button below!
 1. Change the working directory to the newly cloned repository `cd ./retool-onpremise`
 1. Create a new Aptible app with `aptible apps:create your-app-name`
 1. Add a database: `aptible db:create your-database-name --type postgresql`
-1. Set your config variables (your database connection string will be in your Aptible Dashboard and you can parse out the individual values by following these instructions: https://www.aptible.com/documentation/deploy/reference/databases/credentials.html#using-database-credentials):
+1. Set your config variables (your database connection string will be in your Aptible Dashboard and you can parse out the individual values by following [these instructions](https://www.aptible.com/documentation/deploy/reference/databases/credentials.html#using-database-credentials)). Be sure to rename `EXPIRED-LICENSE-KEY-TRIAL` to the license key provided to you. 
     ```
     aptible config:set --app your-app-name \
         POSTGRES_DB=your-db \
