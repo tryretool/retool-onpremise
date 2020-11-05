@@ -47,7 +47,7 @@ helm install ./helm
 ### Running Retool on Kubernetes
 
 1. Navigate into the `kubernetes` directory
-2. Copy the `retool-secrets.template.yaml` file to `retool-secrets.yaml` and inside the `{{ ... }}` sections, replace with a suitable base64 encoded string.
+2. Copy the `retool-secrets.template.yaml` file to `retool-secrets.yaml` and inside the `{{ ... }}` sections, replace with a suitable base64 encoded string. To base64 encode your license key, run `echo -n '<license key> | base64` in the command line. Be sure to add the `-n` character, as it removes the trailing newline character from the encoding.
     1. If you do not wish to add google authentication, replace the templates with an empty string.
     1. You will need a license key in order to proceed.
 3. Run `kubectl apply -f ./retool-secrets.yaml`
