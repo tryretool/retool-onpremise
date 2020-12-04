@@ -24,7 +24,7 @@ spec:
       - args:
         - bash
         - -c
-        - ./docker_scripts/wait-for-it.sh -t 0 postgres:5432;
+        - ./docker_scripts/wait-for-it.sh -t 0 $POSTGRES_HOST:$POSTGRES_PORT;
           ./docker_scripts/start_api.sh
         env:
         - name: JWT_SECRET
