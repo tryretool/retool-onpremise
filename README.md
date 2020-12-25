@@ -198,7 +198,6 @@ To update Retool on Kubernetes, you can use the following command:
 
 ```
 $ kubectl set image deploy/api api=tryretool/backend:X.XX.X
-
 ```
 
 The list of available version numbers for X.XX.X are available here: https://updates.tryretool.com/
