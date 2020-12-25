@@ -21,11 +21,12 @@ Deploying Retool on-premise ensures that all access to internal data is managed 
     - [ECS + Fargate](#deploying-on-ecs-with-fargate)
     - [Kubernetes](#deploying-on-kubernetes)
     - [Kubernetes + Helm](#deploying-on-kubernetes-with-helm)
-- [Health check endpoint](#health-check-endpoint)
-- [Adding Google login](#adding-google-login)
-- [Integrating with SAML(Okta)](#integrating-with-saml-okta)
-- [Disabling password-based sign-in](#disabling-password-based-sign-in)
-- [Deploy Retool with multiple containers](#deploy-retool-with-multiple-containers)
+- [Login and SSO](#login-and-sso)
+    - [Adding Google login](#adding-google-login)
+    - [Enabling Okta SAML SSO](#enabling-okta-saml-sso)
+    - [Disabling password-based sign-in](#disabling-password-based-sign-in)
+- [Additional features](#additional-features)
+    - [Health check endpoint](#health-check-endpoint)
 - [Troubleshooting](#troubleshooting)
 
 ## Getting started
@@ -263,11 +264,9 @@ helm install ./helm
 
 3. Persistent volumes are not reliable - we recommend that a long-term installation of Retool host the database on an externally managed database like RDS. Please disable the included `postgresql` chart by setting `postgresql.enabled` to `false` and then specifying your external database through the `config.postgresql.*` properties.
 
-## Health check endpoint 
+## Login and SSO
 
-Retool also has a health check endpoint that you can set up to monitor liveliness of Retool. You can configure your probe to make a `GET` request to `/api/checkHealth`.
-
-## Adding Google Login
+### Adding Google Login
 
 Create a Google oauth client using the tutorial below:
 
@@ -288,9 +287,9 @@ Restart the server and you will have Google login for your org!
 
 In Kubernetes, instead of editing the `docker.env` file, place the base64 encoded version of these strings inside the kubernetes secrets file
 
-## Integrating with SAML (Okta)
+### Enabling Okta SAML SSO
 
-Retool also supports SAML authentication schemes. Below is a guide to integrating Retool with Okta.
+Below is a guide to integrating Retool with Okta.
 
 1. Login into Okta as an admin. Make sure to use the Classic UI.
 1. Navigate to the `Applications` section of Okta
@@ -320,7 +319,7 @@ Retool also supports SAML authentication schemes. Below is a guide to integratin
         ```
     1. If you are using Heroku to deploy Retool, add a new environment variable called `SAML_IDP_METADATA` with the value of the XML document. No further steps are required.
 
-## Disabling password-based sign-in
+### Disabling password-based sign-in
 
 To disable the use of email + password sign-in, define the `RESTRICTED_DOMAIN` environment variable. For example, using the `docker.env` file, use this:
 ```
@@ -329,14 +328,11 @@ RESTRICTED_DOMAIN=yourcompany.com
 
 Note that, if you are using this in conjuction with Google login, Retool will compare the value supplied to `RESTRICTED_DOMAIN` with the domain of users that attempt to authenticate with Google SSO and reject accounts from different domains.
 
-## Deploy Retool with Multiple Containers
+## Additional features
 
-Sometimes, you may want to deploy Retool with multiple containers (for ex., if you would like to add resources, or enable git syncing). In addition to the main Retool api container, you will need to add a separate jobs-runner container (which will run migrations + git-syncing, if enabled).
+### Health check endpoint 
 
-1. Add a `SERVICE_TYPE` env var in your main Retool api container, and set its value to `MAIN_BACKEND,DB_CONNECTOR`.
-2. Create a second Retool `jobs-runner` container.
-3. In the `jobs-runner`, set the `SERVICE_TYPE` env var to `JOBS_RUNNER`.
-4. (Re)start your containers.  
+Retool also has a health check endpoint that you can set up to monitor liveliness of Retool. You can configure your probe to make a `GET` request to `/api/checkHealth`.
 
 ## Troubleshooting
 
