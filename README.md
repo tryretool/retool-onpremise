@@ -321,7 +321,7 @@ Retool also has a health check endpoint that you can set up to monitor livelines
     - Make sure that the secrets that you encoded in base64 don't have trailing whitespace! You can use `kubectl exec printenv` to help debug this issue.
     - Run `echo -n '<license key> | base64` in the command line. The `-n` character removes the trailing newline character from the encoding.
 - I can't seem to login?
-    - If you have not enabled SSL yet, you will need to add the line `COOKIE_INSECURE=true` to your `docker.env` file / environment configuration so that the authentication cookies can be sent over http. Make sure to run sudo docker-compose up -d after modifying the docker.env file.
+    - If you have not enabled SSL yet, you will need to add the line `COOKIE_INSECURE=true` to your `docker.env` file / environment configuration so that the authentication cookies can be sent over http. Make sure to run `sudo docker-compose up -d` after modifying the `docker.env` file.
 - `TypeError: Cannot read property 'licenseVerification' of null` or `TypeError: Cannot read property 'name' of null`
     - There is an issue with your license key. Double check that the license key is correct and that it has no trailing whitespaces. 
 
@@ -330,7 +330,7 @@ Retool also has a health check endpoint that you can set up to monitor livelines
 
 Below is a cheatsheet for useful Docker commands. Note that you may need to prefix them with `sudo`. 
 
-| Command                     | Function                                                                                                                      | 
+| Command                     | Description                                                                                                                     | 
 | ----------------------------|-------------------------------------------------------------------------------------------------------------------------------| 
 | `docker-compose up -d`      | Builds, (re)creates, starts, and attaches to containers for a service. `-d`allows containers to run in background (detached). | 
 | `docker-compose down`       | Stops and remove containers and networks                                                                                      |
