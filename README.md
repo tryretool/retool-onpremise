@@ -23,7 +23,7 @@ Deploying Retool on-premise ensures that all access to internal data is managed 
     - [Kubernetes + Helm](#deploying-on-kubernetes-with-helm)
 - [Health check endpoint](#health-check-endpoint)
 - [Adding Google login](#adding-google-login)
-- [Integrating with SAML](#integrating-with-saml]
+- [Integrating with SAML](#integrating-with-saml)
 - [Disabling password-based sign-in](#disabling-password-based-sign-in)
 - [Deploy Retool with multiple containers](#deploy-retool-with-multiple-containers)
 - [Troubleshooting](#troubleshooting)
