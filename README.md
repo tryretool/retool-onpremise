@@ -10,7 +10,6 @@
 Deploying Retool on-premise ensures that all access to internal data is managed within your own cloud environment. You also have the flexibility to control how Retool is setup within your infrastructure, configure logging, and enable custom SAML SSO using providers like Okta and Active Directory.
 
 # Table of contents
-- [Running Retool using Docker](#running-retool-using-docker)
 - [Simple deployments](#simple-deployments)
     - [EC2 and Docker](#deploying-on-ec2)
     - [Heroku](#deploying-on-heroku)
@@ -28,23 +27,6 @@ Deploying Retool on-premise ensures that all access to internal data is managed 
 - [Additional features](#additional-features)
     - [Health check endpoint](#health-check-endpoint)
 - [Troubleshooting](#troubleshooting)
-
-## Getting started
-
-### Running Retool using Docker
-
-1. Install `docker` and `docker-compose`
-    1. Provided are two convenience scripts for making it easy to install docker and docker-compose: `./get-docker.sh` and `./get-docker-compose.sh`
-2. Run `./docker_setup` and use the default values provided
-    1. If you do not have bash, you can adapt the docker.env.template file
-3. Run `sudo docker-compose up` to start the Retool server
-4. Be sure to open up port 80 and port 443 on the virtual machine's host
-5. Navigate to your server's ip address in a web browser to get started.
-
-#### Updating Retool using docker-compose
-
-1. Run `./update_retool.sh`
-1. Alternatively, stop the server, and run `sudo docker-compose pull` and then `sudo docker-compose up -d`
 
 ## Simple Deployments
 
