@@ -4,15 +4,32 @@
 
 Parameters:
 
-Environment # 'staging' --> sent to cloudwatch logs
-SubnetId # select 2 public subnets for the load balancer
-Cluster # the ECS cluster(this should have already been created)
-Image # the docker image (tryretool/backend:latest)
-DesiredCount # default number of tasks to run
-MaximumPercent # maximum number of tasks that are allowed to be RUNNING or PENDING during an update
-MinimumHealthyPercent # lower limit number of tasks that must remain RUNNING during update
-VpcId # the VPC in which to run Retool
-Force # Used to force the deployment even when the image and parameters are otherwised unchanged
+# 'staging' --> sent to cloudwatch logs
+Environment
+
+# select 2 public subnets for the load balancer
+SubnetId 
+
+# the ECS cluster(this should have already been created)
+Cluster
+
+# the docker image (tryretool/backend:latest)
+Image 
+
+# default number of tasks to run
+DesiredCount 
+
+# maximum number of tasks that are allowed to be RUNNING or PENDING during an update
+MaximumPercent 
+
+# lower limit number of tasks that must remain RUNNING during update
+MinimumHealthyPercent
+
+# the VPC in which to run Retool
+VpcId 
+
+# Used to force the deployment even when the image and parameters are otherwised unchanged
+Force 
 
 Resources:
 
