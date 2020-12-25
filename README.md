@@ -18,9 +18,15 @@ Deploying Retool on-premise ensures that all access to internal data is managed 
     - [Render](#deploying-to-render)
 - [Managed deployments](#managed-deployments)
     - [ECS](#deploying-on-ecs)
-    - [Fargate](#deploying-on-fargate)
+    - [ECS + Fargate](#deploying-on-ecs-with-fargate)
     - [Kubernetes](#deploying-on-kubernetes)
-    - [Kubernetes + Helm](#running-retool-on-kubernetes-with-helm)
+    - [Kubernetes + Helm](#deploying-on-kubernetes-with-helm)
+- [Health check endpoint](#health-check-endpoint)
+- [Adding Google login](#adding-google-login)
+- [Integrating with SAML](#integrating-with-saml]
+- [Disabling password-based sign-in](#disabling-password-based-sign-in)
+- [Deploy Retool with multiple containers](#deploy-retool-with-multiple-containers)
+- [Troubleshooting](#troubleshooting)
 
 ## Getting started
 
@@ -44,8 +50,70 @@ Deploying Retool on-premise ensures that all access to internal data is managed 
 Get set up in 15 minutes by deploying Retool on a single machine. 
 
 ### Deploying on EC2
+Spin up a new EC2 instance. If using AWS, use the following steps:
+1. Click **Launch Instance** from the EC2 dashboard.
 
-### Deploying to Heroku
+2. Click **Select** for an instance of Ubuntu `16.04` or higher.
+
+![Select instance](https://files.readme.io/d5d9fee-ec2_2.jpg)
+
+3. Select an instance type of at least `t2.medium` and click **Next**.
+
+![Instance type](https://files.readme.io/e60e6df-ec2_3.jpg)
+
+4. Ensure you select the VPC that also includes the databases / API’s you will want to connect to and click **Next**.
+
+![Select VPC](https://files.readme.io/5880e1c-databaseAPI.jpg)
+
+5. Increase the storage size to `60` GB or higher and click **Next**. 
+
+![Select storage](https://files.readme.io/051709a-44d7ccf-ec2_4.jpg)
+
+6. Optionally add some Tags (e.g. `app = retool`) and click **Next**. This makes it easier to find if you have a lot of instances.
+
+![Add tags](https://files.readme.io/cc04b7a-tags.jpg)
+
+7. Set the network security groups for ports `80`, `443`, `22` and `3000`, and click **Review and Launch**. We need to open ports `80` (http) and `443` (https) so you can connect to the server from a browser, as well as port `22` (ssh) so that you can ssh into the instance to configure it and run Retool. By default on a vanilla EC2, Retool will run on port `3000`. 
+
+![Add inbound rules](https://files.readme.io/8af8df2-Screen_Shot_2020-12-24_at_4.35.13_PM.png)
+
+8. On the **Review Instance Launch** screen, click **Launch** to start your instance.
+
+![Review instance](https://files.readme.io/0d1ca93-ec2_6.jpg)
+
+9. If you're connecting to internal databases, whitelist the VPS's IP address in your database.
+
+![Whitelist IP](https://files.readme.io/331a6f8-Screen_Shot_2019-09-11_at_4.08.31_PM.png)
+
+10. From your command line tool, SSH into your EC2 instance.
+
+11. Run the command `git clone https://github.com/tryretool/retool-onpremise.git`.
+
+12. Run the command `cd retool-onpremise` to enter the cloned repository's directory.
+
+13. Run `./install.sh` to install Docker and Docker Compose.
+
+14. Rename `docker.env.template` to `docker.env` by running: `mv docker.env.template docker.env`.
+
+15. In your `docker.env` add the following:
+
+```
+# License key granted to you by Retool
+LICENSE_KEY=YOUR_LICENSE_KEY 
+
+# This is necessary if you plan on logging in before setting up https
+COOKIE_INSECURE=true 
+```
+
+16. Run `docker-compose up -d` to start the Retool server.
+
+17. Run `sudo docker-compose ps` to make sure all the containers are up and running.
+
+18. Navigate to your server's IP address in a web browser. Retool should now be running on port `3000`.
+
+19. Click Sign Up, since we're starting from a clean slate. The first user to into an instance becomes the administrator. 
+
+### Deploying on Heroku
 
 Just use the Deploy to Heroku button below!
 
@@ -69,7 +137,7 @@ $ git commit --allow-empty -m 'Redeploying'
 $ git push heroku master
 ```
 
-#### Manually setting up Retool on Heroku
+### Manually setting up Retool on Heroku
 
 Alternatively, you may follow the following steps to deploy to Heroku
 
@@ -129,7 +197,35 @@ Just use the Deploy to Render button below!
 
 Deploy Retool on a managed service. We've provided some starter template files for Cloudformation setups (ECS + Fargate), Kubernetes, and Helm. 
 
-### Running Retool on Kubernetes
+### Deploying on ECS
+
+We provide a [template file](https://github.com/tryretool/retool-onpremise/blob/master/cloudformation/retool.yaml) for you to get started deploying on ECS. 
+
+1. In the ECS Dashboard, click **Create Cluster**
+2. Select `EC2 Linux + Networking` as the cluster template.
+3. Select `t2.medium` as the instance type.
+
+![Instance configuration](https://files.readme.io/346e95b-Screen_Shot_2020-12-24_at_6.20.57_PM.png)
+
+4. Select the VPC in which you’d like to launch the ECS cluster; make sure that you select a [public subnet](https://stackoverflow.com/questions/48830793/aws-vpc-identify-private-and-public-subnet).
+5. Download the [retool.yaml](https://github.com/tryretool/retool-onpremise/blob/master/cloudformation/retool.yaml) file, and add your license key and other relevant variables.
+5. Go to the AWS Cloudformation dashboard, and click **Create Stack with new resources → Upload a template file**. Upload your edited `retool.yaml` file.
+6. Then, enter the following parameters:
+    - Cluster: the name of the ECS cluster you created earlier
+    - DesiredCount: 2
+    - Environment: staging
+    - Force: false
+    - Image: `tryretool/backend:latest`
+    - MaximumPercent: 250
+    - MinimumPercent: 50
+    - SubnetId: Select 2 subnets in your VPC - make sure these subnets are public (have an internet gateway in their route table)
+    - VPC ID: select the VPC you want to use 
+7. Click through to create the stack; this could take up to 15 minutes; you can monitor the progress of the stack being created in the `Events` tab in Cloudformation
+8. After everything is complete, you should see all the resources with a `CREATE_COMPLETE` status.
+9. In the **Outputs** section, you should be able to find the ALB DNS URL.
+10. Navigate to this URL. 
+
+### Deploying on Kubernetes
 
 1. Navigate into the `kubernetes` directory
 2. Copy the `retool-secrets.template.yaml` file to `retool-secrets.yaml` and inside the `{{ ... }}` sections, replace with a suitable base64 encoded string. 
@@ -153,7 +249,7 @@ To force Retool to send the auth cookies over HTTP, please set the `COOKIE_INSEC
 
 Then, to update the running deployment, run `$ kubectl apply -f ./retool-container.yaml`
 
-#### Updating Retool on Kubernetes
+### Deploying on Kubernetes
 To update Retool on Kubernetes, you can use the following command:
 
 ```
@@ -164,7 +260,7 @@ $ kubectl set image deploy/api api=tryretool/backend:X.XX.X
 The list of available version numbers for X.XX.X are available here: https://updates.tryretool.com/
 
 
-### Running Retool on Kubernetes with Helm
+### Deploying on Kubernetes with Helm
 
 1. A helm chart is included in this repository under the ./helm directory
 2. The available parameters are documented using comments in the ./helm/values.yaml file
@@ -200,7 +296,7 @@ Restart the server and you will have Google login for your org!
 
 In Kubernetes, instead of editing the `docker.env` file, place the base64 encoded version of these strings inside the kubernetes secrets file
 
-## Integrating with SAML (e.g. Okta)
+## Integrating with SAML
 
 Retool also supports SAML authentication schemes. Below is a guide to integrating Retool with Okta.
 
@@ -250,7 +346,7 @@ Sometimes, you may want to deploy Retool with multiple containers (for ex., if y
 3. In the `jobs-runner`, set the `SERVICE_TYPE` env var to `JOBS_RUNNER`.
 4. (Re)start your containers.  
 
-## Troubleshooting:
+## Troubleshooting
 
 - On Kubernetes, I get the error `SequelizeConnectionError: password authentication failed for user "..."`
     - Make sure that the secrets that you encoded in base64 don't have trailing whitespace! You can use `kubectl exec printenv` to help debug this issue.
