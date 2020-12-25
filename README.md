@@ -38,11 +38,7 @@ Spin up a new EC2 instance. If using AWS, use the following steps:
 
 2. Click **Select** for an instance of Ubuntu `16.04` or higher.
 
-![Select instance](https://files.readme.io/d5d9fee-ec2_2.jpg)
-
 3. Select an instance type of at least `t2.medium` and click **Next**.
-
-![Instance type](https://files.readme.io/e60e6df-ec2_3.jpg)
 
 4. Ensure you select the VPC that also includes the databases / API’s you will want to connect to and click **Next**.
 
@@ -50,15 +46,11 @@ Spin up a new EC2 instance. If using AWS, use the following steps:
 
 6. Optionally add some Tags (e.g. `app = retool`) and click **Next**. This makes it easier to find if you have a lot of instances.
 
-7. Set the network security groups for ports `80`, `443`, `22` and `3000`, and click **Review and Launch**. We need to open ports `80` (http) and `443` (https) so you can connect to the server from a browser, as well as port `22` (ssh) so that you can ssh into the instance to configure it and run Retool. By default on a vanilla EC2, Retool will run on port `3000`. 
-
-![Add inbound rules](https://files.readme.io/8af8df2-Screen_Shot_2020-12-24_at_4.35.13_PM.png)
+7. Set the network security groups for ports `80`, `443`, `22` and `3000`, with sources set to `0.0.0.0/0` and `::/0`, and click **Review and Launch**. We need to open ports `80` (http) and `443` (https) so you can connect to the server from a browser, as well as port `22` (ssh) so that you can ssh into the instance to configure it and run Retool. By default on a vanilla EC2, Retool will run on port `3000`. 
 
 8. On the **Review Instance Launch** screen, click **Launch** to start your instance.
 
 9. If you're connecting to internal databases, whitelist the VPS's IP address in your database.
-
-![Whitelist IP](https://files.readme.io/331a6f8-Screen_Shot_2019-09-11_at_4.08.31_PM.png)
 
 10. From your command line tool, SSH into your EC2 instance.
 
