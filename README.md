@@ -23,7 +23,7 @@ Deploying Retool on-premise ensures that all access to internal data is managed 
     - [Kubernetes + Helm](#deploying-on-kubernetes-with-helm)
 - [Health check endpoint](#health-check-endpoint)
 - [Adding Google login](#adding-google-login)
-- [Integrating with SAML](#integrating-with-saml)
+- [Integrating with SAML(Okta)](#integrating-with-saml-(okta))
 - [Disabling password-based sign-in](#disabling-password-based-sign-in)
 - [Deploy Retool with multiple containers](#deploy-retool-with-multiple-containers)
 - [Troubleshooting](#troubleshooting)
@@ -63,23 +63,15 @@ Spin up a new EC2 instance. If using AWS, use the following steps:
 
 4. Ensure you select the VPC that also includes the databases / API’s you will want to connect to and click **Next**.
 
-![Select VPC](https://files.readme.io/5880e1c-databaseAPI.jpg)
-
 5. Increase the storage size to `60` GB or higher and click **Next**. 
 
-![Select storage](https://files.readme.io/051709a-44d7ccf-ec2_4.jpg)
-
 6. Optionally add some Tags (e.g. `app = retool`) and click **Next**. This makes it easier to find if you have a lot of instances.
-
-![Add tags](https://files.readme.io/cc04b7a-tags.jpg)
 
 7. Set the network security groups for ports `80`, `443`, `22` and `3000`, and click **Review and Launch**. We need to open ports `80` (http) and `443` (https) so you can connect to the server from a browser, as well as port `22` (ssh) so that you can ssh into the instance to configure it and run Retool. By default on a vanilla EC2, Retool will run on port `3000`. 
 
 ![Add inbound rules](https://files.readme.io/8af8df2-Screen_Shot_2020-12-24_at_4.35.13_PM.png)
 
 8. On the **Review Instance Launch** screen, click **Launch** to start your instance.
-
-![Review instance](https://files.readme.io/0d1ca93-ec2_6.jpg)
 
 9. If you're connecting to internal databases, whitelist the VPS's IP address in your database.
 
@@ -249,7 +241,7 @@ To force Retool to send the auth cookies over HTTP, please set the `COOKIE_INSEC
 
 Then, to update the running deployment, run `$ kubectl apply -f ./retool-container.yaml`
 
-### Deploying on Kubernetes
+#### Updating Retool on Kubernetes
 To update Retool on Kubernetes, you can use the following command:
 
 ```
@@ -296,7 +288,7 @@ Restart the server and you will have Google login for your org!
 
 In Kubernetes, instead of editing the `docker.env` file, place the base64 encoded version of these strings inside the kubernetes secrets file
 
-## Integrating with SAML
+## Integrating with SAML (Okta)
 
 Retool also supports SAML authentication schemes. Below is a guide to integrating Retool with Okta.
 
