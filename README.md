@@ -5,20 +5,26 @@
 
 
 
+# Deploying Retool on-premise
 
+Deploying Retool on-premise ensures that all access to internal data is managed within your own cloud environment. You also have the flexibility to control how Retool is setup within your infrastructure, configure logging, and enable custom SAML SSO using providers like Okta and Active Directory.
 
-# Repository for deploying Retool on-premise
+# Table of contents
+- [Running Retool using Docker](#running-retool-using-docker)
+- [Simple deployments](#simple-deployments)
+    - [EC2 and Docker](#deploying-on-ec2)
+    - [Heroku](#deploying-on-heroku)
+    - [Aptible](#running-retool-using-aptible)
+    - [Render](#deploying-to-render)
+- [Managed deployments](#managed-deployments)
+    - [ECS](#deploying-on-ecs)
+    - [Fargate](#deploying-on-fargate)
+    - [Kubernetes](#deploying-on-kubernetes)
+    - [Kubernetes + Helm](#running-retool-on-kubernetes-with-helm)
 
-Retool can be setup on premise in around 15 minutes. You should use either Docker, Kubernetes, or Heroku. If you're not sure what to use, use Docker.
+# Getting started
 
-## Getting started
-
-### Quick and simple start.
-
-1. Run `./install.sh`to install Docker and Docker Compose
-1. Run `sudo docker-compose up` to start the Retool server
-
-### Running Retool using Docker
+## Running Retool using Docker
 
 1. Install `docker` and `docker-compose`
     1. Provided are two convenience scripts for making it easy to install docker and docker-compose: `./get-docker.sh` and `./get-docker-compose.sh`
@@ -28,62 +34,24 @@ Retool can be setup on premise in around 15 minutes. You should use either Docke
 4. Be sure to open up port 80 and port 443 on the virtual machine's host
 5. Navigate to your server's ip address in a web browser to get started.
 
-#### Updating Retool using docker-compose
+### Updating Retool using docker-compose
 
 1. Run `./update_retool.sh`
 1. Alternatively, stop the server, and run `sudo docker-compose pull` and then `sudo docker-compose up -d`
 
-### Running Retool on Kubernetes with Helm
+# Simple Deployments
 
-1. A helm chart is included in this repository under the ./helm directory
-2. The available parameters are documented using comments in the ./helm/values.yaml file
+Get set up in 15 minutes by deploying Retool on a single machine. 
 
-```
-helm install ./helm
-```
+## Deploying on EC2
 
-3. Persistent volumes are not reliable - we recommend that a long-term installation of Retool host the database on an externally managed database like RDS. Please disable the included `postgresql` chart by setting `postgresql.enabled` to `false` and then specifying your external database through the `config.postgresql.*` properties.
-
-### Running Retool on Kubernetes
-
-1. Navigate into the `kubernetes` directory
-2. Copy the `retool-secrets.template.yaml` file to `retool-secrets.yaml` and inside the `{{ ... }}` sections, replace with a suitable base64 encoded string. To base64 encode your license key, run `echo -n <license key> | base64` in the command line. Be sure to add the `-n` character, as it removes the trailing newline character from the encoding.
-    1. If you do not wish to add google authentication, replace the templates with an empty string.
-    1. You will need a license key in order to proceed.
-3. Run `kubectl apply -f ./retool-secrets.yaml`
-4. Run `kubectl apply -f ./retool-postgres.yaml`
-4. Run `kubectl apply -f ./retool-container.yaml`
-
-For ease of use, this will create a postgres container with a persistent volume for the storage of Retool data. We recommend that you use a managed database service like RDS as a long-term solution. The application will be exposed on a public ip address on port 3000 - we leave it to the user to handle DNS and SSL.
-
-Please note that by default Retool is configured to use Secure Cookies - that means that you will be unable to login unless https has been correctly setup.
-
-To force Retool to send the auth cookies over HTTP, please set the `COOKIE_INSECURE` environment variable to `'true'` in `./retool-container.yaml`. Do this by adding the following two lines to the `env` section.
-
-```
-        - name: COOKIE_INSECURE
-          value: 'true'
-```
-
-Then, to update the running deployment, run `$ kubectl apply -f ./retool-container.yaml`
-
-#### Updating Retool on Kubernetes
-To update Retool on Kubernetes, you can use the following command:
-
-```
-$ kubectl set image deploy/api api=tryretool/backend:X.XX.X
-
-```
-
-The list of available version numbers for X.XX.X are available here: https://updates.tryretool.com/
-
-### Deploying to Heroku
+## Deploying to Heroku
 
 Just use the Deploy to Heroku button below!
 
 [![Deploy](https://www.herokucdn.com/deploy/button.svg)](https://heroku.com/deploy)
 
-#### Updating a Heroku deployment
+### Updating a Heroku deployment
 
 To update a Heroku deployment that was created with the button above, you may first set up a `git` repo to push to Heroku
 
@@ -101,7 +69,7 @@ $ git commit --allow-empty -m 'Redeploying'
 $ git push heroku master
 ```
 
-#### Manually setting up Retool on Heroku
+### Manually setting up Retool on Heroku
 
 Alternatively, you may follow the following steps to deploy to Heroku
 
@@ -123,13 +91,7 @@ To lockdown the version of Retool used, just edit the first line under `./heroku
 FROM tryretool/backend:X.XX.X
 ```
 
-### Deploying to Render
-
-Just use the Deploy to Render button below!
-
-[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/render-examples/retool)
-
-### Running Retool using Aptible
+## Running Retool using Aptible
 
 1. Add your public SSH key to your Aptible account through the Aptible dashboard
 1. Install the Aptible CLI, and login. Documentation for this can be found here: https://www.aptible.com/documentation/deploy/cli.html
@@ -156,6 +118,62 @@ Just use the Deploy to Render button below!
 1. Push the code: `git push aptible master`
 1. Create a default Aptible endpoint
 1. Navigate to your endpoint and sign up as a new user in your Retool instance
+
+## Deploying to Render
+
+Just use the Deploy to Render button below!
+
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/render-examples/retool)
+
+# Managed deployments
+
+Deploy Retool on a managed service. We've provided some starter template files for Cloudformation setups (ECS + Fargate), Kubernetes, and Helm. 
+
+## Running Retool on Kubernetes
+
+1. Navigate into the `kubernetes` directory
+2. Copy the `retool-secrets.template.yaml` file to `retool-secrets.yaml` and inside the `{{ ... }}` sections, replace with a suitable base64 encoded string. 
+    1. To base64 encode your license key, run `echo -n '<license key> | base64` in the command line. Be sure to add the `-n` character, as it removes the trailing newline character from the encoding.
+    1. If you do not wish to add google authentication, replace the templates with an empty string.
+    1. You will need a license key in order to proceed.
+3. Run `kubectl apply -f ./retool-secrets.yaml`
+4. Run `kubectl apply -f ./retool-postgres.yaml`
+4. Run `kubectl apply -f ./retool-container.yaml`
+
+For ease of use, this will create a postgres container with a persistent volume for the storage of Retool data. We recommend that you use a managed database service like RDS as a long-term solution. The application will be exposed on a public ip address on port 3000 - we leave it to the user to handle DNS and SSL.
+
+Please note that by default Retool is configured to use Secure Cookies - that means that you will be unable to login unless https has been correctly setup.
+
+To force Retool to send the auth cookies over HTTP, please set the `COOKIE_INSECURE` environment variable to `'true'` in `./retool-container.yaml`. Do this by adding the following two lines to the `env` section.
+
+```
+        - name: COOKIE_INSECURE
+          value: 'true'
+```
+
+Then, to update the running deployment, run `$ kubectl apply -f ./retool-container.yaml`
+
+### Updating Retool on Kubernetes
+To update Retool on Kubernetes, you can use the following command:
+
+```
+$ kubectl set image deploy/api api=tryretool/backend:X.XX.X
+
+```
+
+The list of available version numbers for X.XX.X are available here: https://updates.tryretool.com/
+
+
+## Running Retool on Kubernetes with Helm
+
+1. A helm chart is included in this repository under the ./helm directory
+2. The available parameters are documented using comments in the ./helm/values.yaml file
+
+```
+helm install ./helm
+```
+
+3. Persistent volumes are not reliable - we recommend that a long-term installation of Retool host the database on an externally managed database like RDS. Please disable the included `postgresql` chart by setting `postgresql.enabled` to `false` and then specifying your external database through the `config.postgresql.*` properties.
 
 ## Health check endpoint 
 
