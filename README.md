@@ -1,9 +1,6 @@
 <p align="center">
-    <a href="https://tryretool.com/"><img src="http://tryretool.com/logo.png" alt="Retool logo" height="100"></a> <br><br>
-<b>Retool lets you build custom internal tools in minutes.</b></p>
-
-
-
+    <a href="https://tryretool.com/"><img src="http://tryretool.com/logo.png" alt="Retool logo" height="100"></a> <br>
+<b>Retool lets you build custom internal tools in minutes.</b></p> <br>
 
 # Deploying Retool on-premise
 
@@ -35,35 +32,20 @@ Get set up in 15 minutes by deploying Retool on a single machine.
 ### Deploying on EC2
 Spin up a new EC2 instance. If using AWS, use the following steps:
 1. Click **Launch Instance** from the EC2 dashboard.
-
-2. Click **Select** for an instance of Ubuntu `16.04` or higher.
-
-3. Select an instance type of at least `t2.medium` and click **Next**.
-
-4. Ensure you select the VPC that also includes the databases / API’s you will want to connect to and click **Next**.
-
-5. Increase the storage size to `60` GB or higher and click **Next**. 
-
-6. Optionally add some Tags (e.g. `app = retool`) and click **Next**. This makes it easier to find if you have a lot of instances.
-
-7. Set the network security groups for ports `80`, `443`, `22` and `3000`, with sources set to `0.0.0.0/0` and `::/0`, and click **Review and Launch**. We need to open ports `80` (http) and `443` (https) so you can connect to the server from a browser, as well as port `22` (ssh) so that you can ssh into the instance to configure it and run Retool. By default on a vanilla EC2, Retool will run on port `3000`. 
-
-8. On the **Review Instance Launch** screen, click **Launch** to start your instance.
-
-9. If you're connecting to internal databases, whitelist the VPS's IP address in your database.
-
-10. From your command line tool, SSH into your EC2 instance.
-
-11. Run the command `git clone https://github.com/tryretool/retool-onpremise.git`.
-
-12. Run the command `cd retool-onpremise` to enter the cloned repository's directory.
-
-13. Run `./install.sh` to install Docker and Docker Compose.
-
-14. Rename `docker.env.template` to `docker.env` by running: `mv docker.env.template docker.env`.
-
-15. In your `docker.env` add the following:
-
+1. Click **Select** for an instance of Ubuntu `16.04` or higher.
+1. Select an instance type of at least `t2.medium` and click **Next**.
+1. Ensure you select the VPC that also includes the databases / API’s you will want to connect to and click **Next**.
+1. Increase the storage size to `60` GB or higher and click **Next**. 
+1. Optionally add some Tags (e.g. `app = retool`) and click **Next**. This makes it easier to find if you have a lot of instances.
+1. Set the network security groups for ports `80`, `443`, `22` and `3000`, with sources set to `0.0.0.0/0` and `::/0`, and click **Review and Launch**. We need to open ports `80` (http) and `443` (https) so you can connect to the server from a browser, as well as port `22` (ssh) so that you can ssh into the instance to configure it and run Retool. By default on a vanilla EC2, Retool will run on port `3000`. 
+1. On the **Review Instance Launch** screen, click **Launch** to start your instance.
+1. If you're connecting to internal databases, whitelist the VPS's IP address in your database.
+1. From your command line tool, SSH into your EC2 instance.
+1. Run the command `git clone https://github.com/tryretool/retool-onpremise.git`.
+1. Run the command `cd retool-onpremise` to enter the cloned repository's directory.
+1. Run `./install.sh` to install Docker and Docker Compose.
+1. Rename `docker.env.template` to `docker.env` by running: `mv docker.env.template docker.env`.
+1. In your `docker.env` add the following:
 ```
 # License key granted to you by Retool
 LICENSE_KEY=YOUR_LICENSE_KEY 
@@ -71,14 +53,10 @@ LICENSE_KEY=YOUR_LICENSE_KEY
 # This is necessary if you plan on logging in before setting up https
 COOKIE_INSECURE=true 
 ```
-
-16. Run `docker-compose up -d` to start the Retool server.
-
-17. Run `sudo docker-compose ps` to make sure all the containers are up and running.
-
-18. Navigate to your server's IP address in a web browser. Retool should now be running on port `3000`.
-
-19. Click Sign Up, since we're starting from a clean slate. The first user to into an instance becomes the administrator. 
+1. Run `docker-compose up -d` to start the Retool server.
+1. Run `sudo docker-compose ps` to make sure all the containers are up and running.
+1. Navigate to your server's IP address in a web browser. Retool should now be running on port `3000`.
+1. Click Sign Up, since we're starting from a clean slate. The first user to into an instance becomes the administrator. 
 
 ### Deploying on Heroku
 
@@ -118,7 +96,6 @@ Alternatively, you may follow the following steps to deploy to Heroku
     1. `HEROKU_HOSTED` set to `true`
     1. `JWT_SECRET`  - set to a long secure random string used to sign JSON Web Tokens
     1. `ENCRYPTION_KEY` - a long secure random string used to encrypt database credentials
-
 1. Push the code: `git push heroku master`
 
 To lockdown the version of Retool used, just edit the first line under `./heroku/Dockerfile` to:
