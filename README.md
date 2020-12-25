@@ -22,9 +22,9 @@ Deploying Retool on-premise ensures that all access to internal data is managed 
     - [Kubernetes](#deploying-on-kubernetes)
     - [Kubernetes + Helm](#running-retool-on-kubernetes-with-helm)
 
-# Getting started
+## Getting started
 
-## Running Retool using Docker
+### Running Retool using Docker
 
 1. Install `docker` and `docker-compose`
     1. Provided are two convenience scripts for making it easy to install docker and docker-compose: `./get-docker.sh` and `./get-docker-compose.sh`
@@ -34,24 +34,24 @@ Deploying Retool on-premise ensures that all access to internal data is managed 
 4. Be sure to open up port 80 and port 443 on the virtual machine's host
 5. Navigate to your server's ip address in a web browser to get started.
 
-### Updating Retool using docker-compose
+#### Updating Retool using docker-compose
 
 1. Run `./update_retool.sh`
 1. Alternatively, stop the server, and run `sudo docker-compose pull` and then `sudo docker-compose up -d`
 
-# Simple Deployments
+## Simple Deployments
 
 Get set up in 15 minutes by deploying Retool on a single machine. 
 
-## Deploying on EC2
+### Deploying on EC2
 
-## Deploying to Heroku
+### Deploying to Heroku
 
 Just use the Deploy to Heroku button below!
 
 [![Deploy](https://www.herokucdn.com/deploy/button.svg)](https://heroku.com/deploy)
 
-### Updating a Heroku deployment
+#### Updating a Heroku deployment
 
 To update a Heroku deployment that was created with the button above, you may first set up a `git` repo to push to Heroku
 
@@ -69,7 +69,7 @@ $ git commit --allow-empty -m 'Redeploying'
 $ git push heroku master
 ```
 
-### Manually setting up Retool on Heroku
+#### Manually setting up Retool on Heroku
 
 Alternatively, you may follow the following steps to deploy to Heroku
 
@@ -91,7 +91,7 @@ To lockdown the version of Retool used, just edit the first line under `./heroku
 FROM tryretool/backend:X.XX.X
 ```
 
-## Running Retool using Aptible
+### Running Retool using Aptible
 
 1. Add your public SSH key to your Aptible account through the Aptible dashboard
 1. Install the Aptible CLI, and login. Documentation for this can be found here: https://www.aptible.com/documentation/deploy/cli.html
@@ -119,17 +119,17 @@ FROM tryretool/backend:X.XX.X
 1. Create a default Aptible endpoint
 1. Navigate to your endpoint and sign up as a new user in your Retool instance
 
-## Deploying to Render
+### Deploying to Render
 
 Just use the Deploy to Render button below!
 
 [![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/render-examples/retool)
 
-# Managed deployments
+## Managed deployments
 
 Deploy Retool on a managed service. We've provided some starter template files for Cloudformation setups (ECS + Fargate), Kubernetes, and Helm. 
 
-## Running Retool on Kubernetes
+### Running Retool on Kubernetes
 
 1. Navigate into the `kubernetes` directory
 2. Copy the `retool-secrets.template.yaml` file to `retool-secrets.yaml` and inside the `{{ ... }}` sections, replace with a suitable base64 encoded string. 
@@ -153,7 +153,7 @@ To force Retool to send the auth cookies over HTTP, please set the `COOKIE_INSEC
 
 Then, to update the running deployment, run `$ kubectl apply -f ./retool-container.yaml`
 
-### Updating Retool on Kubernetes
+#### Updating Retool on Kubernetes
 To update Retool on Kubernetes, you can use the following command:
 
 ```
@@ -164,7 +164,7 @@ $ kubectl set image deploy/api api=tryretool/backend:X.XX.X
 The list of available version numbers for X.XX.X are available here: https://updates.tryretool.com/
 
 
-## Running Retool on Kubernetes with Helm
+### Running Retool on Kubernetes with Helm
 
 1. A helm chart is included in this repository under the ./helm directory
 2. The available parameters are documented using comments in the ./helm/values.yaml file
