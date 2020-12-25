@@ -23,7 +23,10 @@ Deploying Retool on-premise ensures that all access to internal data is managed 
     - [Disabling password-based sign-in](#disabling-password-based-sign-in)
 - [Additional features](#additional-features)
     - [Health check endpoint](#health-check-endpoint)
+    - [Environment variables](#environment-variables)
 - [Troubleshooting](#troubleshooting)
+- [Docker cheatsheet](#docker-cheatsheet)
+
 
 ## Simple Deployments
 
@@ -143,7 +146,7 @@ Deploy Retool on a managed service. We've provided some starter template files f
 
 ### Deploying on ECS
 
-We provide a [template file](https://github.com/tryretool/retool-onpremise/blob/master/cloudformation/retool.yaml) for you to get started deploying on ECS. 
+We provide a [template file](/cloudformation/retool.yaml) for you to get started deploying on ECS. 
 
 1. In the ECS Dashboard, click **Create Cluster**
 2. Select `EC2 Linux + Networking` as the cluster template.
@@ -152,7 +155,7 @@ We provide a [template file](https://github.com/tryretool/retool-onpremise/blob/
 ![Instance configuration](https://files.readme.io/346e95b-Screen_Shot_2020-12-24_at_6.20.57_PM.png)
 
 4. Select the VPC in which you’d like to launch the ECS cluster; make sure that you select a [public subnet](https://stackoverflow.com/questions/48830793/aws-vpc-identify-private-and-public-subnet).
-5. Download the [retool.yaml](https://github.com/tryretool/retool-onpremise/blob/master/cloudformation/retool.yaml) file, and add your license key and other relevant variables.
+5. Download the [retool.yaml](/cloudformation/retool.yaml) file, and add your license key and other relevant variables.
 5. Go to the AWS Cloudformation dashboard, and click **Create Stack with new resources → Upload a template file**. Upload your edited `retool.yaml` file.
 6. Then, enter the following parameters:
     - Cluster: the name of the ECS cluster you created earlier
@@ -166,8 +169,32 @@ We provide a [template file](https://github.com/tryretool/retool-onpremise/blob/
     - VPC ID: select the VPC you want to use 
 7. Click through to create the stack; this could take up to 15 minutes; you can monitor the progress of the stack being created in the `Events` tab in Cloudformation
 8. After everything is complete, you should see all the resources with a `CREATE_COMPLETE` status.
-9. In the **Outputs** section, you should be able to find the ALB DNS URL.
-10. Navigate to this URL. 
+9. In the **Outputs** section within the CloudFormation dashboard, you should be able to find the ALB DNS URL. This is where Retool should be running.
+
+### Deploying on ECS with Fargate
+
+We provide Fargate template files supporting [public](/cloudformation/fargate.yaml) and [private](/cloudformation/fargate.private.yaml) subnets. 
+
+1. In the ECS Dashboard, click **Create Cluster**
+1. In **Step 1: Select a cluster template**, select `Networking Only (Powered by AWS Fargate)` as the cluster template.
+1. In **Step 2: Configure cluster**, be sure to enable CloudWatch Container Insights. This will help us monitor logs and the health of our deployment through CloudWatch.
+1. Download the [public](/cloudformation/fargate.yaml) or [private](/cloudformation/fargate.private.yaml) template file, and add your license key and other relevant variables.
+1. Go to the AWS Cloudformation dashboard, and click **Create Stack with new resources → Upload a template file**. Upload your edited `.yaml` file.
+1. Enter the following parameters:
+    - Cluster: the name of the ECS cluster you created earlier
+    - DesiredCount: 2
+    - Environment: staging
+    - Force: false
+    - Image: `tryretool/backend:latest`
+    - MaximumPercent: 250
+    - MinimumPercent: 50
+    - SubnetId: Select 2 subnets in your VPC - make sure these subnets are public (have an internet gateway in their route table)
+    - VPC ID: select the VPC you want to use  
+1. Click through to create the stack; this could take up to 15 minutes; you can monitor the progress of the stack being created in the `Events` tab in Cloudformation
+1. In the **Outputs** section, you should be able to find the ALB DNS URL.
+1. Currently the load balancer is listening on port 3000; to make it available on port 80 we have to go to the **EC2 dashboard → Load Balancers → Listeners** and click Edit to to change the port to 80.
+    - If you get an error that your security group does not allow traffic on this listener port, you must add an inbound rule allowing HTTP on port 80.
+1. In the **Outputs** section within the CloudFormation dashboard, you should be able to find the ALB DNS URL. This is where Retool should be running.
 
 ### Deploying on Kubernetes
 
@@ -280,6 +307,10 @@ Note that, if you are using this in conjuction with Google login, Retool will co
 
 ## Additional features
 
+### Environment Variables
+
+You can set environment variables to enable custom functionality like [managing secrets](https://docs.retool.com/docs/secret-management-using-environment-variables), customizing logs, and much more. For a list of all environment variables visit our [docs](https://docs.retool.com/docs/environment-variables).
+
 ### Health check endpoint 
 
 Retool also has a health check endpoint that you can set up to monitor liveliness of Retool. You can configure your probe to make a `GET` request to `/api/checkHealth`.
@@ -291,3 +322,19 @@ Retool also has a health check endpoint that you can set up to monitor livelines
 - I can't seem to login?
     - If you have not enabled SSL yet, you will need to add the line `COOKIE_INSECURE=true` to your `docker.env` file / environment configuration so that the authentication cookies can be sent over http. Make sure to run sudo docker-compose up -d after modifying the docker.env file.
 
+## Docker cheatsheet
+
+Below is a cheatsheet for useful Docker commands. Note that you may need to prefix them with `sudo`. 
+
+| Command                     | Function                                                                                                                      | 
+| ----------------------------|-------------------------------------------------------------------------------------------------------------------------------| 
+| `docker-compose up -d`      | Builds, (re)creates, starts, and attaches to containers for a service. `-d`allows containers to run in background (detached). | 
+| `docker-compose down`       | Stops and remove containers and networks                                                                                      |
+| `docker-compose stop`       | Stops containers, but does not remove them and their networks                                                                 |
+| `docker ps -a`              | Display all containers                                                                                                        |
+| `docker logs <container_id> --follow` | Stream container logs to stdout                                                                                     |
+| `docker exec -it <container_name> psql -U <postgres_user> -W <postgres_password> <postgres_db>` | Runs `psql` inside a container                            |
+| `docker kill $(docker ps -q)` | Kills all running containers                                                                                                |
+| `docker rm $(docker ps -a -q)` | Removes all containers and networks                                                                                        |
+| `docker rmi -f $(docker images -q)`| Removes (and un-tags) all images from the host                                                                         |
+| `docker volume rm $(docker volume ls -q)` | Removes all volumes and completely wipes any persisted data                                                     |
