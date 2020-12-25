@@ -46,13 +46,13 @@ Spin up a new EC2 instance. If using AWS, use the following steps:
 1. Run `./install.sh` to install Docker and Docker Compose.
 1. Rename `docker.env.template` to `docker.env` by running: `mv docker.env.template docker.env`.
 1. In your `docker.env` add the following:
-```
-# License key granted to you by Retool
-LICENSE_KEY=YOUR_LICENSE_KEY 
+    ```
+    # License key granted to you by Retool
+    LICENSE_KEY=YOUR_LICENSE_KEY 
 
-# This is necessary if you plan on logging in before setting up https
-COOKIE_INSECURE=true 
-```
+    # This is necessary if you plan on logging in before setting up https
+    COOKIE_INSECURE=true 
+    ```
 1. Run `docker-compose up -d` to start the Retool server.
 1. Run `sudo docker-compose ps` to make sure all the containers are up and running.
 1. Navigate to your server's IP address in a web browser. Retool should now be running on port `3000`.
