@@ -135,7 +135,7 @@ FROM tryretool/backend:X.XX.X
 
 ### Deploying to Render
 
-Just use the Deploy to Render button below!
+Just use the Deploy to Render button below! Here are [some docs](https://render.com/docs/deploy-retool) on deploying Retool with Render.
 
 [![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/render-examples/retool)
 
