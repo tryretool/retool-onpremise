@@ -17,16 +17,12 @@ Deploying Retool on-premise ensures that all access to internal data is managed 
     - [ECS + Fargate](#deploying-on-ecs-with-fargate)
     - [Kubernetes](#deploying-on-kubernetes)
     - [Kubernetes + Helm](#deploying-on-kubernetes-with-helm)
-- [Login and SSO](#login-and-sso)
-    - [Adding Google login](#adding-google-login)
-    - [Enabling Okta SAML SSO](#enabling-okta-saml-sso)
-    - [Disabling password-based sign-in](#disabling-password-based-sign-in)
 - [Additional features](#additional-features)
     - [Health check endpoint](#health-check-endpoint)
     - [Environment variables](#environment-variables)
 - [Troubleshooting](#troubleshooting)
+- [Releases](#releases)
 - [Docker cheatsheet](#docker-cheatsheet)
-
 
 ## Simple Deployments
 
@@ -148,15 +144,19 @@ Deploy Retool on a managed service. We've provided some starter template files f
 We provide a [template file](/cloudformation/retool.yaml) for you to get started deploying on ECS. 
 
 1. In the ECS Dashboard, click **Create Cluster**
-2. Select `EC2 Linux + Networking` as the cluster template.
-3. Select `t2.medium` as the instance type.
-
-![Instance configuration](https://files.readme.io/346e95b-Screen_Shot_2020-12-24_at_6.20.57_PM.png)
-
-4. Select the VPC in which you’d like to launch the ECS cluster; make sure that you select a [public subnet](https://stackoverflow.com/questions/48830793/aws-vpc-identify-private-and-public-subnet).
-5. Download the [retool.yaml](/cloudformation/retool.yaml) file, and add your license key and other relevant variables.
-5. Go to the AWS Cloudformation dashboard, and click **Create Stack with new resources → Upload a template file**. Upload your edited `retool.yaml` file.
-6. Then, enter the following parameters:
+1. Select `EC2 Linux + Networking` as the cluster template.
+1. In your instance configuration, enter the following:
+    - Select **On-demand instance**
+    - Select **t2.medium** as the instance type
+    - (Optional) Choose how many instances you want to spin up
+    - (Optional) Add key pair 
+    - Choose your extsting VPC (or create a new one)
+    - (Optional) Add tags
+    - Enable CloudWatch container insights
+1. Select the VPC in which you’d like to launch the ECS cluster; make sure that you select a [public subnet](https://stackoverflow.com/questions/48830793/aws-vpc-identify-private-and-public-subnet).
+1. Download the [retool.yaml](/cloudformation/retool.yaml) file, and add your license key and other relevant variables.
+1. Go to the AWS Cloudformation dashboard, and click **Create Stack with new resources → Upload a template file**. Upload your edited `retool.yaml` file.
+1. Then, enter the following parameters:
     - Cluster: the name of the ECS cluster you created earlier
     - DesiredCount: 2
     - Environment: staging
@@ -166,9 +166,9 @@ We provide a [template file](/cloudformation/retool.yaml) for you to get started
     - MinimumPercent: 50
     - SubnetId: Select 2 subnets in your VPC - make sure these subnets are public (have an internet gateway in their route table)
     - VPC ID: select the VPC you want to use 
-7. Click through to create the stack; this could take up to 15 minutes; you can monitor the progress of the stack being created in the `Events` tab in Cloudformation
-8. After everything is complete, you should see all the resources with a `CREATE_COMPLETE` status.
-9. In the **Outputs** section within the CloudFormation dashboard, you should be able to find the ALB DNS URL. This is where Retool should be running.
+1. Click through to create the stack; this could take up to 15 minutes; you can monitor the progress of the stack being created in the `Events` tab in Cloudformation
+1. After everything is complete, you should see all the resources with a `CREATE_COMPLETE` status.
+1. In the **Outputs** section within the CloudFormation dashboard, you should be able to find the ALB DNS URL. This is where Retool should be running.
 
 ### Deploying on ECS with Fargate
 
@@ -240,71 +240,9 @@ helm install ./helm
 
 3. Persistent volumes are not reliable - we recommend that a long-term installation of Retool host the database on an externally managed database like RDS. Please disable the included `postgresql` chart by setting `postgresql.enabled` to `false` and then specifying your external database through the `config.postgresql.*` properties.
 
-## Login and SSO
-
-### Adding Google Login
-
-Create a Google oauth client using the tutorial below:
-
-https://developers.google.com/identity/sign-in/web/devconsole-project
-
-The Oauth Client screen should end up looking something like this:
-![Sample Google Oauth Config Screen](https://i.imgur.com/yOoYGQd.png)
-
-Add the following to your `docker.env` file
-
-```
-CLIENT_ID={YOUR_GOOGLE_CLIENT_ID}
-CLIENT_SECRET={YOUR_GOOGLE_CLIENT_SECRET}
-RESTRICTED_DOMAIN=yourcompany.com
-```
-
-Restart the server and you will have Google login for your org!
-
-In Kubernetes, instead of editing the `docker.env` file, place the base64 encoded version of these strings inside the kubernetes secrets file
-
-### Enabling Okta SAML SSO
-
-Below is a guide to integrating Retool with Okta.
-
-1. Login into Okta as an admin. Make sure to use the Classic UI.
-1. Navigate to the `Applications` section of Okta
-1. Create a new application using the SAML wizard. More information can be found here: https://help.okta.com/en/prod/Content/Topics/Apps/Apps_App_Integration_Wizard.htm
-1. When presented with the `Create a New Appication Integration` dialog, choose:
-    1. Platform: `Web`
-    1. Sign on method: `SAML 2.0`
-1. You will then be directed to a 3 step wizard.
-    1. For the first step (General Settings) , name the application 'Retool', and then press next.
-    1. For the second step (Configure SAML):
-        1. Single sign on URL: https://retool.yourcompany.com/saml/login
-        1. Audience URI: retool.yourcompany.com
-        1. Attribute Statements: Retool requires three attributes to be present:
-            1. firstName: user.firstName
-            1. lastName: user.lastName
-            1. email: user.email
-        1. Leave everything else as default. See below for an example of a valid configuration.
-          ![Sample Okta SAML Configuration](https://i.imgur.com/K7VQSiBg.png)
-    1. For the third step 
-        1. Check 'I'm an Okta customer adding an internal app"
-        1. Check "This is an internal app that we have created"
-        1. Click 'Finish'
-1. The last step will be to provide the Retool instance with the Identity Provider metadata. To do this, press the 'View Setup Instructions' button. A new page with IDP metadata will appear. Copy the XML at the bottom of the page, and then:
-    1. If you are using the `docker-compose` setup, add the following line to your `docker.env` file. The XML content will contain multiple lines, so make sure to remove all line endings so that the entire XML string is one line in the `docker.env file`
-        ```
-        SAML_IDP_METADATA=<?xml version="1.0" encoding="UTF-8"?>...</md:EntityDescriptor>
-        ```
-    1. If you are using Heroku to deploy Retool, add a new environment variable called `SAML_IDP_METADATA` with the value of the XML document. No further steps are required.
-
-### Disabling password-based sign-in
-
-To disable the use of email + password sign-in, define the `RESTRICTED_DOMAIN` environment variable. For example, using the `docker.env` file, use this:
-```
-RESTRICTED_DOMAIN=yourcompany.com
-```
-
-Note that, if you are using this in conjuction with Google login, Retool will compare the value supplied to `RESTRICTED_DOMAIN` with the domain of users that attempt to authenticate with Google SSO and reject accounts from different domains.
-
 ## Additional features
+
+**For details on additional features like SAML SSO, gRPC, custom certs, and more, visit our [docs](https://docs.retool.com/docs).**
 
 ### Environment Variables
 
@@ -324,6 +262,9 @@ Retool also has a health check endpoint that you can set up to monitor livelines
 - `TypeError: Cannot read property 'licenseVerification' of null` or `TypeError: Cannot read property 'name' of null`
     - There is an issue with your license key. Double check that the license key is correct and that it has no trailing whitespaces. 
 
+## Releasees
+
+Releases notes can be found on [updates.retool.com](https://updates.retool.com/en).
 
 ## Docker cheatsheet
 
