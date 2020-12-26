@@ -262,7 +262,7 @@ Retool also has a health check endpoint that you can set up to monitor livelines
 - `TypeError: Cannot read property 'licenseVerification' of null` or `TypeError: Cannot read property 'name' of null`
     - There is an issue with your license key. Double check that the license key is correct and that it has no trailing whitespaces. 
 
-## Releasees
+## Releases
 
 Releases notes can be found on [updates.retool.com](https://updates.retool.com/en).
 
