@@ -47,8 +47,7 @@ Spin up a new EC2 instance. If using AWS, use the following steps:
 1. Run the command `git clone https://github.com/tryretool/retool-onpremise.git`.
 1. Run the command `cd retool-onpremise` to enter the cloned repository's directory.
 1. Run `./install.sh` to install Docker and Docker Compose.
-1. Rename `docker.env.template` to `docker.env` by running: `mv docker.env.template docker.env`.
-1. In your `docker.env` add the following:
+1. In your `docker.env` (file only created after running `./install.sh`) add the following:
     ```
     # License key granted to you by Retool
     LICENSE_KEY=YOUR_LICENSE_KEY 
