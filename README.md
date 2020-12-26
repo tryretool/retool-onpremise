@@ -337,7 +337,7 @@ Below is a cheatsheet for useful Docker commands. Note that you may need to pref
 | `docker-compose stop`       | Stops containers, but does not remove them and their networks                                                                 |
 | `docker ps -a`              | Display all Docker containers                                                                                                 |
 | `docker-compose ps -a`      | Display all containers related to images declared in the `docker-compose` file. 
-| `docker logs <container_id> --follow` | Stream container logs to stdout                                                                                     |
+| `docker logs -f <container_name>` | Stream container logs to stdout                                                                                     |
 | `docker exec -it <container_name> psql -U <postgres_user> -W <postgres_password> <postgres_db>` | Runs `psql` inside a container                            |
 | `docker kill $(docker ps -q)` | Kills all running containers                                                                                                |
 | `docker rm $(docker ps -a -q)` | Removes all containers and networks                                                                                        |
