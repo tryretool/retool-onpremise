@@ -76,6 +76,7 @@ services:
     env_file: docker.env
     networks:
       - backend-network
+      - db-connector-network
     volumes:
       - data:/var/lib/postgresql/data
 
