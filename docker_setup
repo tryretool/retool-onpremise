@@ -38,11 +38,6 @@ echo 'POSTGRES_USER=retool_internal_user' >> docker.env
 echo 'POSTGRES_HOST=postgres' >> docker.env
 echo 'POSTGRES_PORT=5432' >> docker.env
 echo "POSTGRES_PASSWORD=${postgresPassword}" >> docker.env
-
-echo 'RT_POSTGRES_USER=retool_internal_user' >> docker.env
-echo 'RT_POSTGRES_HOST=postgres' >> docker.env
-echo 'RT_POSTGRES_PORT=5432' >> docker.env
-echo "RT_POSTGRES_PASSWORD=${postgresPassword}" >> docker.env
 echo '' >> docker.env
 
 echo '## Set variables for the nginx server' >> docker.env
