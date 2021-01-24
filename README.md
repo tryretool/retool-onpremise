@@ -150,7 +150,7 @@ We provide a [template file](/cloudformation/retool.yaml) for you to get started
     - Select **t2.medium** as the instance type
     - (Optional) Choose how many instances you want to spin up
     - (Optional) Add key pair 
-    - Choose your extsting VPC (or create a new one)
+    - Choose your existing VPC (or create a new one)
     - (Optional) Add tags
     - Enable CloudWatch container insights
 1. Select the VPC in which you’d like to launch the ECS cluster; make sure that you select a [public subnet](https://stackoverflow.com/questions/48830793/aws-vpc-identify-private-and-public-subnet).
