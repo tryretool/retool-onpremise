@@ -256,7 +256,7 @@ Retool also has a health check endpoint that you can set up to monitor livelines
 
 - On Kubernetes, I get the error `SequelizeConnectionError: password authentication failed for user "..."`
     - Make sure that the secrets that you encoded in base64 don't have trailing whitespace! You can use `kubectl exec printenv` to help debug this issue.
-    - Run `echo -n '<license key> | base64` in the command line. The `-n` character removes the trailing newline character from the encoding.
+    - Run `echo -n <license key> | base64` in the command line. The `-n` character removes the trailing newline character from the encoding.
 - I can't seem to login? I keep getting redirected to the login page after signing in.
     - If you have not enabled SSL yet, you will need to add the line `COOKIE_INSECURE=true` to your `docker.env` file / environment configuration so that the authentication cookies can be sent over http. Make sure to run `sudo docker-compose up -d` after modifying the `docker.env` file.
 - `TypeError: Cannot read property 'licenseVerification' of null` or `TypeError: Cannot read property 'name' of null`
