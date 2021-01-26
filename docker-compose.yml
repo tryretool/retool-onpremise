@@ -80,7 +80,7 @@ services:
     volumes:
       - data:/var/lib/postgresql/data
 
-  # Uncomment this if you do not need a database for storing custom data (e.g. CSVs)
+  # Comment this out if you do not need a database for storing custom data (e.g. CSVs)
   user-postgres:
     image: 'postgres:9.6.5'
     env_file: ./userData/userData.env
@@ -89,7 +89,7 @@ services:
     volumes:
       - user-data:/var/lib/postgresql/data
 
-  # Uncomment below to use nginx container to handle the frontend & SSL certification
+  # Not required, but leave this container to use nginx for handling the frontend & SSL certification
   https-portal:
     image: tryretool/https-portal:latest
     ports:
