@@ -222,9 +222,8 @@ echo "  ${CYAN}To STOP Retool, run${NORMAL}:  ${WHITE}${BOLD}${DOCKER_CONTEXT}/s
 echo "  ${CYAN}To RESTART Retool, run${NORMAL}:  ${WHITE}${BOLD}${DOCKER_CONTEXT}/local-trial${NORMAL}"
 echo ""
 
-echo "Retool will run in the background until you manually stop it. If Retool stops you can restart it without losing your data. "
+echo "Retool was installed in ~/retool. It will run in the background until you manually stop it. If Retool stops you can restart it without losing your data. "
 
 if command_present open; then
   open 'http://localhost:3000/auth/signup'
 fi
-
