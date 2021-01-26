@@ -150,6 +150,13 @@ if retool_trial_running; then
   docker-compose down
 fi
 
+if [ ! -f ./docker-compose-ssl.yml ]; then
+  mv docker-compose.yml docker-compose-ssl.yml
+fi
+if [ -f ./docker-compose-local-trial.yml ]; then
+  mv docker-compose-local-trial.yml docker-compose.yml
+fi
+
 log_step 'updating Retool!'
 docker-compose pull
 
