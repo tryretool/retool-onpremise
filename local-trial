@@ -179,7 +179,7 @@ fi
 log_step 'updating Retool!'
 $MAYBE_SUDO docker-compose pull
 
-log_step 'running Retool! This can take a while.'
+log_step "running Retool! ${WHITE}${BOLD}This can take up to 5 minutes${NORMAL}"
 
 $MAYBE_SUDO docker-compose up -d
 
@@ -217,7 +217,7 @@ printf "\r%s%s%s%s%s%s%s%s" "$MAGENTA" 'Check out your ' "$BOLD" 'BROWSER' "${NO
 echo
 
 echo ""
-echo "  ${CYAN}Navigate to${NORMAL}:          ${WHITE}${BOLD}http://localhost:3000/auth/signup${NORMAL}    or    ${WHITE}${BOLD}[publically_accessible_ip]/auth/signup${NORMAL}"
+echo "  ${CYAN}Navigate to${NORMAL}:          ${WHITE}${BOLD}http://localhost:3000/auth/signup${NORMAL}    or    ${WHITE}${BOLD}[publically_accessible_ip]:3000/auth/signup${NORMAL}"
 echo "  ${CYAN}To STOP Retool, run${NORMAL}:  ${WHITE}${BOLD}${DOCKER_CONTEXT}/stop-local-trial${NORMAL}"
 echo "  ${CYAN}To RESTART Retool, run${NORMAL}:  ${WHITE}${BOLD}${DOCKER_CONTEXT}/local-trial${NORMAL}"
 echo ""
