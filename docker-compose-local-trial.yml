@@ -1,0 +1,115 @@
+version: '2'
+services:
+  api:
+    build:
+      context: ./
+      dockerfile: Dockerfile
+    env_file: ./docker.env
+    environment:
+      - SERVICE_TYPE=MAIN_BACKEND
+      - DB_CONNECTOR_HOST=http://db-connector
+      - DB_CONNECTOR_PORT=3002
+      - DB_SSH_CONNECTOR_HOST=http://db-ssh-connector
+      - DB_SSH_CONNECTOR_PORT=3002
+    networks:
+      - frontend-network
+      - backend-network
+      - db-connector-network
+      - db-ssh-connector-network
+    depends_on:
+      - postgres
+      - db-connector
+      - db-ssh-connector
+    command: bash -c "./docker_scripts/wait-for-it.sh postgres:5432; ./docker_scripts/start_api.sh"
+    links:
+      - postgres
+    ports:
+      - '3000:3000'
+    volumes:
+      - ./keys:/root/.ssh
+      - ssh:/retool_backend/autogen_ssh_keys
+
+  jobs-runner:
+    build:
+      context: ./
+      dockerfile: Dockerfile
+    env_file: ./docker.env
+    environment:
+      - SERVICE_TYPE=JOBS_RUNNER
+    networks:
+      - backend-network
+    depends_on:
+      - postgres
+    command: bash -c "chmod -R +x ./docker_scripts; sync; ./docker_scripts/wait-for-it.sh postgres:5432; ./docker_scripts/start_api.sh"
+    links:
+      - postgres
+
+  db-connector:
+    build:
+      context: ./
+      dockerfile: Dockerfile
+    command: bash -c "./retool_backend"
+    env_file: ./docker.env
+    environment:
+      - SERVICE_TYPE=DB_CONNECTOR_SERVICE
+    networks:
+      - db-connector-network
+    restart: on-failure
+
+  db-ssh-connector:
+    build:
+      context: ./
+      dockerfile: Dockerfile
+    command: bash -c "./docker_scripts/generate_key_pair.sh; ./retool_backend"
+    env_file: ./docker.env
+    environment:
+      - SERVICE_TYPE=DB_SSH_CONNECTOR_SERVICE
+    networks:
+      - db-ssh-connector-network
+    volumes:
+      - ssh:/retool_backend/autogen_ssh_keys
+      - ./keys:/retool_backend/keys
+    restart: on-failure
+
+  postgres:
+    image: 'postgres:9.6.5'
+    env_file: docker.env
+    networks:
+      - backend-network
+      - db-connector-network
+    volumes:
+      - data:/var/lib/postgresql/data
+
+  # Uncomment this if you do not need a database for storing custom data (e.g. CSVs)
+  user-postgres:
+    image: 'postgres:9.6.5'
+    env_file: ./userData/userData.env
+    networks:
+      - db-connector-network
+    volumes:
+      - user-data:/var/lib/postgresql/data
+
+  # Uncomment below to use nginx container to handle the frontend & SSL certification
+#  https-portal:
+#    image: tryretool/https-portal:latest
+#    ports:
+#      - '80:80'
+#      - '443:443'
+#    links:
+#      - api
+#    restart: always
+#    env_file: ./docker.env
+#    environment:
+#      STAGE: 'local' # <- Change 'local' to 'production' to use a LetsEncrypt signed SSL cert
+#    networks:
+#      - frontend-network
+networks:
+  frontend-network:
+  backend-network:
+  db-connector-network:
+  db-ssh-connector-network:
+
+volumes:
+  ssh:
+  data:
+  user-data:
