@@ -4,6 +4,13 @@
 # See https://sipb.mit.edu/doc/safe-shell/
 set -euf -o pipefail
 
+if [[ "$OSTYPE" == "linux-gnu" ]]; then
+  export MAYBE_SUDO="sudo"
+else
+  export MAYBE_SUDO=""
+fi
+
+
 if [ -t 1 ]; then
   export NORMAL="$(tput sgr0)"
   export RED="$(tput setaf 1)"
@@ -48,14 +55,14 @@ command_present() {
 
 retool_containers_present() {
   # NB: awk is to remove whitespace from `wc`
-  RETOOL_IMAGES="$(docker image ls | grep 'retool-onpremise' | wc -l | awk '{print $1}')"
+  RETOOL_IMAGES="$($MAYBE_SUDO docker image ls | grep 'retool-onpremise' | wc -l | awk '{print $1}')"
   test "$RETOOL_IMAGES" -gt '0'
 }
 
 number_of_trial_containers() {
   # NB: awk is to remove whitespace from `wc`
   cd "$DOCKER_CONTEXT"
-  docker-compose ps -q | wc -l | awk '{print $1}'
+  $MAYBE_SUDO docker-compose ps -q | wc -l | awk '{print $1}'
 }
 
 # NB: trim trailing slash on $TMPDIR as different OS's do it differently
@@ -66,7 +73,7 @@ if [ -d "$DOCKER_CONTEXT" ] && [ "$(number_of_trial_containers)" -gt 0 ]; then
   cd "$DOCKER_CONTEXT" || error_exit "could not stop Retool. use \`docker\` commands to manage from $DOCKER_CONTEXT"
 
   log_step 'stopping Retool...'
-  docker-compose down
+  $MAYBE_SUDO docker-compose down
 else
   log_step 'trial is not running. all done!'
 fi
