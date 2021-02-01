@@ -176,10 +176,8 @@ if retool_trial_running; then
   $MAYBE_SUDO docker-compose down
 fi
 
-if [ ! -f ./docker-compose-ssl.yml ]; then
+if [ ! -f ./docker-compose-ssl.yml ] && [ -f ./docker-compose-local-trial.yml ]; then
   mv docker-compose.yml docker-compose-ssl.yml
-fi
-if [ -f ./docker-compose-local-trial.yml ]; then
   mv docker-compose-local-trial.yml docker-compose.yml
 fi
 
@@ -224,7 +222,7 @@ printf "\r%s%s%s%s%s%s%s%s" "$MAGENTA" 'Check out your ' "$BOLD" 'BROWSER' "${NO
 echo
 
 echo ""
-echo "  ${CYAN}Navigate to${NORMAL}:          ${WHITE}${BOLD}http://localhost:3000/auth/signup${NORMAL}    or    ${WHITE}${BOLD}[publically_accessible_ip]:3000/auth/signup${NORMAL}"
+echo "  ${CYAN}Navigate to${NORMAL}:          ${WHITE}${BOLD}http://localhost:3007/auth/signup${NORMAL}    or    ${WHITE}${BOLD}[publically_accessible_ip]:3007/auth/signup${NORMAL}"
 echo "  ${CYAN}To STOP Retool, run${NORMAL}:  ${WHITE}${BOLD}${DOCKER_CONTEXT}/stop-local-trial${NORMAL}"
 echo "  ${CYAN}To RESTART Retool, run${NORMAL}:  ${WHITE}${BOLD}${DOCKER_CONTEXT}/local-trial${NORMAL}"
 echo ""
@@ -232,5 +230,5 @@ echo ""
 echo "Retool was installed in ~/retool. It will run in the background until you manually stop it. If Retool stops you can restart it without losing your data. "
 
 if command_present open; then
-  open 'http://localhost:3000/auth/signup'
+  open 'http://localhost:3007/auth/signup'
 fi
