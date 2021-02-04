@@ -58,6 +58,9 @@ log_warn() {
   done
 }
 
+DISTRO=$(./checkdistro.sh)
+
+# adapted from https://askubuntu.com/questions/459402/how-to-know-if-the-running-platform-is-ubuntu-or-centos-with-help-of-a-bash-scri
 command_present() {
   type "$1" >/dev/null 2>&1
 }
@@ -94,6 +97,10 @@ if [ ! -d "$DOCKER_CONTEXT" ]; then
     log_warn 'Attempting to git clone instead'
     if command_present git; then
       log_step 'cloning...'
+      git clone https://github.com/tryretool/retool-onpremise.git
+    elif command_present yum; then
+      log_warn 'You did not have git so installing'
+      sudo yum install git
       git clone https://github.com/tryretool/retool-onpremise.git
     else
       error_exit "Please install git or unzip before continuing"
@@ -157,6 +164,15 @@ if [ ! -d "$DOCKER_CONTEXT" ]; then
     log_step '`docker-compose` found!'
   fi
 
+  if [[ $DISTRO == *"centos"* ]]; then
+    echo 'Starting docker service and making compose accessible by root user'
+    if [ ! -f /usr/bin/docker-compose ]; then
+      sudo ln -s /usr/local/bin/docker-compose  /usr/bin/docker-compose
+    fi
+    sudo systemctl enable docker.service
+    sudo systemctl start docker.service
+  fi
+
   if retool_containers_present; then
     log_step 'noticed you have tried Retool before, cleaning up...'
     $MAYBE_SUDO docker-compose rm -fsv
@@ -167,7 +183,7 @@ else
     "if you're still having issues, you can stop all docker containers using the \`docker\` command"
 fi
 
-if (! $MAYBE_SUDO docker stats --no-stream) && [ "$OSTYPE" == "linux-gnu" ]; then
+if (! $MAYBE_SUDO docker stats --no-stream) && [ "$OSTYPE" == "linux-gnu" ] && [ "$DISTRO" != "*centos*" ]; then
    sudo docker service start
 fi
 
@@ -234,3 +250,4 @@ echo "Retool was installed in ~/retool. It will run in the background until you 
 if command_present open; then
   open 'http://localhost:3000/auth/signup'
 fi
+
