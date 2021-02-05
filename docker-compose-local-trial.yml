@@ -24,7 +24,7 @@ services:
     links:
       - postgres
     ports:
-      - '3000:3000'
+      - '3007:3007'
     volumes:
       - ./keys:/root/.ssh
       - ssh:/retool_backend/autogen_ssh_keys
