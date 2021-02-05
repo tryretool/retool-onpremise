@@ -1,7 +1,0 @@
-apiVersion: v1
-name: retool
-version: 3.2.0
-maintainers:
-  - name: Retool Engineering
-    email: engineering@retool.in
-engine: gotpl
