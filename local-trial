@@ -58,7 +58,7 @@ log_warn() {
   done
 }
 
-DISTRO=$(./checkdistro.sh)
+DISTRO=$( ./checkDistro.sh )
 
 # adapted from https://askubuntu.com/questions/459402/how-to-know-if-the-running-platform-is-ubuntu-or-centos-with-help-of-a-bash-scri
 command_present() {
@@ -164,7 +164,8 @@ if [ ! -d "$DOCKER_CONTEXT" ]; then
     log_step '`docker-compose` found!'
   fi
 
-  if [[ $DISTRO == *"centos"* ]]; then
+  echo checking $DISTRO
+  if [[ $DISTRO == *"CentOS"* ]]; then
     echo 'Starting docker service and making compose accessible by root user'
     if [ ! -f /usr/bin/docker-compose ]; then
       sudo ln -s /usr/local/bin/docker-compose  /usr/bin/docker-compose
