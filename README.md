@@ -231,14 +231,13 @@ The list of available version numbers for X.XX.X are available here: https://upd
 
 ### Deploying on Kubernetes with Helm
 
-1. A helm chart is included in this repository under the ./helm directory
-2. The available parameters are documented using comments in the ./helm/values.yaml file
-
 ```
-helm install ./helm
+helm repo add retool https://charts.retool.com
+helm install my-retool retool/retool
 ```
 
-3. Persistent volumes are not reliable - we recommend that a long-term installation of Retool host the database on an externally managed database like RDS. Please disable the included `postgresql` chart by setting `postgresql.enabled` to `false` and then specifying your external database through the `config.postgresql.*` properties.
+See https://github.com/tryretool/retool-helm for full Helm chart documentation
+and instructions.
 
 ## Additional features
 
