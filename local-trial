@@ -163,7 +163,6 @@ if [ ! -d "$DOCKER_CONTEXT" ]; then
     log_step '`docker-compose` found!'
   fi
 
-  echo checking $DISTRO
   if [[ $DISTRO == *"CentOS"* ]]; then
     echo 'Starting docker service and making compose accessible by root user'
     if [ ! -f /usr/bin/docker-compose ]; then
