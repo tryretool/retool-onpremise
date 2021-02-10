@@ -58,7 +58,7 @@ log_warn() {
   done
 }
 
-DISTRO=$( ./checkDistro.sh )
+export DISTRO=$( (lsb_release -ds || cat /etc/*release || uname -om) 2>/dev/null | head -n1)
 
 command_present() {
   type "$1" >/dev/null 2>&1
