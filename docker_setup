@@ -25,6 +25,9 @@ if [ -f ./docker.env ]; then
 fi
 touch docker.env
 
+echo '## For a complete list of all environment variables, see docs.retool.com/docs/environment-variables' >> docker.env
+echo '' >> docker.env
+
 echo '## Set node environment to production' >> docker.env
 echo 'NODE_ENV=production' >> docker.env
 echo '' >> docker.env
@@ -45,6 +48,11 @@ echo "# Change '${hostname}' to retool.yourcompany.com to set up SSL properly" >
 echo "DOMAINS=${hostname} -> http://api:3000" >> docker.env
 echo '' >> docker.env
 
+echo '## Used to create links for your users, like new user invitations and forgotten password resets' >> docker.env
+echo '## The backend tries to guess this, but it can be incorrect if there’s a proxy in front of the website' >> docker.env
+echo '# BASE_DOMAIN=https://retool.yourwebsite.com' >> docker.env
+echo '' >> docker.env
+
 echo '## Set key to encrypt and decrypt database passwords, etc.' >> docker.env
 echo "ENCRYPTION_KEY=${encryptionKey}" >> docker.env
 echo '' >> docker.env
@@ -57,10 +65,14 @@ echo "## Okta configuration" >> docker.env
 echo "# Do not include an https:// in the URL below" >> docker.env
 echo "# OKTA_URL=dev-xyz.oktapreview.com" >> docker.env
 echo "# OKTA_CLIENT_ID={YOUR OKTA CLIENT ID}" >> docker.env
-
 echo '' >> docker.env
+
 echo '## License key' >> docker.env
 echo 'LICENSE_KEY=EXPIRED-LICENSE-KEY-TRIAL' >> docker.env
+echo '' >> docker.env
+
+echo '## Uncomment this line if HTTPS is not set up' >> docker.env
+echo '# COOKIE_INSECURE=true' >> docker.env 
 
 echo "Cool! Now add your license key in docker.env then run docker-compose up to launch Retool."
 
