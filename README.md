@@ -58,7 +58,7 @@ Spin up a new EC2 instance. If using AWS, use the following steps:
 
 ### Deploying on Heroku
 
-Just use the Deploy to Heroku button below!
+Just use the Deploy to Heroku button below! You'll then have to go to Settings and set the `LICENSE_KEY` config var.
 
 [![Deploy](https://www.herokucdn.com/deploy/button.svg)](https://heroku.com/deploy)
 
@@ -94,6 +94,7 @@ Alternatively, you may follow the following steps to deploy to Heroku
     1. `HEROKU_HOSTED` set to `true`
     1. `JWT_SECRET`  - set to a long secure random string used to sign JSON Web Tokens
     1. `ENCRYPTION_KEY` - a long secure random string used to encrypt database credentials
+    2. `LICENSE_KEY` - your Retool license key
 1. Push the code: `git push heroku master`
 
 To lockdown the version of Retool used, just edit the first line under `./heroku/Dockerfile` to:
