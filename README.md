@@ -264,7 +264,7 @@ Retool also has a health check endpoint that you can set up to monitor livelines
 
 ## Releases
 
-Releases notes can be found on [updates.retool.com](https://updates.retool.com/en).
+Releases notes can be found at [https://updates.retool.com](https://updates.retool.com/en).
 
 ## Docker cheatsheet
 
