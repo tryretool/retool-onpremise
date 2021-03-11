@@ -32,7 +32,7 @@ Get set up in 15 minutes by deploying Retool on a single machine.
 Spin up a new EC2 instance. If using AWS, use the following steps:
 1. Click **Launch Instance** from the EC2 dashboard.
 1. Click **Select** for an instance of Ubuntu `16.04` or higher.
-1. Select an instance type of at least `t2.medium` and click **Next**.
+1. Select an instance type of at least `t3.medium` and click **Next**.
 1. Ensure you select the VPC that also includes the databases / API’s you will want to connect to and click **Next**.
 1. Increase the storage size to `60` GB or higher and click **Next**. 
 1. Optionally add some Tags (e.g. `app = retool`) and click **Next**. This makes it easier to find if you have a lot of instances.
