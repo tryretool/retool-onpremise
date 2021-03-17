@@ -266,7 +266,7 @@ Retool also has a health check endpoint that you can set up to monitor livelines
 
 ## Updating Retool
 
-The latest Retool releases can be pulled from Docker Hub. When you run an on-premise instance of Retool, you’ll need to pull an updated image in order to get new features and fixes. More information on update strategies and methods can be pulled from [our documentation](https://docs.retool.com/docs/updating-retool-on-premise).
+The latest Retool releases can be pulled from Docker Hub. When you run an on-premise instance of Retool, you’ll need to pull an updated image in order to get new features and fixes. See more information on update strategies and methods in [our documentation](https://docs.retool.com/docs/updating-retool-on-premise).
 
 
 
