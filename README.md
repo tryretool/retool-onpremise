@@ -1,6 +1,7 @@
 <p align="center">
-    <a href="https://tryretool.com/"><img src="http://tryretool.com/logo.png" alt="Retool logo" height="100"></a> <br>
-<b>Retool lets you build custom internal tools in minutes.</b></p> <br>
+    <a href="https://retool.com/"><img src="https://raw.githubusercontent.com/tryretool/brand-assets/master/Logos/logo-full-black.png" alt="Retool logo" height="100"></a> <br>
+    <b>Build internal tools, remarkably fast.</b>
+</p> <br>
 
 # Deploying Retool on-premise
 
@@ -21,6 +22,7 @@ Deploying Retool on-premise ensures that all access to internal data is managed 
     - [Health check endpoint](#health-check-endpoint)
     - [Environment variables](#environment-variables)
 - [Troubleshooting](#troubleshooting)
+- [Updating Retool](#updating-retool)
 - [Releases](#releases)
 - [Docker cheatsheet](#docker-cheatsheet)
 
@@ -61,25 +63,6 @@ Spin up a new EC2 instance. If using AWS, use the following steps:
 Just use the Deploy to Heroku button below! You'll then have to go to Settings and set the `LICENSE_KEY` config var.
 
 [![Deploy](https://www.herokucdn.com/deploy/button.svg)](https://heroku.com/deploy)
-
-#### Updating a Heroku deployment
-
-To update a Heroku deployment that was created with the button above, you may first set up a `git` repo to push to Heroku
-
-```
-$ heroku login
-$ git clone https://github.com/tryretool/retool-onpremise
-$ cd retool-onpremise
-$ heroku git:remote -a YOUR_HEROKU_APP_NAME
-```
-
-To update Retool (this will automatically fetch the latest version of Retool)
-
-```
-$ git commit --allow-empty -m 'Redeploying'
-$ git push heroku master
-```
-
 ### Manually setting up Retool on Heroku
 
 Alternatively, you may follow the following steps to deploy to Heroku
@@ -220,16 +203,6 @@ To force Retool to send the auth cookies over HTTP, please set the `COOKIE_INSEC
 
 Then, to update the running deployment, run `$ kubectl apply -f ./retool-container.yaml`
 
-#### Updating Retool on Kubernetes
-To update Retool on Kubernetes, you can use the following command:
-
-```
-$ kubectl set image deploy/api api=tryretool/backend:X.XX.X
-```
-
-The list of available version numbers for X.XX.X are available here: https://updates.tryretool.com/
-
-
 ### Deploying on Kubernetes with Helm
 
 ```
@@ -261,6 +234,46 @@ Retool also has a health check endpoint that you can set up to monitor livelines
     - If you have not enabled SSL yet, you will need to add the line `COOKIE_INSECURE=true` to your `docker.env` file / environment configuration so that the authentication cookies can be sent over http. Make sure to run `sudo docker-compose up -d` after modifying the `docker.env` file.
 - `TypeError: Cannot read property 'licenseVerification' of null` or `TypeError: Cannot read property 'name' of null`
     - There is an issue with your license key. Double check that the license key is correct and that it has no trailing whitespaces. 
+
+## Updating Retool
+
+The latest Retool releases can be pulled from Docker Hub. When you run an on-premise instance of Retool, you’ll need to pull an updated image in order to get new features and fixes. 
+
+See more information on our different release channels and recommended update strategies in [our documentation](https://docs.retool.com/docs/updating-retool-on-premise#retool-release-versions).
+
+### Docker Compose deployments
+Update the version number or named tag in the first line of your `Dockerfile`.
+
+```
+FROM tryretool/backend:X.XX.X
+```
+Then run the included update script `./update_retool.sh` from this directory.
+
+### Kubernetes deployments
+To update Retool on Kubernetes, you can use the following command, replacing `X.XX.XX` with the version number or named tag that you’d like to update to.
+
+```
+kubectl set image deploy/api api=tryretool/backend:X.XX.X
+```
+
+### Heroku deployments
+To update a Heroku deployment that was created with the button above, you may first set up a `git` repo to push to Heroku
+
+```
+$ heroku login
+$ git clone https://github.com/tryretool/retool-onpremise
+$ cd retool-onpremise
+$ heroku git:remote -a YOUR_HEROKU_APP_NAME
+```
+
+To update Retool (this will automatically fetch the latest version of Retool)
+
+```
+$ git commit --allow-empty -m 'Redeploying'
+$ git push heroku master
+```
+
+
 
 ## Releases
 
