@@ -242,7 +242,7 @@ The latest Retool releases can be pulled from Docker Hub. When you run an on-pre
 See more information on our different release channels and recommended update strategies in [our documentation](https://docs.retool.com/docs/updating-retool-on-premise#retool-release-versions).
 
 ### Docker Compose deployments
-If necessary, update the version number or named tag in the first line of your `Dockerfile`.
+Update the version number or named tag in the first line of your `Dockerfile`.
 
 ```
 FROM tryretool/backend:X.XX.X
