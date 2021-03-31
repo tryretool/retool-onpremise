@@ -71,7 +71,12 @@ spec:
         name: api
         ports:
         - containerPort: 3000
-        resources: {}
+        resources:
+          limits:
+            memory: 2048M
+          requests:
+            cpu: "1"
+            memory: 1024M
       restartPolicy: Always
 status: {}
 ---
@@ -95,4 +100,3 @@ spec:
     io.kompose.service: api
 status:
   loadBalancer: {}
-
