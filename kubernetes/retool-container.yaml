@@ -67,7 +67,7 @@ spec:
             secretKeyRef:
               name: retoolsecrets
               key: google_client_secret
-        image: tryretool/backend:release-candidate
+        image: tryretool/backend:X.Y.Z
         name: api
         ports:
         - containerPort: 3000
