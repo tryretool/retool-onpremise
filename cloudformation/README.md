@@ -13,7 +13,7 @@ SubnetId
 # the ECS cluster(this should have already been created)
 Cluster
 
-# the docker image (tryretool/backend:latest)
+# the docker image (tryretool/backend:X.Y.Z, where X.Y.Z is a specific Retool version number. To get help choosing a version number, see [Retool Release Versions](https://docs.retool.com/docs/updating-retool-on-premise#retool-release-versions).)
 Image 
 
 # default number of tasks to run

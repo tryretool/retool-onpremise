@@ -8,6 +8,7 @@
 Deploying Retool on-premise ensures that all access to internal data is managed within your own cloud environment. You also have the flexibility to control how Retool is setup within your infrastructure, configure logging, and enable custom SAML SSO using providers like Okta and Active Directory.
 
 # Table of contents
+- [Select a Retool version number](#select-a-retool-version-number)
 - [Simple deployments](#simple-deployments)
     - [EC2 and Docker](#deploying-on-ec2)
     - [Heroku](#deploying-on-heroku)
@@ -25,6 +26,12 @@ Deploying Retool on-premise ensures that all access to internal data is managed 
 - [Updating Retool](#updating-retool)
 - [Releases](#releases)
 - [Docker cheatsheet](#docker-cheatsheet)
+
+## Select a Retool version number
+We recommend you set your Retool deployment to a specific version of Retool (that is, a specific semver version number in the format `X.Y.Z`, instead of a tag name). This will help prevent unexpected behavior in your Retool instances. When you are ready to upgrade Retool, you can bump the version number to the specific new version you want.
+
+To help you select a version, see our guide on [Retool Release Versions](https://docs.retool.com/docs/updating-retool-on-premise#retool-release-versions).
+    * If you're not sure which version to install, we recommend starting with the "release-candidate". To find out the specific version number of the "release-candidate", visit [Retool Release Versions](https://docs.retool.com/docs/updating-retool-on-premise#retool-release-versions). (As of early April 2021 the "release-candidate" version is "2.65.3".)
 
 ## Simple Deployments
 
@@ -44,6 +51,7 @@ Spin up a new EC2 instance. If using AWS, use the following steps:
 1. From your command line tool, SSH into your EC2 instance.
 1. Run the command `git clone https://github.com/tryretool/retool-onpremise.git`.
 1. Run the command `cd retool-onpremise` to enter the cloned repository's directory.
+1. Edit the `Dockerfile` to set the version of Retool you want to install. To do this, replace `X.Y.Z` in `FROM tryretool/backend:X.Y.Z` with your desired version. See [Select a Retool version number](#select-a-retool-version-number) to help you choose a version.
 1. Run `./install.sh` to install Docker and Docker Compose.
 1. In your `docker.env` (this file is only created after running `./install.sh`) add the following:
     ```
@@ -82,7 +90,7 @@ Alternatively, you may follow the following steps to deploy to Heroku
 
 To lockdown the version of Retool used, just edit the first line under `./heroku/Dockerfile` to:
 ```
-FROM tryretool/backend:X.XX.X
+FROM tryretool/backend:X.Y.Z
 ```
 
 ### Running Retool using Aptible
@@ -91,6 +99,7 @@ FROM tryretool/backend:X.XX.X
 1. Install the Aptible CLI, and login. Documentation for this can be found here: https://www.aptible.com/documentation/deploy/cli.html
 1. Clone this repo `git clone https://github.com/tryretool/retool-onpremise`
 1. Change the working directory to the newly cloned repository `cd ./retool-onpremise`
+1. Edit the `Dockerfile` to set the version of Retool you want to install. To do this, replace `X.Y.Z` in `FROM tryretool/backend:X.Y.Z` with your desired version. See [Select a Retool version number](#select-a-retool-version-number) to help you choose a version.
 1. Create a new Aptible app with `aptible apps:create your-app-name`
 1. Add a database: `aptible db:create your-database-name --type postgresql`
 1. Set your config variables (your database connection string will be in your Aptible Dashboard and you can parse out the individual values by following [these instructions](https://www.aptible.com/documentation/deploy/reference/databases/credentials.html#using-database-credentials)). Be sure to rename `EXPIRED-LICENSE-KEY-TRIAL` to the license key provided to you. 
@@ -145,7 +154,7 @@ We provide a [template file](/cloudformation/retool.yaml) for you to get started
     - DesiredCount: 2
     - Environment: staging
     - Force: false
-    - Image: `tryretool/backend:latest`
+    - Image: `tryretool/backend:X.Y.Z` (But replace `X.Y.Z` with your desired version. See [Select a Retool version number](#select-a-retool-version-number) to help you choose a version.)
     - MaximumPercent: 250
     - MinimumPercent: 50
     - SubnetId: Select 2 subnets in your VPC - make sure these subnets are public (have an internet gateway in their route table)
@@ -168,7 +177,7 @@ We provide Fargate template files supporting [public](/cloudformation/fargate.ya
     - DesiredCount: 2
     - Environment: staging
     - Force: false
-    - Image: `tryretool/backend:latest`
+    - Image: `tryretool/backend:X.Y.Z` (But replace `X.Y.Z` with your desired version. See [Select a Retool version number](#select-a-retool-version-number) to help you choose a version.)
     - MaximumPercent: 250
     - MinimumPercent: 50
     - SubnetId: Select 2 subnets in your VPC - make sure these subnets are public (have an internet gateway in their route table)
@@ -182,6 +191,7 @@ We provide Fargate template files supporting [public](/cloudformation/fargate.ya
 ### Deploying on Kubernetes
 
 1. Navigate into the `kubernetes` directory
+1. Edit the `retool-container.yaml` file to set the version of Retool you want to install. To do this, replace `X.Y.Z` in `image: tryretool/backend:X.Y.Z` with your desired version. See [Select a Retool version number](#select-a-retool-version-number) to help you choose a version.
 2. Copy the `retool-secrets.template.yaml` file to `retool-secrets.yaml` and inside the `{{ ... }}` sections, replace with a suitable base64 encoded string. 
     1. To base64 encode your license key, run `echo -n <license key> | base64` in the command line. Be sure to add the `-n` character, as it removes the trailing newline character from the encoding.
     1. If you do not wish to add google authentication, replace the templates with an empty string.
@@ -204,11 +214,6 @@ To force Retool to send the auth cookies over HTTP, please set the `COOKIE_INSEC
 Then, to update the running deployment, run `$ kubectl apply -f ./retool-container.yaml`
 
 ### Deploying on Kubernetes with Helm
-
-```
-helm repo add retool https://charts.retool.com
-helm install my-retool retool/retool
-```
 
 See https://github.com/tryretool/retool-helm for full Helm chart documentation
 and instructions.
@@ -242,18 +247,18 @@ The latest Retool releases can be pulled from Docker Hub. When you run an on-pre
 See more information on our different release channels and recommended update strategies in [our documentation](https://docs.retool.com/docs/updating-retool-on-premise#retool-release-versions).
 
 ### Docker Compose deployments
-Update the version number or named tag in the first line of your `Dockerfile`.
+Update the version number in the first line of your `Dockerfile`.
 
 ```
-FROM tryretool/backend:X.XX.X
+FROM tryretool/backend:X.Y.Z
 ```
 Then run the included update script `./update_retool.sh` from this directory.
 
 ### Kubernetes deployments
-To update Retool on Kubernetes, you can use the following command, replacing `X.XX.XX` with the version number or named tag that you’d like to update to.
+To update Retool on Kubernetes, you can use the following command, replacing `X.Y.Z` with the version number or named tag that you’d like to update to.
 
 ```
-kubectl set image deploy/api api=tryretool/backend:X.XX.X
+kubectl set image deploy/api api=tryretool/backend:X.Y.Z
 ```
 
 ### Heroku deployments
