@@ -70,7 +70,7 @@ spec:
               name: retoolsecrets
               key: google_client_secret
         image: tryretool/backend:X.Y.Z
-        name: api
+        name: jobs-runner
         ports:
         - containerPort: 3000
         resources:
