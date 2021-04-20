@@ -191,7 +191,7 @@ We provide Fargate template files supporting [public](/cloudformation/fargate.ya
 ### Deploying on Kubernetes
 
 1. Navigate into the `kubernetes` directory
-1. Edit the `retool-container.yaml` file to set the version of Retool you want to install. To do this, replace `X.Y.Z` in `image: tryretool/backend:X.Y.Z` with your desired version. See [Select a Retool version number](#select-a-retool-version-number) to help you choose a version.
+1. Edit the `retool-container.yaml` and `retool-jobs-runner.yaml` files to set the version of Retool you want to install. To do this, replace `X.Y.Z` in `image: tryretool/backend:X.Y.Z` with your desired version. See [Select a Retool version number](#select-a-retool-version-number) to help you choose a version.
 2. Copy the `retool-secrets.template.yaml` file to `retool-secrets.yaml` and inside the `{{ ... }}` sections, replace with a suitable base64 encoded string. 
     1. To base64 encode your license key, run `echo -n <license key> | base64` in the command line. Be sure to add the `-n` character, as it removes the trailing newline character from the encoding.
     1. If you do not wish to add google authentication, replace the templates with an empty string.
@@ -199,6 +199,7 @@ We provide Fargate template files supporting [public](/cloudformation/fargate.ya
 3. Run `kubectl apply -f ./retool-secrets.yaml`
 4. Run `kubectl apply -f ./retool-postgres.yaml`
 4. Run `kubectl apply -f ./retool-container.yaml`
+4. Run `kubectl apply -f ./retool-jobs-runner.yaml`
 
 For ease of use, this will create a postgres container with a persistent volume for the storage of Retool data. We recommend that you use a managed database service like RDS as a long-term solution. The application will be exposed on a public ip address on port 3000 - we leave it to the user to handle DNS and SSL.
 
