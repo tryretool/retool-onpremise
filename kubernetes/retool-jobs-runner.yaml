@@ -6,19 +6,19 @@ metadata:
     kompose.version: ""
   creationTimestamp: null
   labels:
-    io.kompose.service: api
-  name: api
+    io.kompose.service: jobs-runner
+  name: jobs-runner
 spec:
-  replicas: 1
+  replicas: 1 # jobs-runner pod should never be more than 1
   strategy: {}
   selector:
     matchLabels:
-      io.kompose.service: api
+      io.kompose.service: jobs-runner
   template:
     metadata:
       creationTimestamp: null
       labels:
-        io.kompose.service: api
+        io.kompose.service: jobs-runner
     spec:
       containers:
       - args:
@@ -33,7 +33,7 @@ spec:
               name: retoolsecrets
               key: jwt_secret
         - name: SERVICE_TYPE
-          value: MAIN_BACKEND,DB_CONNECTOR,DB_SSH_CONNECTOR
+          value: JOBS_RUNNER
         - name: NODE_ENV
           value: production
         - name: POSTGRES_DB
@@ -70,7 +70,7 @@ spec:
               name: retoolsecrets
               key: google_client_secret
         image: tryretool/backend:X.Y.Z
-        name: api
+        name: jobs-runner
         ports:
         - containerPort: 3000
         resources:
@@ -81,24 +81,3 @@ spec:
             memory: 1024M
       restartPolicy: Always
 status: {}
----
-apiVersion: v1
-kind: Service
-metadata:
-  annotations:
-    kompose.cmd: ./kompose convert
-    kompose.version: ""
-  creationTimestamp: null
-  labels:
-    io.kompose.service: api
-  name: api
-spec:
-  type: LoadBalancer
-  ports:
-  - name: "3000"
-    port: 3000
-    targetPort: 3000
-  selector:
-    io.kompose.service: api
-status:
-  loadBalancer: {}
