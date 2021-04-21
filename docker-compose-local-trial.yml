@@ -3,7 +3,7 @@ services:
   api:
     build:
       context: ./
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.local
     env_file: ./docker.env
     environment:
       - SERVICE_TYPE=MAIN_BACKEND
@@ -32,7 +32,7 @@ services:
   jobs-runner:
     build:
       context: ./
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.local
     env_file: ./docker.env
     environment:
       - SERVICE_TYPE=JOBS_RUNNER
@@ -47,7 +47,7 @@ services:
   db-connector:
     build:
       context: ./
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.local
     command: bash -c "./retool_backend"
     env_file: ./docker.env
     environment:
@@ -59,7 +59,7 @@ services:
   db-ssh-connector:
     build:
       context: ./
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.local
     command: bash -c "./docker_scripts/generate_key_pair.sh; ./retool_backend"
     env_file: ./docker.env
     environment:
