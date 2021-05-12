@@ -31,11 +31,10 @@ Deploying Retool on-premise ensures that all access to internal data is managed 
 We recommend you set your Retool deployment to a specific version of Retool (that is, a specific semver version number in the format `X.Y.Z`, instead of a tag name). This will help prevent unexpected behavior in your Retool instances. When you are ready to upgrade Retool, you can bump the version number to the specific new version you want.
 
 To help you select a version, see our guide on [Retool Release Versions](https://docs.retool.com/docs/updating-retool-on-premise#retool-release-versions).
-    * If you're not sure which version to install, we recommend starting with the "release-candidate". To find out the specific version number of the "release-candidate", visit [Retool Release Versions](https://docs.retool.com/docs/updating-retool-on-premise#retool-release-versions). (As of early April 2021 the "release-candidate" version is "2.65.3".)
 
 ## Simple Deployments
 
-Get set up in 15 minutes by deploying Retool on a single machine. 
+Get set up in 15 minutes by deploying Retool on a single machine.
 
 ### Deploying on EC2
 Spin up a new EC2 instance. If using AWS, use the following steps:
@@ -43,9 +42,9 @@ Spin up a new EC2 instance. If using AWS, use the following steps:
 1. Click **Select** for an instance of Ubuntu `16.04` or higher.
 1. Select an instance type of at least `t3.medium` and click **Next**.
 1. Ensure you select the VPC that also includes the databases / API’s you will want to connect to and click **Next**.
-1. Increase the storage size to `60` GB or higher and click **Next**. 
+1. Increase the storage size to `60` GB or higher and click **Next**.
 1. Optionally add some Tags (e.g. `app = retool`) and click **Next**. This makes it easier to find if you have a lot of instances.
-1. Set the network security groups for ports `80`, `443`, `22` and `3000`, with sources set to `0.0.0.0/0` and `::/0`, and click **Review and Launch**. We need to open ports `80` (http) and `443` (https) so you can connect to the server from a browser, as well as port `22` (ssh) so that you can ssh into the instance to configure it and run Retool. By default on a vanilla EC2, Retool will run on port `3000`. 
+1. Set the network security groups for ports `80`, `443`, `22` and `3000`, with sources set to `0.0.0.0/0` and `::/0`, and click **Review and Launch**. We need to open ports `80` (http) and `443` (https) so you can connect to the server from a browser, as well as port `22` (ssh) so that you can ssh into the instance to configure it and run Retool. By default on a vanilla EC2, Retool will run on port `3000`.
 1. On the **Review Instance Launch** screen, click **Launch** to start your instance.
 1. If you're connecting to internal databases, whitelist the VPS's IP address in your database.
 1. From your command line tool, SSH into your EC2 instance.
@@ -56,15 +55,15 @@ Spin up a new EC2 instance. If using AWS, use the following steps:
 1. In your `docker.env` (this file is only created after running `./install.sh`) add the following:
     ```
     # License key granted to you by Retool
-    LICENSE_KEY=YOUR_LICENSE_KEY 
+    LICENSE_KEY=YOUR_LICENSE_KEY
 
     # This is necessary if you plan on logging in before setting up https
-    COOKIE_INSECURE=true 
+    COOKIE_INSECURE=true
     ```
 1. Run `docker-compose up -d` to start the Retool server.
 1. Run `sudo docker-compose ps` to make sure all the containers are up and running.
 1. Navigate to your server's IP address in a web browser. Retool should now be running on port `3000`.
-1. Click Sign Up, since we're starting from a clean slate. The first user to into an instance becomes the administrator. 
+1. Click Sign Up, since we're starting from a clean slate. The first user to into an instance becomes the administrator.
 
 ### Deploying on Heroku
 
@@ -102,7 +101,7 @@ FROM tryretool/backend:X.Y.Z
 1. Edit the `Dockerfile` to set the version of Retool you want to install. To do this, replace `X.Y.Z` in `FROM tryretool/backend:X.Y.Z` with your desired version. See [Select a Retool version number](#select-a-retool-version-number) to help you choose a version.
 1. Create a new Aptible app with `aptible apps:create your-app-name`
 1. Add a database: `aptible db:create your-database-name --type postgresql`
-1. Set your config variables (your database connection string will be in your Aptible Dashboard and you can parse out the individual values by following [these instructions](https://www.aptible.com/documentation/deploy/reference/databases/credentials.html#using-database-credentials)). Be sure to rename `EXPIRED-LICENSE-KEY-TRIAL` to the license key provided to you. 
+1. Set your config variables (your database connection string will be in your Aptible Dashboard and you can parse out the individual values by following [these instructions](https://www.aptible.com/documentation/deploy/reference/databases/credentials.html#using-database-credentials)). Be sure to rename `EXPIRED-LICENSE-KEY-TRIAL` to the license key provided to you.
     ```
     aptible config:set --app your-app-name \
         POSTGRES_DB=your-db \
@@ -130,11 +129,11 @@ Just use the Deploy to Render button below! Here are [some docs](https://render.
 
 ## Managed deployments
 
-Deploy Retool on a managed service. We've provided some starter template files for Cloudformation setups (ECS + Fargate), Kubernetes, and Helm. 
+Deploy Retool on a managed service. We've provided some starter template files for Cloudformation setups (ECS + Fargate), Kubernetes, and Helm.
 
 ### Deploying on ECS
 
-We provide a [template file](/cloudformation/retool.yaml) for you to get started deploying on ECS. 
+We provide a [template file](/cloudformation/retool.yaml) for you to get started deploying on ECS.
 
 1. In the ECS Dashboard, click **Create Cluster**
 1. Select `EC2 Linux + Networking` as the cluster template.
@@ -142,7 +141,7 @@ We provide a [template file](/cloudformation/retool.yaml) for you to get started
     - Select **On-demand instance**
     - Select **t2.medium** as the instance type
     - (Optional) Choose how many instances you want to spin up
-    - (Optional) Add key pair 
+    - (Optional) Add key pair
     - Choose your existing VPC (or create a new one)
     - (Optional) Add tags
     - Enable CloudWatch container insights
@@ -158,14 +157,14 @@ We provide a [template file](/cloudformation/retool.yaml) for you to get started
     - MaximumPercent: 250
     - MinimumPercent: 50
     - SubnetId: Select 2 subnets in your VPC - make sure these subnets are public (have an internet gateway in their route table)
-    - VPC ID: select the VPC you want to use 
+    - VPC ID: select the VPC you want to use
 1. Click through to create the stack; this could take up to 15 minutes; you can monitor the progress of the stack being created in the `Events` tab in Cloudformation
 1. After everything is complete, you should see all the resources with a `CREATE_COMPLETE` status.
 1. In the **Outputs** section within the CloudFormation dashboard, you should be able to find the ALB DNS URL. This is where Retool should be running.
 
 ### Deploying on ECS with Fargate
 
-We provide Fargate template files supporting [public](/cloudformation/fargate.yaml) and [private](/cloudformation/fargate.private.yaml) subnets. 
+We provide Fargate template files supporting [public](/cloudformation/fargate.yaml) and [private](/cloudformation/fargate.private.yaml) subnets.
 
 1. In the ECS Dashboard, click **Create Cluster**
 1. In **Step 1: Select a cluster template**, select `Networking Only (Powered by AWS Fargate)` as the cluster template.
@@ -181,7 +180,7 @@ We provide Fargate template files supporting [public](/cloudformation/fargate.ya
     - MaximumPercent: 250
     - MinimumPercent: 50
     - SubnetId: Select 2 subnets in your VPC - make sure these subnets are public (have an internet gateway in their route table)
-    - VPC ID: select the VPC you want to use  
+    - VPC ID: select the VPC you want to use
 1. Click through to create the stack; this could take up to 15 minutes; you can monitor the progress of the stack being created in the `Events` tab in Cloudformation
 1. In the **Outputs** section, you should be able to find the ALB DNS URL.
 1. Currently the load balancer is listening on port 3000; to make it available on port 80 we have to go to the **EC2 dashboard → Load Balancers → Listeners** and click Edit to to change the port to 80.
@@ -192,7 +191,7 @@ We provide Fargate template files supporting [public](/cloudformation/fargate.ya
 
 1. Navigate into the `kubernetes` directory
 1. Edit the `retool-container.yaml` and `retool-jobs-runner.yaml` files to set the version of Retool you want to install. To do this, replace `X.Y.Z` in `image: tryretool/backend:X.Y.Z` with your desired version. See [Select a Retool version number](#select-a-retool-version-number) to help you choose a version.
-2. Copy the `retool-secrets.template.yaml` file to `retool-secrets.yaml` and inside the `{{ ... }}` sections, replace with a suitable base64 encoded string. 
+2. Copy the `retool-secrets.template.yaml` file to `retool-secrets.yaml` and inside the `{{ ... }}` sections, replace with a suitable base64 encoded string.
     1. To base64 encode your license key, run `echo -n <license key> | base64` in the command line. Be sure to add the `-n` character, as it removes the trailing newline character from the encoding.
     1. If you do not wish to add google authentication, replace the templates with an empty string.
     1. You will need a license key in order to proceed.
@@ -227,7 +226,7 @@ and instructions.
 
 You can set environment variables to enable custom functionality like [managing secrets](https://docs.retool.com/docs/secret-management-using-environment-variables), customizing logs, and much more. For a list of all environment variables visit our [docs](https://docs.retool.com/docs/environment-variables).
 
-### Health check endpoint 
+### Health check endpoint
 
 Retool also has a health check endpoint that you can set up to monitor liveliness of Retool. You can configure your probe to make a `GET` request to `/api/checkHealth`.
 
@@ -239,11 +238,11 @@ Retool also has a health check endpoint that you can set up to monitor livelines
 - I can't seem to login? I keep getting redirected to the login page after signing in.
     - If you have not enabled SSL yet, you will need to add the line `COOKIE_INSECURE=true` to your `docker.env` file / environment configuration so that the authentication cookies can be sent over http. Make sure to run `sudo docker-compose up -d` after modifying the `docker.env` file.
 - `TypeError: Cannot read property 'licenseVerification' of null` or `TypeError: Cannot read property 'name' of null`
-    - There is an issue with your license key. Double check that the license key is correct and that it has no trailing whitespaces. 
+    - There is an issue with your license key. Double check that the license key is correct and that it has no trailing whitespaces.
 
 ## Updating Retool
 
-The latest Retool releases can be pulled from Docker Hub. When you run an on-premise instance of Retool, you’ll need to pull an updated image in order to get new features and fixes. 
+The latest Retool releases can be pulled from Docker Hub. When you run an on-premise instance of Retool, you’ll need to pull an updated image in order to get new features and fixes.
 
 See more information on our different release channels and recommended update strategies in [our documentation](https://docs.retool.com/docs/updating-retool-on-premise#retool-release-versions).
 
@@ -287,15 +286,15 @@ Releases notes can be found at [https://updates.retool.com](https://updates.reto
 
 ## Docker cheatsheet
 
-Below is a cheatsheet for useful Docker commands. Note that you may need to prefix them with `sudo`. 
+Below is a cheatsheet for useful Docker commands. Note that you may need to prefix them with `sudo`.
 
-| Command                     | Description                                                                                                                     | 
-| ----------------------------|-------------------------------------------------------------------------------------------------------------------------------| 
-| `docker-compose up -d`      | Builds, (re)creates, starts, and attaches to containers for a service. `-d`allows containers to run in background (detached). | 
+| Command                     | Description                                                                                                                     |
+| ----------------------------|-------------------------------------------------------------------------------------------------------------------------------|
+| `docker-compose up -d`      | Builds, (re)creates, starts, and attaches to containers for a service. `-d`allows containers to run in background (detached). |
 | `docker-compose down`       | Stops and remove containers and networks                                                                                      |
 | `docker-compose stop`       | Stops containers, but does not remove them and their networks                                                                 |
 | `docker ps -a`              | Display all Docker containers                                                                                                 |
-| `docker-compose ps -a`      | Display all containers related to images declared in the `docker-compose` file. 
+| `docker-compose ps -a`      | Display all containers related to images declared in the `docker-compose` file.
 | `docker logs -f <container_name>` | Stream container logs to stdout                                                                                     |
 | `docker exec -it <container_name> psql -U <postgres_user> -W <postgres_password> <postgres_db>` | Runs `psql` inside a container                            |
 | `docker kill $(docker ps -q)` | Kills all running containers                                                                                                |
