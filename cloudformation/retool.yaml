@@ -277,11 +277,9 @@ Resources:
 
   RetoolJobsRunnerECSservice:
     Type: AWS::ECS::Service
-    DependsOn: RetoolServiceRole
     Properties:
       Cluster: !Ref 'Cluster'
       DesiredCount: 1
-      Role: !Ref 'RetoolServiceRole'
       TaskDefinition: !Ref 'RetoolJobsRunnerTask'
 
   RetoolServiceRole:

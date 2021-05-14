@@ -297,7 +297,6 @@ Resources:
       Cluster: !Ref 'Cluster'
       DesiredCount: 1
       LaunchType: FARGATE
-      # Role: !Ref 'RetoolServiceRole'
       TaskDefinition: !Ref 'RetoolJobsRunnerTask'
 
   RetoolServiceRole:
