@@ -91,6 +91,8 @@ Resources:
         Environment:
           - Name: NODE_ENV
             Value: production
+          - Name: SERVICE_TYPE
+            Value: MAIN_BACKEND,DB_CONNECTOR
           - Name: "FORCE_DEPLOYMENT"
             Value: !Ref "Force"
           - Name: POSTGRES_DB
@@ -118,6 +120,54 @@ Resources:
         PortMappings:
         - ContainerPort: '3000'
           # HostPort: '80'
+        Command: ["./docker_scripts/start_api.sh"]
+
+  RetoolJobsRunnerTask:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      NetworkMode: awsvpc
+      Cpu: '256'
+      Memory: '1024'
+      Family: 'retool'
+      TaskRoleArn: !Ref 'RetoolTaskRole'
+      ExecutionRoleArn: !Ref 'RetoolExecutionRole'
+      RequiresCompatibilities:
+        - FARGATE
+      ContainerDefinitions:
+      - Name: 'retool-jobs-runner'
+        Essential: 'true'
+        Image: !Ref 'Image'
+        LogConfiguration:
+          LogDriver: awslogs
+          Options:
+            awslogs-group: !Ref 'CloudwatchLogsGroup'
+            awslogs-region: !Ref 'AWS::Region'
+            awslogs-stream-prefix: "SERVICE_RETOOL"
+        Environment:
+          - Name: NODE_ENV
+            Value: production
+          - Name: SERVICE_TYPE
+            Value: JOBS_RUNNER
+          - Name: "FORCE_DEPLOYMENT"
+            Value: !Ref "Force"
+          - Name: POSTGRES_DB
+            Value: hammerhead_production
+          - Name: POSTGRES_HOST
+            Value: !GetAtt [RetoolRDSInstance, Endpoint.Address]
+          - Name: POSTGRES_SSL_ENABLED
+            Value: "true"
+          - Name: POSTGRES_PORT
+            Value: "5432"
+          - Name: POSTGRES_USER
+            Value: !Join ['', ['{{resolve:secretsmanager:', !Ref RetoolRDSSecret, ':SecretString:username}}' ]]
+          - Name: POSTGRES_PASSWORD
+            Value: !Join ['', ['{{resolve:secretsmanager:', !Ref RetoolRDSSecret, ':SecretString:password}}' ]]
+          - Name: JWT_SECRET
+            Value: !Join ['', ['{{resolve:secretsmanager:', !Ref RetoolJWTSecret, ':SecretString:password}}' ]]
+          - Name: ENCRYPTION_KEY
+            Value: !Join ['', ['{{resolve:secretsmanager:', !Ref RetoolEncryptionKeySecret, ':SecretString:password}}' ]]
+          - Name: LICENSE_KEY
+            Value: "EXPIRED-LICENSE-KEY-TRIAL"
         Command: ["./docker_scripts/start_api.sh"]
 
   RetoolJWTSecret:
@@ -240,6 +290,14 @@ Resources:
         TargetGroupArn: !Ref 'ECSTG'
       # Role: !Ref 'RetoolServiceRole'
       TaskDefinition: !Ref 'RetoolTask'
+
+  RetoolJobsRunnerECSservice:
+    Type: AWS::ECS::Service
+    Properties:
+      Cluster: !Ref 'Cluster'
+      DesiredCount: 1
+      LaunchType: FARGATE
+      TaskDefinition: !Ref 'RetoolJobsRunnerTask'
 
   RetoolServiceRole:
     Type: AWS::IAM::Role
