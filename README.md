@@ -67,7 +67,7 @@ Spin up a new EC2 instance. If using AWS, use the following steps:
 
 ### Deploying on Heroku
 
-Just use the Deploy to Heroku button below! You'll then have to go to Settings and set the `LICENSE_KEY` config var.
+Just use the Deploy to Heroku button below! You'll then have to go to Settings and set the `LICENSE_KEY` to your license key and `PGSSLMODE` to `require`.
 
 [![Deploy](https://www.herokucdn.com/deploy/button.svg)](https://heroku.com/deploy)
 ### Manually setting up Retool on Heroku
