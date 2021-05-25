@@ -85,6 +85,7 @@ Alternatively, you may follow the following steps to deploy to Heroku
     1. `JWT_SECRET`  - set to a long secure random string used to sign JSON Web Tokens
     1. `ENCRYPTION_KEY` - a long secure random string used to encrypt database credentials
     2. `LICENSE_KEY` - your Retool license key
+    3. `PGSSLMODE` - set to `require`
 1. Push the code: `git push heroku master`
 
 To lockdown the version of Retool used, just edit the first line under `./heroku/Dockerfile` to:
