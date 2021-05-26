@@ -141,7 +141,7 @@ We provide a [template file](/cloudformation/retool.yaml) for you to get started
 1. In your instance configuration, enter the following:
     - Select **On-demand instance**
     - Select **t2.medium** as the instance type
-    - (Optional) Choose how many instances you want to spin up
+    - Choose how many instances you want to spin up
     - (Optional) Add key pair
     - Choose your existing VPC (or create a new one)
     - (Optional) Add tags
