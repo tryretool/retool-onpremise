@@ -205,6 +205,7 @@ fi
 
 log_step 'updating Retool!'
 $MAYBE_SUDO docker-compose pull
+$MAYBE_SUDO ./update-retool.sh
 
 log_step "running Retool! ${WHITE}${BOLD}This can take up to 5 minutes${NORMAL}"
 
