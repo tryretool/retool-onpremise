@@ -1,4 +1,4 @@
-FROM tryretool/one-offs:20210526.7
+FROM tryretool/one-offs:20210604.2
 
 
 CMD ./docker_scripts/start_api.sh
