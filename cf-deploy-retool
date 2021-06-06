@@ -240,10 +240,9 @@ if ! api_running; then
   done
 fi
 
-# One final 20-second check to make sure that the containers stay up to combat a race condition
+# Due to a race condition with migration runner, check if api container stays up for 20 seconds.
 WAITED=0
 while [ $WAITED -lt 20 ]; do
-    echo "Waiting for API container"
     if ! api_running; then
         $MAYBE_SUDO docker-compose up -d > /dev/null 2>&1
     fi
