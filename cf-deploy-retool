@@ -77,10 +77,8 @@ retool_trial_running() {
 }
 
 # NB: trim trailing slash on $TMPDIR as different OS's do it differently
-INSTALL_DIRECTORY="$HOME/retool"
+INSTALL_DIRECTORY="retool"
 DOCKER_CONTEXT="$INSTALL_DIRECTORY/retool-onpremise"
-
-cd "$HOME"
 
 if [ ! -d "$DOCKER_CONTEXT" ]; then
   if [ -d "$INSTALL_DIRECTORY" ]; then
