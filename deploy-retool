@@ -239,6 +239,16 @@ if ! api_running; then
   done
 fi
 
+# Due to a race condition with migration runner, check if api container stays up for 20 seconds.
+WAITED=0
+while [ $WAITED -lt 20 ]; do
+    if ! api_running; then
+        $MAYBE_SUDO docker-compose up -d > /dev/null 2>&1
+    fi
+    WAITED=$((WAITED + 1))
+    sleep 1
+done
+
 # NB: empty stuff to fully wipe out previous line completely
 printf "\r%s%s%s%s%s%s%s%s" "$MAGENTA" 'Check out your ' "$BOLD" 'BROWSER' "${NORMAL}${MAGENTA}" ' for some awesomeness!!!' "$NORMAL" '                              '
 echo
