@@ -244,8 +244,9 @@ fi
 WAITED=0
 while [ $WAITED -lt 20 ] do
     echo "Waiting for API container"
-    if ! api_running; then 
+    if ! api_running; then
         $MAYBE_SUDO docker-compose up -d > /dev/null 2>&1
+    fi
     WAITED=$((WAITED + 1))
     sleep 1
 done
