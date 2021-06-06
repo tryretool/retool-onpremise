@@ -77,8 +77,11 @@ retool_trial_running() {
 }
 
 # NB: trim trailing slash on $TMPDIR as different OS's do it differently
-INSTALL_DIRECTORY="retool"
+HOME="/home/ubuntu"
+INSTALL_DIRECTORY="$HOME/retool"
 DOCKER_CONTEXT="$INSTALL_DIRECTORY/retool-onpremise"
+
+cd "$HOME"
 
 if [ ! -d "$DOCKER_CONTEXT" ]; then
   if [ -d "$INSTALL_DIRECTORY" ]; then
@@ -236,6 +239,16 @@ if ! api_running; then
     sleep 1
   done
 fi
+
+# One final 20-second check to make sure that the containers stay up to combat a race condition
+WAITED=0
+while [ $WAITED -lt 20 ] do
+    echo "Waiting for API container"
+    if ! api_running; then 
+        $MAYBE_SUDO docker-compose up -d > /dev/null 2>&1
+    WAITED=$((WAITED + 1))
+    sleep 1
+done
 
 # NB: empty stuff to fully wipe out previous line completely
 printf "\r%s%s%s%s%s%s%s%s" "$MAGENTA" 'Check out your ' "$BOLD" 'BROWSER' "${NORMAL}${MAGENTA}" ' for some awesomeness!!!' "$NORMAL" '                              '
