@@ -109,7 +109,7 @@ if [ ! -d "$DOCKER_CONTEXT" ]; then
     curl -L -XGET -o master.zip https://github.com/tryretool/retool-onpremise/archive/refs/heads/ssop.zip # TODO(hirday): change back to master
     log_step 'unpacking...'
     unzip master.zip
-    mv retool-onpremise-master retool-onpremise
+    mv retool-onpremise-ssop retool-onpremise # TODO(hirday): change back to master
   fi
 
   # NB: this is to make onprem containers to all get named the same.
