@@ -140,7 +140,7 @@ We provide a [template file](/cloudformation/retool.yaml) for you to get started
 1. Select `EC2 Linux + Networking` as the cluster template.
 1. In your instance configuration, enter the following:
     - Select **On-demand instance**
-    - Select **t2.medium** as the instance type
+    - Select **t2.medium** as the instance type (or your desired instance size)
     - Choose how many instances you want to spin up
     - (Optional) Add key pair
     - Choose your existing VPC (or create a new one)
@@ -162,6 +162,14 @@ We provide a [template file](/cloudformation/retool.yaml) for you to get started
 1. Click through to create the stack; this could take up to 15 minutes; you can monitor the progress of the stack being created in the `Events` tab in Cloudformation
 1. After everything is complete, you should see all the resources with a `CREATE_COMPLETE` status.
 1. In the **Outputs** section within the CloudFormation dashboard, you should be able to find the ALB DNS URL. This is where Retool should be running.
+
+**OOM issues**
+
+If running into OOM issues (especially on larger instance sizes with >4 vCPUs)
+- Verify the issue by going into the ECS console and checking the Service Metrics. Ideally
+   - Memory utilization should fall around 40% (20% - 60%)
+   - CPU utilization should be close to zero (0% - 5%)
+- If the values fall outside these ranges, increase the CPU and memory allocation in `retool.yml`
 
 ### Deploying on ECS with Fargate
 
