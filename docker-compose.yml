@@ -74,7 +74,7 @@ services:
 
   # Retool's storage database. See these docs to migrate to an externally hosted database: https://docs.retool.com/docs/configuring-retools-storage-database
   postgres:
-    image: 'postgres:9.6.5'
+    image: 'postgres:11.12'
     env_file: docker.env
     networks:
       - backend-network
