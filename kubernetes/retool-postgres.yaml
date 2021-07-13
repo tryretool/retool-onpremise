@@ -52,7 +52,7 @@ spec:
               name: retoolsecrets
               key: postgres_password
         name: postgres
-        image: postgres:9.6.5
+        image: postgres:11.12
         resources: {}
         volumeMounts:
         - mountPath: /var/lib/postgresql/data
