@@ -162,6 +162,7 @@ We provide a [template file](/cloudformation/retool.yaml) for you to get started
 1. Click through to create the stack; this could take up to 15 minutes; you can monitor the progress of the stack being created in the `Events` tab in Cloudformation
 1. After everything is complete, you should see all the resources with a `CREATE_COMPLETE` status.
 1. In the **Outputs** section within the CloudFormation dashboard, you should be able to find the ALB DNS URL. This is where Retool should be running.
+1. The backend tries to guess your domain to create invite links, but with a load balancer in front of Retool you'll need to set the `BASE_DOMAIN` environment variable to your fully qualified domain (i.e. `https://retool.company.com`). Docs [here](https://docs.retool.com/docs/environment-variables).
 
 **OOM issues**
 
@@ -195,6 +196,7 @@ We provide Fargate template files supporting [public](/cloudformation/fargate.ya
 1. Currently the load balancer is listening on port 3000; to make it available on port 80 we have to go to the **EC2 dashboard → Load Balancers → Listeners** and click Edit to to change the port to 80.
     - If you get an error that your security group does not allow traffic on this listener port, you must add an inbound rule allowing HTTP on port 80.
 1. In the **Outputs** section within the CloudFormation dashboard, you should be able to find the ALB DNS URL. This is where Retool should be running.
+1. The backend tries to guess your domain to create invite links, but with a load balancer in front of Retool you'll need to set the `BASE_DOMAIN` environment variable to your fully qualified domain (i.e. `https://retool.company.com`). Docs [here](https://docs.retool.com/docs/environment-variables).
 
 ### Deploying on Kubernetes
 
