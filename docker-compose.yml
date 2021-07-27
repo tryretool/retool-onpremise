@@ -26,9 +26,23 @@ services:
       - postgres
     ports:
       - '3000:3000'
+    restart: on-failure
     volumes:
       - ./keys:/root/.ssh
       - ssh:/retool_backend/autogen_ssh_keys
+      - ./retool:/usr/local/retool-git-repo
+
+  test-runner:
+    build:
+      context: testing
+    networks:
+      - frontend-network
+    depends_on:
+      - api
+    profiles:
+      - testing
+    volumes:
+      - ./retool:/usr/local/retool-git-repo
 
   jobs-runner:
     build:
@@ -96,6 +110,7 @@ services:
       STAGE: 'local' # <- Change 'local' to 'production' to use a LetsEncrypt signed SSL cert
     networks:
       - frontend-network
+
 networks:
   frontend-network:
   backend-network:
