@@ -49,6 +49,10 @@ export default config
 }
 
 function playwrightTest(appName, folderName) {
+  const encodedAppName = encodeURIComponent(appName);
+  const encodedFolderName = encodeURIComponent(folderName);
+  const testAppName = appName.replace("'", "");
+	
   return `import { test, expect } from '@playwright/test'
 
 export class RetoolApplication {
@@ -65,9 +69,9 @@ export class RetoolApplication {
   async openEditor() {
     let url = ''
     if (this.folder) {
-      url = 'http://${HOSTNAME}:3000/editor/'+encodeURIComponent(this.folder)+'/'+encodeURIComponent(this.name)
+      url = 'http://${HOSTNAME}:3000/editor/'+this.folder+'/'+this.name
     } else {
-      url = 'http://${HOSTNAME}:3000/editor/'+encodeURIComponent(this.name)
+      url = 'http://${HOSTNAME}:3000/editor/'+this.name
     }
     await this.page.goto(url)
     expect(this.page.url()).toBe(url)
@@ -115,8 +119,8 @@ export class RetoolApplication {
 
 test.use({ storageState: 'state.json' })
 
-test('${folderName ? folderName + '/' : ''}${appName}', async ({ page }) => {
-  const app = new RetoolApplication(page, '${appName}', '${folderName || ''}')
+test('${folderName ? folderName.replace("'", "") + '/' : ''}${testAppName}', async ({ page }) => {
+  const app = new RetoolApplication(page, "${encodedAppName}", "${encodedFolderName || ''}")
   await app.test()
 })
 `
