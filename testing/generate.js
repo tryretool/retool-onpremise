@@ -36,7 +36,7 @@ const config: PlaywrightTestConfig = {
   testDir: 'tests',
   globalSetup: 'global-setup.ts',
   reporter: 'list',
-  workers: 4,
+  workers: 1,
   use: {
     // Browser options
     // headless: false,
