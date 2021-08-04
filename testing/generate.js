@@ -120,7 +120,7 @@ export class RetoolApplication {
 test.use({ storageState: 'state.json' })
 
 test('${folderName ? folderName.replace("'", "") + '/' : ''}${testAppName}', async ({ page }) => {
-  const app = new RetoolApplication(page, "${encodedAppName}", "${encodedFolderName || ''}")
+  const app = new RetoolApplication(page, "${encodedAppName}", "${folderName ? encodedFolderName : ''}")
   await app.test()
 })
 `
