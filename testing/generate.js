@@ -86,25 +86,21 @@ export class RetoolApplication {
 
     // Click [data-testid="run-all-tests"]
     await this.page.click('[data-testid="run-all-tests"]')
-
-    await this.page.waitForSelector('[data-testid="all-tests-complete"]')
   }
 
   async assertResults() {
-    // TODO: Figure out a stable interface for the tests results
     const actual = {}
     const expected = {}
-    const testResults = await this.page.$$('[data-testid="test-success-row"]')
-    for (const result of testResults) {
-      const text = await result.textContent()
-      if (text && text.startsWith('FAIL')) {
-        expected[text.replace('FAIL', '')] = true
-        actual[text.replace('FAIL', '')] = false
-      }
-      if (text && text.startsWith('SUCCESS')) {
-        expected[text.replace('SUCCESS', '')] = true
-        actual[text.replace('SUCCESS', '')] = true
-      }
+
+    const rawResults = await this.page.getAttribute('[data-testid="all-tests-complete"]', 'data-testResults')
+    const results = JSON.parse(rawResults)
+
+    if (results['tests']) {
+      results['tests'].forEach(function (test) {
+        const testName = test['name']
+        expected[testName] = true
+        actual[testName] = test['passed']
+      })
     }
 
     expect(actual).toMatchObject(expected)
