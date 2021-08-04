@@ -48,11 +48,17 @@ export default config
 `
 }
 
-function playwrightTest(appName, folderName) {
+function playwrightTest(appName, testNames, folderName) {
   const encodedAppName = encodeURIComponent(appName);
   const encodedFolderName = encodeURIComponent(folderName);
   const testAppName = appName.replace("'", "");
-	
+
+  const individualTests = testNames.map(test =>
+`  test('${test}', async ({ page }) => {
+    const app = new RetoolApplication(page, "${encodedAppName}", "${folderName ? encodedFolderName : ''}")
+    await app.test('${test}')
+  })`).join('\n\n')
+
   return `import { test, expect } from '@playwright/test'
 
 export class RetoolApplication {
@@ -120,9 +126,7 @@ export class RetoolApplication {
 
 test.use({ storageState: 'state.json' })
 
-test('${folderName ? folderName.replace("'", "") + '/' : ''}${testAppName}', async ({ page }) => {
-  const app = new RetoolApplication(page, "${encodedAppName}", "${folderName ? encodedFolderName : ''}")
-  await app.test()
+test.describe('${folderName ? folderName.replace("'", "") + '/' : ''}${testAppName}', () => {\n${individualTests}
 })
 `
 }
@@ -168,16 +172,18 @@ function main() {
         continue
       }
       const parsed = path.parse(file);
+      const testNames = doc.appTemplate.testEntities.array.map(test => test.object.name)
       // TODO: Ensure file names are unique
+
       if (parsed.dir !== path.join(basePath, 'apps')) {
         const dirName = path.basename(parsed.dir);
         const fileName = slugify(`${dirName}-${parsed.name}`, {lower: true});
         const testPath = path.join(workingDir, 'tests', `${fileName}.spec.ts`);
-        fs.writeFileSync(testPath, playwrightTest(parsed.name, dirName));
+        fs.writeFileSync(testPath, playwrightTest(parsed.name, testNames, dirName));
       } else {
         const fileName = slugify(parsed.name, {lower: true});
         const testPath = path.join(workingDir, 'tests', `${fileName}.spec.ts`);
-        fs.writeFileSync(testPath, playwrightTest(parsed.name));
+        fs.writeFileSync(testPath, playwrightTest(parsed.name, testNames));
       }
     } catch (e) {
       console.error(e);
