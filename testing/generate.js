@@ -88,7 +88,8 @@ export class RetoolApplication {
     await this.page.click('[data-testid="run-all-tests"]')
   }
 
-  async assertResults() {
+  // set singleTest to test name if only testing a single test
+  async assertResults(singleTest) {
     const actual = {}
     const expected = {}
 
@@ -98,18 +99,22 @@ export class RetoolApplication {
     if (results['tests']) {
       results['tests'].forEach(function (test) {
         const testName = test['name']
-        expected[testName] = true
-        actual[testName] = test['passed']
+	
+	if (!(singleTest && singleTest !== testName)) {
+          expected[testName] = true
+          actual[testName] = test['passed']
+        }
       })
     }
 
     expect(actual).toMatchObject(expected)
   }
 
-  async test() {
+  // set singleTest to test name if only testing a single test
+  async test(singleTest) {
     await this.openEditor()
     await this.runAllTests()
-    await this.assertResults()
+    await this.assertResults(singleTest)
   }
 }
 
