@@ -37,7 +37,6 @@ const config: PlaywrightTestConfig = {
   globalSetup: 'global-setup.ts',
   reporter: 'list',
   workers: 1,
-  timeout: 60000,
   use: {
     // Browser options
     // headless: false,
@@ -86,14 +85,14 @@ export class RetoolApplication {
     await this.page.click('[data-testid="open-tests-modal"]')
 
     // Click [data-testid="run-all-tests"]
-    await this.page.click('[data-testid="run-all-tests"]')
+    await this.page.click('[data-testid="run-all-tests"]', {timeout: 60000})
   }
 
   async assertResults() {
     const actual = {}
     const expected = {}
 
-    const rawResults = await this.page.getAttribute('[data-testid="all-tests-complete"]', 'data-testResults')
+    const rawResults = await this.page.getAttribute('[data-testid="all-tests-complete"]', 'data-testResults', {timeout: 60000})
     const results = JSON.parse(rawResults)
 
     if (results['tests']) {
