@@ -37,6 +37,7 @@ const config: PlaywrightTestConfig = {
   globalSetup: 'global-setup.ts',
   reporter: 'list',
   workers: 1,
+  timeout: 60000,
   use: {
     // Browser options
     // headless: false,
