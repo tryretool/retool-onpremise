@@ -91,7 +91,7 @@ export class RetoolApplication {
     await this.page.click('[data-testid="open-tests-modal"]')
 
     // Click [data-testid="run-all-tests"]
-    await this.page.click('[data-testid="run-all-tests"]')
+    await this.page.click('[data-testid="run-all-tests"]', {timeout: 60000})
   }
 
   // set singleTest to test name if only testing a single test
@@ -99,7 +99,7 @@ export class RetoolApplication {
     const actual = {}
     const expected = {}
 
-    const rawResults = await this.page.getAttribute('[data-testid="all-tests-complete"]', 'data-testResults')
+    const rawResults = await this.page.getAttribute('[data-testid="all-tests-complete"]', 'data-testResults', {timeout: 60000})
     const results = JSON.parse(rawResults)
 
     if (results['tests']) {
