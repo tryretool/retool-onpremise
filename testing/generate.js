@@ -159,10 +159,10 @@ export class RetoolApplication {
 
 test.use({ storageState: 'state.json' })
 
-const folderName = '${folderName ? folderName.replace("'", "") : ''}'
+const folderName = '${folderName ? folderName.replace("'", "") + '-' : ''}'
 const appName = '${testAppName}'
 const resultsDir = 'test-results'
-const resultsPath = resultsDir + '/' + folderName + '-' + appName + '-test-results.json'
+const resultsPath = path.join(resultsDir, folderName, appName, '-test-results.json')
 
 test.describe('${folderName ? folderName.replace("'", "") + '/' : ''}${testAppName}', () => {\n${beforeEachHook}\n\n${individualTests}
 })
