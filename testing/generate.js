@@ -14,7 +14,7 @@ function globalSetup() {
 import { chromium } from '@playwright/test'
 import * as fs from 'fs'
 
-const resultsDir = 'tmp'
+const resultsDir = 'test-results'
 
 async function globalSetup() {
   const browser = await chromium.launch()
@@ -38,7 +38,7 @@ function globalTeardown() {
   return `// global-teardown.ts
 import * as fs from 'fs'
 
-const resultsDir = 'tmp'
+const resultsDir = 'test-results'
 
 async function globalTeardown() {
   fs.rmdirSync(resultsDir, {recursive: true})
@@ -161,7 +161,7 @@ test.use({ storageState: 'state.json' })
 
 const folderName = '${folderName ? folderName.replace("'", "") : ''}'
 const appName = '${testAppName}'
-const resultsDir = 'tmp'
+const resultsDir = 'test-results'
 const resultsPath = resultsDir + '/' + folderName + '-' + appName + '-test-results.json'
 
 test.describe('${folderName ? folderName.replace("'", "") + '/' : ''}${testAppName}', () => {\n${beforeEachHook}\n\n${individualTests}
