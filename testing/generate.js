@@ -85,16 +85,16 @@ function playwrightTest(appName, testNames, folderName) {
 
   const individualTests = testNames.map(test =>
 `  test('${test}', async () => {
-    if (fs.existsSync(resultsPath)) {
-      const rawResults = fs.readFileSync(resultsPath)
-      const results = JSON.parse(rawResults.toString())
+    if (!fs.existsSync(resultsPath)) {
+      throw new Error(resultsPath + " does not exist")
+    }
 
-      // only checking for result if test actually had a body and executed
-      if (results['${test}']) {
-        expect(results['${test}']).toBe(true)
-      }
-    } else {
-      console.error(resultsPath + " does not exist")
+    const rawResults = fs.readFileSync(resultsPath)
+    const results = JSON.parse(rawResults.toString())
+
+    // only checking for result if test actually had a body and executed
+    if (results['${test}']) {
+      expect(results['${test}']).toBe(true)
     }
   })`).join('\n\n')
 
