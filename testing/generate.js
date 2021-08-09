@@ -75,15 +75,11 @@ function playwrightTest(appName, testNames, folderName) {
 
   const beforeEachHook =
 `  test.beforeEach(async ({ page }) => {
-    try {
-      if (!fs.existsSync(resultsPath)) {
-        const app = new RetoolApplication(page, "${encodedAppName}", "${folderName ? encodedFolderName : ''}")
-        const results = await app.test()
+    if (!fs.existsSync(resultsPath)) {
+      const app = new RetoolApplication(page, "${encodedAppName}", "${folderName ? encodedFolderName : ''}")
+      const results = await app.test()
 
-        fs.writeFileSync(resultsPath, results)
-      }
-    } catch(err) {
-      console.error(err)
+      fs.writeFileSync(resultsPath, results)
     }
   })`
 
