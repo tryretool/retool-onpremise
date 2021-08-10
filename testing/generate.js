@@ -12,6 +12,9 @@ function globalSetup() {
   const password = process.env.RETOOL_TEST_PASSWORD || 'password'
   return `// global-setup.ts
 import { chromium } from '@playwright/test'
+import * as fs from 'fs'
+
+const resultsDir = 'results'
 
 async function globalSetup() {
   const browser = await chromium.launch()
@@ -23,9 +26,25 @@ async function globalSetup() {
   await page.waitForSelector('.app-browser', {timeout: 180000}) // Wait three minutes for apps to sync
   await page.context().storageState({ path: 'state.json' })
   await browser.close()
+
+  fs.mkdirSync(resultsDir)
 }
 
 export default globalSetup
+`
+}
+
+function globalTeardown() {
+  return `// global-teardown.ts
+import * as fs from 'fs'
+
+const resultsDir = 'results'
+
+async function globalTeardown() {
+  fs.rmdirSync(resultsDir, {recursive: true})
+}
+
+export default globalTeardown
 `
 }
 
@@ -35,6 +54,7 @@ function playwrightConfig() {
 const config: PlaywrightTestConfig = {
   testDir: 'tests',
   globalSetup: 'global-setup.ts',
+  globalTeardown: 'global-teardown.ts',
   reporter: 'list',
   workers: 1,
   use: {
@@ -53,13 +73,34 @@ function playwrightTest(appName, testNames, folderName) {
   const encodedFolderName = encodeURIComponent(folderName);
   const testAppName = appName.replace("'", "");
 
+  const beforeEachHook =
+`  test.beforeEach(async ({ page }) => {
+    if (!fs.existsSync(resultsPath)) {
+      const app = new RetoolApplication(page, "${encodedAppName}", "${folderName ? encodedFolderName : ''}")
+      const results = await app.test()
+
+      fs.writeFileSync(resultsPath, results)
+    }
+  })`
+
   const individualTests = testNames.map(test =>
-`  test('${test}', async ({ page }) => {
-    const app = new RetoolApplication(page, "${encodedAppName}", "${folderName ? encodedFolderName : ''}")
-    await app.test('${test}')
+`  test('${test}', async () => {
+    if (!fs.existsSync(resultsPath)) {
+      throw new Error(resultsPath + " does not exist")
+    }
+
+    const rawResults = fs.readFileSync(resultsPath)
+    const results = JSON.parse(rawResults.toString())
+
+    // only checking for result if test actually had a body and executed
+    if (results['${test}']) {
+      expect(results['${test}']).toBe(true)
+    }
   })`).join('\n\n')
 
   return `import { test, expect } from '@playwright/test'
+import * as fs from 'fs'
+import * as path from 'path'
 
 export class RetoolApplication {
   page: any
@@ -94,39 +135,36 @@ export class RetoolApplication {
     await this.page.click('[data-testid="run-all-tests"]', {timeout: 60000})
   }
 
-  // set singleTest to test name if only testing a single test
-  async assertResults(singleTest) {
+  async assertResults(): Promise<string> {
     const actual = {}
-    const expected = {}
-
     const rawResults = await this.page.getAttribute('[data-testid="all-tests-complete"]', 'data-testResults', {timeout: 60000})
     const results = JSON.parse(rawResults)
 
     if (results['tests']) {
       results['tests'].forEach(function (test) {
         const testName = test['name']
-	
-	if (!(singleTest && singleTest !== testName)) {
-          expected[testName] = true
-          actual[testName] = test['passed']
-        }
+        actual[testName] = test['passed']
       })
     }
 
-    expect(actual).toMatchObject(expected)
+    return JSON.stringify(actual)
   }
 
-  // set singleTest to test name if only testing a single test
-  async test(singleTest) {
+  async test(): Promise<string> {
     await this.openEditor()
     await this.runAllTests()
-    await this.assertResults(singleTest)
+    return await this.assertResults()
   }
 }
 
 test.use({ storageState: 'state.json' })
 
-test.describe('${folderName ? folderName.replace("'", "") + '/' : ''}${testAppName}', () => {\n${individualTests}
+const folderName = '${folderName ? folderName.replace("'", "") + '-' : ''}'
+const appName = '${testAppName}'
+const resultsDir = 'results'
+const resultsPath = path.join(resultsDir, folderName +  appName + '-test-results.json')
+
+test.describe('${folderName ? folderName.replace("'", "") + '/' : ''}${testAppName}', () => {\n${beforeEachHook}\n\n${individualTests}
 })
 `
 }
@@ -140,6 +178,7 @@ function main() {
 
   fs.writeFileSync(path.join(workingDir, 'global-setup.ts'), globalSetup());
   fs.writeFileSync(path.join(workingDir, 'playwright.config.ts'), playwrightConfig());
+  fs.writeFileSync(path.join(workingDir, 'global-teardown.ts'), globalTeardown());
 
   try {
     fs.mkdirSync(path.join(workingDir, 'tests'));
