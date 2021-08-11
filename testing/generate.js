@@ -17,7 +17,7 @@ import * as fs from 'fs'
 const resultsDir = 'results'
 
 async function globalSetup() {
-  const browser = await chromium.launch()
+  const browser = await chromium.launch({args:['--disable-dev-shm-usage']})
   const page = await browser.newPage()
   await page.goto('http://${HOSTNAME}:3000/auth/login')
   await page.fill('#email', '${email}')
