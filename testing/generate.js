@@ -137,7 +137,7 @@ export class RetoolApplication {
 
   async assertResults(): Promise<string> {
     const actual = {}
-    const rawResults = await this.page.getAttribute('[data-testid="all-tests-complete"]', 'data-testResults', {timeout: 60000})
+    const rawResults = await this.page.getAttribute('[data-testid="all-tests-complete"]', 'data-testResults', {timeout: 120000})
     const results = JSON.parse(rawResults)
 
     if (results['tests']) {
