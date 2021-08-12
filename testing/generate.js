@@ -117,6 +117,7 @@ export class RetoolApplication {
   }
 
   async openEditor() {
+    await this.page.setDefaultTimeout(60000)
     let url = ''
     if (this.folder) {
       url = 'http://${HOSTNAME}:3000/editor/'+this.folder+'/'+this.name
