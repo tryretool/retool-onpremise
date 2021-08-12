@@ -58,6 +58,9 @@ const config: PlaywrightTestConfig = {
   reporter: 'list',
   workers: 1,
   use: {
+    launchOptions: {
+      args: ['--disable-dev-shm-usage'],
+    },
     // Browser options
     // headless: false,
     // slowMo: 50,
