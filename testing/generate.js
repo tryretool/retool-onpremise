@@ -58,6 +58,9 @@ const config: PlaywrightTestConfig = {
   reporter: 'list',
   workers: 1,
   use: {
+    launchOptions: {
+      args: ['--disable-dev-shm-usage'],
+    },
     // Browser options
     // headless: false,
     // slowMo: 50,
@@ -147,6 +150,8 @@ export class RetoolApplication {
       })
     }
 
+    await this.closePage(this.page)
+
     return JSON.stringify(actual)
   }
 
@@ -154,6 +159,14 @@ export class RetoolApplication {
     await this.openEditor()
     await this.runAllTests()
     return await this.assertResults()
+  }
+
+  async closePage(page) {
+    try {
+      if (page && !page.isClosed()) {
+        await page.close();
+      }
+    } catch (e) {}
   }
 }
 
