@@ -72,7 +72,7 @@ services:
     restart: on-failure
 
   postgres:
-    image: 'postgres:11.12'
+    image: 'postgres:11.13'
     env_file: docker.env
     networks:
       - backend-network
