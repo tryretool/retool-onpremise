@@ -198,7 +198,7 @@ Resources:
       AllocatedStorage: "80"
       DBInstanceClass: "db.m4.large"
       Engine: postgres
-      EngineVersion: "10.6"
+      EngineVersion: "11.12"
       DBName: "hammerhead_production"
       MasterUsername: !Join ['', ['{{resolve:secretsmanager:', !Ref RetoolRDSSecret, ':SecretString:username}}' ]]
       MasterUserPassword: !Join ['', ['{{resolve:secretsmanager:', !Ref RetoolRDSSecret, ':SecretString:password}}' ]]
