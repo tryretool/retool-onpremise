@@ -43,6 +43,7 @@ services:
       - testing
     volumes:
       - ./retool:/usr/local/retool-git-repo
+    ipc: host
 
   jobs-runner:
     build:
