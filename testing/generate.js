@@ -124,7 +124,7 @@ export class RetoolApplication {
     } else {
       url = 'http://${HOSTNAME}:3000/editor/'+this.name
     }
-    await this.page.goto(url)
+    await this.page.goto(url, {waitUntil: 'load', timeout: 0})
     expect(this.page.url()).toBe(url)
   }
 
