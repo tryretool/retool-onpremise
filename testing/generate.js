@@ -7,7 +7,8 @@ const yaml = require('js-yaml');
 // use 'api' when test will be executed inside Docker container running Retool
 // const HOSTNAME = 'api';
 // const HOSTNAME = 'localhost';
-const HOSTNAME = '0.0.0.0';
+// const HOSTNAME = '0.0.0.0';
+const HOSTNAME = '127.0.0.1';
 
 function globalSetup() {
   const email = process.env.RETOOL_TEST_ACCOUNT || 'retool-test@example.com'
