@@ -4,8 +4,8 @@ const path = require('path');
 const slugify = require('slugify');
 const yaml = require('js-yaml');
 
-const HOSTNAME = 'api';
-// const HOSTNAME = 'localhost';
+// const HOSTNAME = 'api';
+const HOSTNAME = 'localhost';
 
 function globalSetup() {
   const email = process.env.RETOOL_TEST_ACCOUNT || 'retool-test@example.com'
