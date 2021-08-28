@@ -217,6 +217,7 @@ function main() {
     process.exit(1);
   }
 
+  console.log(path.join(basePath, 'apps', '**', '*.yml'));
   const apps = glob.sync(path.join(basePath, 'apps', '**', '*.yml'));
 
   for (const file of apps) {
