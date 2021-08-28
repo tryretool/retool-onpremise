@@ -24,7 +24,8 @@ async function globalSetup() {
   await page.fill('#password', '${password}')
   await page.click('.auth-button')
   await page.waitForSelector('.app-browser', {timeout: 180000}) // Wait three minutes for apps to sync
-  await page.context().storageState({ path: 'state.json' })
+  # TEMP
+  # await page.context().storageState({ path: 'state.json' })
   await browser.close()
 
   fs.mkdirSync(resultsDir)
