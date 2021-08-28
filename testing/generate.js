@@ -190,7 +190,7 @@ test.describe('${folderName ? folderName.replace("'", "") + '/' : ''}${testAppNa
 }
 
 function main() {
-  const basePath = '/usr/local/retool-git-repo';
+  const basePath = '../retool';
   const workingDir = 'ms-playwright';
 
   // const basePath = '../seedrepo';
