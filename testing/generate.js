@@ -136,13 +136,13 @@ export class RetoolApplication {
     await this.page.click('[data-testid="open-tests-modal"]')
 
     // wait for page to load
-    await this.page.waitForLoadState()
+    await this.page.waitForLoadState('load', {timeout: 0})
 
     // Click [data-testid="run-all-tests"]
     await this.page.click('[data-testid="run-all-tests"]', {timeout: 60000})
 
     // wait for page to load
-    await this.page.waitForLoadState()
+    await this.page.waitForLoadState('load', {timeout: 0})
   }
 
   async assertResults(): Promise<string> {
