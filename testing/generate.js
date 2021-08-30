@@ -124,7 +124,7 @@ export class RetoolApplication {
     } else {
       url = 'http://${HOSTNAME}:3000/editor/'+this.name
     }
-    await this.page.goto(url)
+    await this.page.goto(url, {waitUntil: 'load', timeout: 0})
     expect(this.page.url()).toBe(url)
   }
 
@@ -135,8 +135,14 @@ export class RetoolApplication {
     // Click [data-testid="open-tests-modal"]
     await this.page.click('[data-testid="open-tests-modal"]')
 
+    // wait for page to load
+    await this.page.waitForLoadState('load', {timeout: 0})
+
     // Click [data-testid="run-all-tests"]
     await this.page.click('[data-testid="run-all-tests"]', {timeout: 60000})
+
+    // wait for page to load
+    await this.page.waitForLoadState('load', {timeout: 0})
   }
 
   async assertResults(): Promise<string> {
