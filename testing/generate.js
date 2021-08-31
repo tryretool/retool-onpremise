@@ -117,7 +117,7 @@ export class RetoolApplication {
   }
 
   async openEditor() {
-    await this.page.setDefaultTimeout(60000)
+    await this.page.setDefaultTimeout(0)
     let url = ''
     if (this.folder) {
       url = 'http://${HOSTNAME}:3000/editor/'+this.folder+'/'+this.name
@@ -139,7 +139,7 @@ export class RetoolApplication {
     await this.page.waitForLoadState('load', {timeout: 0})
 
     // Click [data-testid="run-all-tests"]
-    await this.page.click('[data-testid="run-all-tests"]', {timeout: 60000})
+    await this.page.click('[data-testid="run-all-tests"]', {timeout: 0})
 
     // wait for page to load
     await this.page.waitForLoadState('load', {timeout: 0})
@@ -147,7 +147,7 @@ export class RetoolApplication {
 
   async assertResults(): Promise<string> {
     const actual = {}
-    const rawResults = await this.page.getAttribute('[data-testid="all-tests-complete"]', 'data-testresults', {timeout: 60000})
+    const rawResults = await this.page.getAttribute('[data-testid="all-tests-complete"]', 'data-testresults', {timeout: 0})
     const results = JSON.parse(rawResults)
 
     if (results['tests']) {
