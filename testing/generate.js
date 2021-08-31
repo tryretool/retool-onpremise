@@ -232,13 +232,15 @@ function main() {
       }
       const parsed = path.parse(file);
       const testNames = doc.appTemplate.testEntities.array.map(test => test.object.name)
-      // TODO: Ensure file names are unique
 
       if (parsed.dir !== path.join(basePath, 'apps')) {
         const dirName = path.basename(parsed.dir);
-        const fileName = slugify(`${dirName}-${parsed.name}`, {lower: true});
-        const testPath = path.join(workingDir, 'tests', `${fileName}.spec.ts`);
-        fs.writeFileSync(testPath, playwrightTest(parsed.name, testNames, dirName));
+
+        if (dirName !== 'archive') {
+           const fileName = slugify(`${dirName}-${parsed.name}`, {lower: true});
+           const testPath = path.join(workingDir, 'tests', `${fileName}.spec.ts`);
+           fs.writeFileSync(testPath, playwrightTest(parsed.name, testNames, dirName));
+        }
       } else {
         const fileName = slugify(parsed.name, {lower: true});
         const testPath = path.join(workingDir, 'tests', `${fileName}.spec.ts`);
