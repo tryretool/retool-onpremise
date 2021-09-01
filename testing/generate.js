@@ -62,6 +62,7 @@ const config: PlaywrightTestConfig = {
     launchOptions: {
       args: ['--disable-dev-shm-usage'],
     },
+    video: 'retain-on-failure',
     // Browser options
     // headless: false,
     // slowMo: 50,
