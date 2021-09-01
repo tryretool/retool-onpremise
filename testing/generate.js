@@ -64,10 +64,7 @@ const config: PlaywrightTestConfig = {
       args: ['--disable-dev-shm-usage'],
     },
     video: 'retain-on-failure',
-<<<<<<< HEAD
     trace: 'retain-on-failure',
-=======
->>>>>>> cbc1cfe (added video recording for failing tests)
     // Browser options
     // headless: false,
     // slowMo: 50,
