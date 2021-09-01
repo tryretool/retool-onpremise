@@ -64,7 +64,10 @@ const config: PlaywrightTestConfig = {
       args: ['--disable-dev-shm-usage'],
     },
     video: 'retain-on-failure',
+<<<<<<< HEAD
     trace: 'retain-on-failure',
+=======
+>>>>>>> cbc1cfe (added video recording for failing tests)
     // Browser options
     // headless: false,
     // slowMo: 50,
@@ -128,11 +131,7 @@ export class RetoolApplication {
     } else {
       url = 'http://${HOSTNAME}:3000/editor/'+this.name
     }
-<<<<<<< HEAD
     await this.page.goto(url, {waitUntil: 'load', timeout: 600000})
-=======
-    await this.page.goto(url, {waitUntil: 'load', timeout: 180000})
->>>>>>> 9aec4cf (set timeout to 3 min for all)
     expect(this.page.url()).toBe(url)
   }
 
