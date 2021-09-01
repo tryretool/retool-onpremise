@@ -57,6 +57,7 @@ const config: PlaywrightTestConfig = {
   globalTeardown: 'global-teardown.ts',
   reporter: 'list',
   workers: 1,
+  retries: 3,
   use: {
     launchOptions: {
       args: ['--disable-dev-shm-usage'],
