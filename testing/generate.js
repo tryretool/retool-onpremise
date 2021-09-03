@@ -160,7 +160,7 @@ export class RetoolApplication {
       })
     }
 
-    await this.closePage(this.page)
+    // await this.closePage(this.page)
 
     return JSON.stringify(actual)
   }
