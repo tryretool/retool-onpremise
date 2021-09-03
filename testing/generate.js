@@ -127,7 +127,7 @@ export class RetoolApplication {
     } else {
       url = 'http://${HOSTNAME}:3000/editor/'+this.name
     }
-    await this.page.goto(url, {waitUntil: 'load', timeout: 180000})
+    await this.page.goto(url, {waitUntil: 'load', timeout: 600000})
     expect(this.page.url()).toBe(url)
   }
 
@@ -139,18 +139,18 @@ export class RetoolApplication {
     await this.page.click('[data-testid="open-tests-modal"]')
 
     // wait for page to load
-    await this.page.waitForLoadState('load', {timeout: 180000})
+    await this.page.waitForLoadState('load', {timeout: 600000})
 
     // Click [data-testid="run-all-tests"]
-    await this.page.click('[data-testid="run-all-tests"]', {timeout: 180000})
+    await this.page.click('[data-testid="run-all-tests"]', {timeout: 600000})
 
     // wait for page to load
-    await this.page.waitForLoadState('load', {timeout: 180000})
+    await this.page.waitForLoadState('load', {timeout: 600000})
   }
 
   async assertResults(): Promise<string> {
     const actual = {}
-    const rawResults = await this.page.getAttribute('[data-testid="all-tests-complete"]', 'data-testresults', {timeout: 180000})
+    const rawResults = await this.page.getAttribute('[data-testid="all-tests-complete"]', 'data-testresults', {timeout: 600000})
     const results = JSON.parse(rawResults)
 
     if (results['tests']) {
