@@ -4,6 +4,7 @@ const path = require('path');
 const slugify = require('slugify');
 const yaml = require('js-yaml');
 
+// use 'api' when test will be executed inside Docker container running Retool
 // const HOSTNAME = 'api';
 const HOSTNAME = 'localhost';
 
