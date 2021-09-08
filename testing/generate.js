@@ -4,8 +4,9 @@ const path = require('path');
 const slugify = require('slugify');
 const yaml = require('js-yaml');
 
-const HOSTNAME = 'api';
-// const HOSTNAME = 'localhost';
+// use 'api' when test will be executed inside Docker container running Retool
+// const HOSTNAME = 'api';
+const HOSTNAME = 'localhost';
 
 function globalSetup() {
   const email = process.env.RETOOL_TEST_ACCOUNT || 'retool-test@example.com'
@@ -57,10 +58,13 @@ const config: PlaywrightTestConfig = {
   globalTeardown: 'global-teardown.ts',
   reporter: 'list',
   workers: 1,
+  retries: 3,
   use: {
     launchOptions: {
       args: ['--disable-dev-shm-usage'],
     },
+    video: 'retain-on-failure',
+    trace: 'retain-on-failure',
     // Browser options
     // headless: false,
     // slowMo: 50,
@@ -117,14 +121,14 @@ export class RetoolApplication {
   }
 
   async openEditor() {
-    await this.page.setDefaultTimeout(60000)
+    await this.page.setDefaultTimeout(0)
     let url = ''
     if (this.folder) {
       url = 'http://${HOSTNAME}:3000/editor/'+this.folder+'/'+this.name
     } else {
       url = 'http://${HOSTNAME}:3000/editor/'+this.name
     }
-    await this.page.goto(url, {waitUntil: 'load', timeout: 0})
+    await this.page.goto(url, {waitUntil: 'load', timeout: 600000})
     expect(this.page.url()).toBe(url)
   }
 
@@ -136,18 +140,18 @@ export class RetoolApplication {
     await this.page.click('[data-testid="open-tests-modal"]')
 
     // wait for page to load
-    await this.page.waitForLoadState('load', {timeout: 0})
+    await this.page.waitForLoadState('load', {timeout: 600000})
 
     // Click [data-testid="run-all-tests"]
-    await this.page.click('[data-testid="run-all-tests"]', {timeout: 60000})
+    await this.page.click('[data-testid="run-all-tests"]', {timeout: 600000})
 
     // wait for page to load
-    await this.page.waitForLoadState('load', {timeout: 0})
+    await this.page.waitForLoadState('load', {timeout: 600000})
   }
 
   async assertResults(): Promise<string> {
     const actual = {}
-    const rawResults = await this.page.getAttribute('[data-testid="all-tests-complete"]', 'data-testresults', {timeout: 60000})
+    const rawResults = await this.page.getAttribute('[data-testid="all-tests-complete"]', 'data-testresults', {timeout: 600000})
     const results = JSON.parse(rawResults)
 
     if (results['tests']) {
@@ -157,7 +161,7 @@ export class RetoolApplication {
       })
     }
 
-    await this.closePage(this.page)
+    // await this.closePage(this.page)
 
     return JSON.stringify(actual)
   }
@@ -190,8 +194,8 @@ test.describe('${folderName ? folderName.replace("'", "") + '/' : ''}${testAppNa
 }
 
 function main() {
-  const basePath = '/usr/local/retool-git-repo';
-  const workingDir = '/ms-playwright';
+  const basePath = '../retool';
+  const workingDir = 'ms-playwright';
 
   // const basePath = '../seedrepo';
   // const workingDir = '.';
