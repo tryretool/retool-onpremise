@@ -61,6 +61,7 @@ services:
       - postgres
     volumes:
       - ./keys:/root/.ssh
+      - ./retool:/usr/local/retool-git-repo
       
   db-connector:
     build:
