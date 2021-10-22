@@ -59,7 +59,9 @@ services:
     command: bash -c "chmod -R +x ./docker_scripts; sync; ./docker_scripts/wait-for-it.sh postgres:5432; ./docker_scripts/start_api.sh"
     links:
       - postgres
-
+    volumes:
+      - ./keys:/root/.ssh
+      
   db-connector:
     build:
       context: ./
