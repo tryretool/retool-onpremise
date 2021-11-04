@@ -69,7 +69,7 @@ Spin up a new EC2 instance. If using AWS, use the following steps:
 
 Just use the Deploy to AWS button below!
 
-<a href="https://app.runx.dev/deploy-with-aws?url=https%3A%2F%2Fgithub.com%2Ftryretool%2Fretool-onpremise%2Fblob%2Fmaster%2Fopta.yml&name=Retool"" target="_blank" rel="noopener noreferrer">
+<a href="https://app.runx.dev/deploy-with-aws?url=https%3A%2F%2Fgithub.com%2Ftryretool%2Fretool-onpremise%2Fblob%2Fmaster%2Fopta.yml&name=Retool" target="_blank" rel="noopener noreferrer">
   <img src="https://raw.githubusercontent.com/run-x/opta/main/assets/deploy-to-aws-button.svg" />
 </a>
 
