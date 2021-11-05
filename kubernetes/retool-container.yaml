@@ -33,7 +33,7 @@ spec:
           # matches the Google business account not the company URI
           value: "treasure.tech"
         - name: COOKIE_INSECURE
-          value: "true"
+          value: "false"
         - name: JWT_SECRET
           valueFrom:
             secretKeyRef:
