@@ -69,7 +69,7 @@ spec:
             secretKeyRef:
               name: retoolsecrets
               key: google_client_secret
-        image: tryretool/backend:2.78.12
+        image: tryretool/backend:2.79.13
         name: jobs-runner
         ports:
         - containerPort: 3000
@@ -80,7 +80,7 @@ spec:
             cpu: "1"
             memory: 1024M
       - name: cloud-sql-proxy
-        image: gcr.io/cloudsql-docker/gce-proxy:1.17
+        image: gcr.io/cloudsql-docker/gce-proxy:1.27.0
         imagePullPolicy: IfNotPresent
         command: ["/cloud_sql_proxy",
           "-instances=treasure-production:us-west1:treasure-production=tcp:5432" ]
