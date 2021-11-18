@@ -11,6 +11,7 @@ Deploying Retool on-premise ensures that all access to internal data is managed 
 - [Select a Retool version number](#select-a-retool-version-number)
 - [Simple deployments](#simple-deployments)
     - [EC2 and Docker](#deploying-on-ec2)
+    - [AWS](#deploying-to-aws-using-opta)
     - [Heroku](#deploying-on-heroku)
     - [Aptible](#running-retool-using-aptible)
     - [Render](#deploying-to-render)
@@ -69,9 +70,7 @@ Spin up a new EC2 instance. If using AWS, use the following steps:
 
 Just use the Deploy to AWS button below!
 
-<a href="https://app.runx.dev/deploy-with-aws?url=https%3A%2F%2Fgithub.com%2Ftryretool%2Fretool-onpremise%2Fblob%2Fmaster%2Fopta.yml&name=Retool" target="_blank" rel="noopener noreferrer">
-  <img src="https://raw.githubusercontent.com/run-x/opta/main/assets/deploy-to-aws-button.svg" />
-</a>
+[![Deploy](https://raw.githubusercontent.com/run-x/opta/main/assets/deploy-to-aws-button.svg)](https://app.runx.dev/deploy-with-aws?url=https%3A%2F%2Fgithub.com%2Ftryretool%2Fretool-onpremise%2Fblob%2Fmaster%2Fopta%2Fopta.yaml&name=Retool)
 
 ### Deploying on Heroku
 
