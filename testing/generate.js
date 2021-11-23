@@ -222,6 +222,10 @@ function main() {
   const appsPath = 'apps' + (folder ? `/${folder}` : '')
   const apps = glob.sync(path.join(basePath, appsPath, '**', '*.yml'));
 
+  if (folder) {
+    console.log(`Running tests for ${folder}`)
+  }
+
   for (const file of apps) {
     try {
       const doc = yaml.load(fs.readFileSync(file, 'utf8'));
