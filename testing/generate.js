@@ -217,7 +217,10 @@ function main() {
     process.exit(1);
   }
 
-  const apps = glob.sync(path.join(basePath, 'apps', '**', '*.yml'));
+  // optional argument to run tests only in a folder
+  const folder = process.argv[2]
+  const appsPath = 'apps' + (folder ? `/${folder}` : '')
+  const apps = glob.sync(path.join(basePath, appsPath, '**', '*.yml'));
 
   for (const file of apps) {
     try {
