@@ -6,19 +6,19 @@ metadata:
     kompose.version: ""
   creationTimestamp: null
   labels:
-    io.kompose.service: retool-api
-  name: retool-api
+    io.kompose.service: jobs-runner
+  name: jobs-runner
 spec:
-  replicas: 1
+  replicas: 1 # jobs-runner pod should never be more than 1
   strategy: {}
   selector:
     matchLabels:
-      io.kompose.service: retool-api
+      io.kompose.service: jobs-runner
   template:
     metadata:
       creationTimestamp: null
       labels:
-        io.kompose.service: retool-api
+        io.kompose.service: jobs-runner
     spec:
       containers:
       - args:
@@ -27,54 +27,47 @@ spec:
         - ./docker_scripts/wait-for-it.sh -t 0 $POSTGRES_HOST:$POSTGRES_PORT;
           ./docker_scripts/start_api.sh
         env:
-        - name: BASE_DOMAIN
-          value: "https://retool.treasurefinancial.com"
-        - name: RESTRICTED_DOMAIN
-          # matches the Google business account not the company URI
-          value: "treasure.tech"
-        - name: COOKIE_INSECURE
-          value: "false"
         - name: JWT_SECRET
           valueFrom:
             secretKeyRef:
-              name: retoolsecrets
+              name: retoolstagingsecrets
               key: jwt_secret
         - name: SERVICE_TYPE
-          value: MAIN_BACKEND,DB_CONNECTOR,DB_SSH_CONNECTOR
+          value: JOBS_RUNNER
         - name: NODE_ENV
           value: production
         - name: POSTGRES_DB
-          value: "retool_prod"
+          value: "retool"
         - name: POSTGRES_HOST
-          value: 127.0.0.1 # loopback because of cloud-sql-proxy
+          value: 127.0.0.1
         - name: POSTGRES_PORT
           value: "5432"
         - name: POSTGRES_USER
-          value: "retool-prod"
+          value: "retool"
         - name: POSTGRES_PASSWORD
           valueFrom:
             secretKeyRef:
-              name: retoolsecrets
+              name: retoolstagingsecrets
               key: postgres_password
         - name: ENCRYPTION_KEY
           valueFrom:
             secretKeyRef:
-              name: retoolsecrets
+              name: retoolstagingsecrets
               key: encryption_key
         - name: LICENSE_KEY
           valueFrom:
             secretKeyRef:
-              name: retoolsecrets
+              name: retoolstagingsecrets
               key: license_key
         - name: CLIENT_ID
           valueFrom:
             secretKeyRef:
-              name: retoolsecrets
+              name: retoolstagingsecrets
               key: google_client_id
         - name: CLIENT_SECRET
           valueFrom:
             secretKeyRef:
-              name: retoolsecrets
+              name: retoolstagingsecrets
               key: google_client_secret
         - name: GITHUB_APP_ID
           value: "154266"
@@ -83,10 +76,10 @@ spec:
         - name: GITHUB_APP_PRIVATE_KEY
           valueFrom:
             secretKeyRef:
-              name: retoolsecrets
+              name: retoolstagingsecrets
               key: github_app_private_key
         image: tryretool/backend:2.80.16
-        name: retool-api
+        name: jobs-runner
         ports:
         - containerPort: 3000
         resources:
@@ -99,35 +92,11 @@ spec:
         image: gcr.io/cloudsql-docker/gce-proxy:1.27.0
         imagePullPolicy: IfNotPresent
         command: ["/cloud_sql_proxy",
-          "-instances=treasure-production:us-west1:treasure-production=tcp:5432" ]
+          "-instances=tn-mvp-staging:us-central1:treasure=tcp:5432" ]
         securityContext:
             runAsNonRoot: true
             runAsUser: 65532
-        resources: {}
-      # any node pools that schedule this job must have workload-identity properly configured
-      serviceAccount: workload-identity
-      serviceAccountName: workload-identity
+      serviceAccount: workload-identity-ksa
+      serviceAccountName: workload-identity-ksa
       restartPolicy: Always
-
 status: {}
----
-apiVersion: v1
-kind: Service
-metadata:
-  annotations:
-    kompose.cmd: ./kompose convert
-    kompose.version: ""
-  creationTimestamp: null
-  labels:
-    io.kompose.service: retool-api
-  name: retool-api
-spec:
-  type: LoadBalancer
-  ports:
-  - name: "3000"
-    port: 3000
-    targetPort: 3000
-  selector:
-    io.kompose.service: retool-api
-status:
-  loadBalancer: {}

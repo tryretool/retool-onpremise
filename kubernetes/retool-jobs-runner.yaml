@@ -69,7 +69,16 @@ spec:
             secretKeyRef:
               name: retoolsecrets
               key: google_client_secret
-        image: tryretool/backend:2.79.13
+        - name: GITHUB_APP_ID
+          value: "154266"
+        - name: GITHUB_APP_INSTALLATION_ID
+          value: "20910151"
+        - name: GITHUB_APP_PRIVATE_KEY
+          valueFrom:
+            secretKeyRef:
+              name: retoolsecrets
+              key: github_app_private_key
+        image: tryretool/backend:2.80.16
         name: jobs-runner
         ports:
         - containerPort: 3000
