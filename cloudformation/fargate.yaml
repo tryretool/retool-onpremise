@@ -294,6 +294,11 @@ Resources:
   RetoolJobsRunnerECSservice:
     Type: AWS::ECS::Service
     Properties:
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: ENABLED
+          SecurityGroups: [!Ref 'ALBSecurityGroup']
+          Subnets: !Ref 'SubnetId'
       Cluster: !Ref 'Cluster'
       DesiredCount: 1
       LaunchType: FARGATE
