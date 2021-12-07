@@ -100,19 +100,19 @@ services:
       - data:/var/lib/postgresql/data
 
   # Not required, but leave this container to use nginx for handling the frontend & SSL certification
-  https-portal:
-    image: tryretool/https-portal:latest
-    ports:
-      - '80:80'
-      - '443:443'
-    links:
-      - api
-    restart: always
-    env_file: ./docker.env
-    environment:
-      STAGE: 'local' # <- Change 'local' to 'production' to use a LetsEncrypt signed SSL cert
-    networks:
-      - frontend-network
+  # https-portal:
+  #   image: tryretool/https-portal:latest
+  #   ports:
+  #     - '80:80'
+  #     - '443:443'
+  #   links:
+  #     - api
+  #   restart: always
+  #   env_file: ./docker.env
+  #   environment:
+  #     STAGE: 'local' # <- Change 'local' to 'production' to use a LetsEncrypt signed SSL cert
+  #   networks:
+  #     - frontend-network
 
 networks:
   frontend-network:
