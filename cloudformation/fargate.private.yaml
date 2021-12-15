@@ -296,6 +296,10 @@ Resources:
   RetoolJobsRunnerECSservice:
     Type: AWS::ECS::Service
     Properties:
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          SecurityGroups: [!Ref 'ALBSecurityGroup']
+          Subnets: !Ref 'SubnetId'
       Cluster: !Ref 'Cluster'
       LaunchType: FARGATE
       DesiredCount: 1
