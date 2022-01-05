@@ -1,0 +1,39 @@
+name: Deploy Retool
+
+on: [push]
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+
+    env:
+      HASH: $(git rev-parse --short "$GITHUB_SHA")
+      BRANCH: ${GITHUB_REF##*/}
+      VERSION: X.Y.Z
+      PROJECT_ID: plato-retool
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      # Setup gcloud CLI
+      - uses: GoogleCloudPlatform/github-actions/setup-gcloud@master
+        with:
+          credentials_json: ${{ secrets.GCP_CREDENTIALS }}
+
+      # Build docker image
+      - name: Image
+        run: |-
+          docker-compose up -d
+          docker-compose ps
+          docker tag tryretool/backend:X.Y.Z us.gcr.io/$PROJECT_ID/$VERSION:$HASH
+
+      # Configure docker to use the gcloud command-line tool as a credential helper
+      - run: |
+          gcloud auth configure-docker -q
+
+      # Push image to Google Container Registry
+      - name: Build
+        run: |-
+          docker push us.gcr.io/$PROJECT_ID/$VERSION:$HASH
