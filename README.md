@@ -11,6 +11,7 @@ Deploying Retool on-premise ensures that all access to internal data is managed 
 - [Select a Retool version number](#select-a-retool-version-number)
 - [Simple deployments](#simple-deployments)
     - [EC2 and Docker](#deploying-on-ec2)
+    - [AWS](#deploying-to-aws-using-opta)
     - [Heroku](#deploying-on-heroku)
     - [Aptible](#running-retool-using-aptible)
     - [Render](#deploying-to-render)
@@ -64,6 +65,12 @@ Spin up a new EC2 instance. If using AWS, use the following steps:
 1. Run `sudo docker-compose ps` to make sure all the containers are up and running.
 1. Navigate to your server's IP address in a web browser. Retool should now be running on port `3000`.
 1. Click Sign Up, since we're starting from a clean slate. The first user to into an instance becomes the administrator.
+
+### Deploying to AWS using Opta
+
+Just use the Deploy to AWS button below!
+
+[![Deploy](https://raw.githubusercontent.com/run-x/opta/main/assets/deploy-to-aws-button.svg)](https://app.runx.dev/deploy-with-aws?url=https%3A%2F%2Fgithub.com%2Ftryretool%2Fretool-onpremise%2Fblob%2Fmaster%2Fopta%2Fopta.yaml&name=Retool)
 
 ### Deploying on Heroku
 
