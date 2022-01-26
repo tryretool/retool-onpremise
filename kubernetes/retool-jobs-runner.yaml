@@ -78,16 +78,19 @@ spec:
             secretKeyRef:
               name: retoolsecrets
               key: github_app_private_key
-        image: tryretool/backend:2.80.16
+        - name: LOG_LEVEL  # debugging
+          value: "verbose"
+        image: tryretool/backend:2.80.17
         name: jobs-runner
         ports:
         - containerPort: 3000
         resources:
           limits:
-            memory: 2048M
-          requests:
-            cpu: "1"
-            memory: 1024M
+            memory: "2Gi"
+            cpu: "500m"
+          requests: 
+            cpu: "250m"
+            memory: "1Gi"
       - name: cloud-sql-proxy
         image: gcr.io/cloudsql-docker/gce-proxy:1.27.0
         imagePullPolicy: IfNotPresent
@@ -96,6 +99,13 @@ spec:
         securityContext:
             runAsNonRoot: true
             runAsUser: 65532
+        resources:
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
       serviceAccount: workload-identity
       serviceAccountName: workload-identity
       restartPolicy: Always
