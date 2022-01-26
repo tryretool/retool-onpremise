@@ -85,25 +85,32 @@ spec:
             secretKeyRef:
               name: retoolstagingsecrets
               key: github_app_private_key
-        image: tryretool/backend:2.80.16
+        image: tryretool/backend:2.80.17
         name: retool-staging-api
         ports:
         - containerPort: 3000
         resources:
           limits:
-            memory: 2048M
-          requests:
+            memory: "2Gi"
             cpu: "1"
-            memory: 1024M
+          requests:
+            memory: "1Gi"
+            cpu: "1"
       - name: cloud-sql-proxy
         image: gcr.io/cloudsql-docker/gce-proxy:1.27.0
         imagePullPolicy: IfNotPresent
         command: ["/cloud_sql_proxy",
-          "-instances=tn-mvp-staging:us-central1:treasure=tcp:5432" ]
+          "-instances=tn-mvp-staging:us-central1:staging-upgraded=tcp:5432" ]
         securityContext:
             runAsNonRoot: true
             runAsUser: 65532
-        resources: {}
+        resources:
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
       # any node pools that schedule this job must have workload-identity properly configured
       serviceAccount: workload-identity-ksa
       serviceAccountName: workload-identity-ksa
