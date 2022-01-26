@@ -78,17 +78,17 @@ spec:
             secretKeyRef:
               name: retoolstagingsecrets
               key: github_app_private_key
-        image: tryretool/backend:2.80.17
+        image: tryretool/backend:2.82.39
         name: jobs-runner
         ports:
         - containerPort: 3000
         resources:
           limits: # a smaller memory footprint may not allow image to be pulled
-            memory: "2Gi"
-            cpu: "500m"
+            memory: "2.5Gi"
+            cpu: "1"
           requests: 
-            cpu: "250m"
-            memory: "1Gi"
+            cpu: "1"
+            memory: "1.5Gi"
       - name: cloud-sql-proxy
         image: gcr.io/cloudsql-docker/gce-proxy:1.27.0
         imagePullPolicy: IfNotPresent
