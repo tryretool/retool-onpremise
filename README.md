@@ -91,8 +91,9 @@ Alternatively, you may follow the following steps to deploy to Heroku
     1. `HEROKU_HOSTED` set to `true`
     1. `JWT_SECRET`  - set to a long secure random string used to sign JSON Web Tokens
     1. `ENCRYPTION_KEY` - a long secure random string used to encrypt database credentials
-    2. `LICENSE_KEY` - your Retool license key
-    3. `PGSSLMODE` - set to `require`
+    2. `USE_GCM_ENCRYPTION` set to `true` for authenticated encryption of secrets; if true, `ENCRYPTION_KEY` must be 24 bytes
+    4. `LICENSE_KEY` - your Retool license key
+    5. `PGSSLMODE` - set to `require`
 1. Push the code: `git push heroku master`
 
 To lockdown the version of Retool used, just edit the first line under `./heroku/Dockerfile` to:
@@ -109,7 +110,8 @@ FROM tryretool/backend:X.Y.Z
 1. Edit the `Dockerfile` to set the version of Retool you want to install. To do this, replace `X.Y.Z` in `FROM tryretool/backend:X.Y.Z` with your desired version. See [Select a Retool version number](#select-a-retool-version-number) to help you choose a version.
 1. Create a new Aptible app with `aptible apps:create your-app-name`
 1. Add a database: `aptible db:create your-database-name --type postgresql`
-1. Set your config variables (your database connection string will be in your Aptible Dashboard and you can parse out the individual values by following [these instructions](https://www.aptible.com/documentation/deploy/reference/databases/credentials.html#using-database-credentials)). Be sure to rename `EXPIRED-LICENSE-KEY-TRIAL` to the license key provided to you.
+1. Set your config variables (your database connection string will be in your Aptible Dashboard and you can parse out the individual values by following [these instructions](https://www.aptible.com/documentation/deploy/reference/databases/credentials.html#using-database-credentials)). Be sure to rename `EXPIRED-LICENSE-KEY-TRIAL` to the license key provided to you. 
+1. If secrets need an authenticated encryption method, add `USE_GCM_ENCRYTPION=true` to the command below and change `ENCRYPTION_KEY=$(cat /dev/urandom | base64 | head -c 24)`
     ```
     aptible config:set --app your-app-name \
         POSTGRES_DB=your-db \
