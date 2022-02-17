@@ -61,7 +61,7 @@ Spin up a new EC2 instance. If using AWS, use the following steps:
     # This is necessary if you plan on logging in before setting up https
     COOKIE_INSECURE=true
     ```
-1. Run `docker-compose up -d` to start the Retool server.
+1. Run `sudo docker-compose up -d` to start the Retool server.
 1. Run `sudo docker-compose ps` to make sure all the containers are up and running.
 1. Navigate to your server's IP address in a web browser. Retool should now be running on port `3000`.
 1. Click Sign Up, since we're starting from a clean slate. The first user to into an instance becomes the administrator.
