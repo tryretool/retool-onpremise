@@ -185,10 +185,10 @@ test.use({ storageState: 'state.json' })
 
 const folderName = \`${folderName ? folderName.replace("'", "") + '-' : ''}\`
 const appName = \`${testAppName}\`
-const resultsDir = 'results'
-const resultsPath = path.join(resultsDir, folderName +  appName + '-test-results.json')
+const resultsDir = \`results\`
+const resultsPath = path.join(resultsDir, folderName +  appName + \`-test-results.json\`)
 
-test.describe('${folderName ? folderName.replace("'", "") + '/' : ''}${testAppName}', () => {\n${beforeEachHook}\n\n${individualTests}
+test.describe(\`${folderName ? folderName.replace("'", "") + '/' : ''}${testAppName}\`, () => {\n${beforeEachHook}\n\n${individualTests}
 })
 `
 }
