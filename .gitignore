@@ -5,3 +5,4 @@ docker.env
 retool-secrets.yaml
 
 helm/charts
+.idea/
