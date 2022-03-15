@@ -212,7 +212,7 @@ function main() {
   
   // TODO: Support protected applications
   const protectedPath = path.join(basePath, '.retool', 'protected-apps.yaml');
-  if (fs.existsSync(path)) {
+  if (fs.existsSync(protectedPath)) {
     console.log('Testing Protected Applications in CI is currently not supported');
     process.exit(1);
   }
