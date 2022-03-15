@@ -78,7 +78,7 @@ export default config
 function playwrightTest(appName, testNames, folderName) {
   const encodedAppName = encodeURIComponent(appName);
   const encodedFolderName = encodeURIComponent(folderName);
-  const testAppName = appName.replace("'", "");
+  const testAppName = appName.replaceAll("'", "");
 
   const beforeEachHook =
 `  test.beforeEach(async ({ page }) => {
@@ -183,12 +183,12 @@ export class RetoolApplication {
 
 test.use({ storageState: 'state.json' })
 
-const folderName = \`${folderName ? folderName.replace("'", "") + '-' : ''}\`
-const appName = \`${testAppName.replace("'", "").replace("`", "")}\`
+const folderName = \`${folderName ? folderName.replaceAll("'", "") + '-' : ''}\`
+const appName = \`${testAppName.replaceAll("'", "").replaceAll("`", "")}\`
 const resultsDir = \`results\`
 const resultsPath = path.join(resultsDir, folderName +  appName + \`-test-results.json\`)
 
-test.describe(\`${folderName ? folderName.replace("'", "") + '/' : ''}${testAppName}\`, () => {\n${beforeEachHook}\n\n${individualTests}
+test.describe(\`${folderName ? folderName.replaceAll("'", "") + '/' : ''}${testAppName}\`, () => {\n${beforeEachHook}\n\n${individualTests}
 })
 `
 }
