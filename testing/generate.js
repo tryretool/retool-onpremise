@@ -25,6 +25,7 @@ async function globalSetup() {
   await page.fill('#password', '${password}')
   await page.click('.auth-button')
   await page.waitForSelector('.app-browser', {timeout: 180000}) // Wait three minutes for apps to sync
+  await page.context()
   await page.context().storageState({ path: 'state.json' })
   await browser.close()
 
@@ -194,7 +195,9 @@ test.describe(\`${folderName ? folderName.replace("'", "") + '/' : ''}${testAppN
 }
 
 function main() {
-  const basePath = '../retool';
+  const usingProtectedApps = process.env.USING_PROTECTED_APPS
+
+  const basePath = usingProtectedApps ? '../retool-pa-repo' : '../retool';
   const workingDir = 'ms-playwright';
 
   // const basePath = '../seedrepo';
@@ -210,17 +213,16 @@ function main() {
     // console.log('error creating directory');
   }
   
-  // TODO: Support protected applications
   const protectedPath = path.join(basePath, '.retool', 'protected-apps.yaml');
-  if (fs.existsSync(protectedPath)) {
-    console.log('Testing Protected Applications in CI is currently not supported');
-    process.exit(1);
+  if (!fs.existsSync(protectedPath)) {
+    console.log('Protected apps repository is missing ./retool/protected-apps.yaml');
+    process.exit(0);
   }
 
   // optional argument to run tests only in a folder
   const folder = process.argv[2]
   const appsPath = 'apps' + (folder ? `/${folder}` : '')
-  const apps = glob.sync(path.join(basePath, appsPath, '**', '*.yml'));
+  const apps = glob.sync(path.join(basePath, appsPath, '**', usingProtectedApps ? 'app.yml' : '*.yml'));
 
   if (folder) {
     console.log(`Running tests only for apps in the ${folder} folder`)
@@ -241,21 +243,26 @@ function main() {
       if (doc.appTemplate.testEntities.array.length === 0) {
         continue
       }
-      const parsed = path.parse(file);
+      
       const testNames = doc.appTemplate.testEntities.array.map(test => test.object.name)
+      const parsed = path.parse(file);
+      const parentDirectory = parsed.dir
+      const grandparentDirectory = path.parse(parsed.dir).dir 
+      const directory = usingProtectedApps ? grandparentDirectory : parentDirectory
 
-      if (parsed.dir !== path.join(basePath, 'apps')) {
-        const dirName = path.basename(parsed.dir);
-
-        if (dirName !== 'archive') {
-           const fileName = slugify(`${dirName}-${parsed.name}`, {lower: true});
+      const appName = usingProtectedApps ? path.basename(parentDirectory) : parsed.name
+      const folderName = path.basename(directory)
+      
+      if (directory !== path.join(basePath, 'apps')) {
+        if (folderName !== 'archive') {
+           const fileName = slugify(`${folderName}-${appName}`, {lower: true});
            const testPath = path.join(workingDir, 'tests', `${fileName}.spec.ts`);
-           fs.writeFileSync(testPath, playwrightTest(parsed.name, testNames, dirName));
+           fs.writeFileSync(testPath, playwrightTest(appName, testNames, folderName));
         }
       } else {
-        const fileName = slugify(parsed.name, {lower: true});
+        const fileName = slugify(appName, {lower: true});
         const testPath = path.join(workingDir, 'tests', `${fileName}.spec.ts`);
-        fs.writeFileSync(testPath, playwrightTest(parsed.name, testNames));
+        fs.writeFileSync(testPath, playwrightTest(appName, testNames));
       }
     } catch (e) {
       console.error(e);
