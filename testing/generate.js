@@ -223,7 +223,7 @@ function main() {
   const apps = glob.sync(path.join(basePath, appsPath, '**', '*.yml'));
 
   if (folder) {
-    console.log(`Running tests for ${folder}`)
+    console.log(`Running tests only for apps in the ${folder} folder`)
   }
 
   for (const file of apps) {
