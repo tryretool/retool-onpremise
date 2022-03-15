@@ -1,4 +1,4 @@
-apiVersion: apps/v1 
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   annotations:
@@ -80,7 +80,7 @@ spec:
               key: github_app_private_key
         - name: LOG_LEVEL  # debugging
           value: "verbose"
-        image: tryretool/backend:2.82.39
+        image: tryretool/backend:2.85.26
         name: jobs-runner
         ports:
         - containerPort: 3000
@@ -88,7 +88,7 @@ spec:
           limits:
             memory: "2Gi"
             cpu: "500m"
-          requests: 
+          requests:
             cpu: "250m"
             memory: "1Gi"
       - name: cloud-sql-proxy
