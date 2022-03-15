@@ -31,6 +31,7 @@ services:
       - ./keys:/root/.ssh
       - ssh:/retool_backend/autogen_ssh_keys
       - ./retool:/usr/local/retool-git-repo
+      - ${BOOTSTRAP_SOURCE}:/usr/local/retool-repo
 
   test-runner:
     build:
@@ -43,6 +44,7 @@ services:
       - testing
     volumes:
       - ./retool:/usr/local/retool-git-repo
+      - ${BOOTSTRAP_SOURCE}:/usr/local/retool-repo
     ipc: host
 
   jobs-runner:
