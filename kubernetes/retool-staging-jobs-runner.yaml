@@ -1,4 +1,4 @@
-apiVersion: apps/v1 
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   annotations:
@@ -78,7 +78,7 @@ spec:
             secretKeyRef:
               name: retoolstagingsecrets
               key: github_app_private_key
-        image: tryretool/backend:2.82.39
+        image: tryretool/backend:2.85.26
         name: jobs-runner
         ports:
         - containerPort: 3000
@@ -86,7 +86,7 @@ spec:
           limits: # a smaller memory footprint may not allow image to be pulled
             memory: "2.5Gi"
             cpu: "1"
-          requests: 
+          requests:
             cpu: "1"
             memory: "1.5Gi"
       - name: cloud-sql-proxy
