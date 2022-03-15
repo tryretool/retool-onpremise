@@ -11,6 +11,7 @@ Deploying Retool on-premise ensures that all access to internal data is managed 
 - [Select a Retool version number](#select-a-retool-version-number)
 - [Simple deployments](#simple-deployments)
     - [EC2 and Docker](#deploying-on-ec2)
+    - [AWS](#deploying-to-aws-using-opta)
     - [Heroku](#deploying-on-heroku)
     - [Aptible](#running-retool-using-aptible)
     - [Render](#deploying-to-render)
@@ -60,10 +61,16 @@ Spin up a new EC2 instance. If using AWS, use the following steps:
     # This is necessary if you plan on logging in before setting up https
     COOKIE_INSECURE=true
     ```
-1. Run `docker-compose up -d` to start the Retool server.
+1. Run `sudo docker-compose up -d` to start the Retool server.
 1. Run `sudo docker-compose ps` to make sure all the containers are up and running.
 1. Navigate to your server's IP address in a web browser. Retool should now be running on port `3000`.
-1. Click Sign Up, since we're starting from a clean slate. The first user to into an instance becomes the administrator.
+1. Click Sign Up, since we're starting from a clean slate. The first user to create an account on an instance becomes the administrator.
+
+### Deploying to AWS using Opta
+
+Just use the Deploy to AWS button below!
+
+[![Deploy](https://raw.githubusercontent.com/run-x/opta/main/assets/deploy-to-aws-button.svg)](https://app.runx.dev/deploy-with-aws?url=https%3A%2F%2Fgithub.com%2Ftryretool%2Fretool-onpremise%2Fblob%2Fmaster%2Fopta%2Fopta.yaml&name=Retool)
 
 ### Deploying on Heroku
 
@@ -84,8 +91,9 @@ Alternatively, you may follow the following steps to deploy to Heroku
     1. `HEROKU_HOSTED` set to `true`
     1. `JWT_SECRET`  - set to a long secure random string used to sign JSON Web Tokens
     1. `ENCRYPTION_KEY` - a long secure random string used to encrypt database credentials
-    2. `LICENSE_KEY` - your Retool license key
-    3. `PGSSLMODE` - set to `require`
+    2. `USE_GCM_ENCRYPTION` set to `true` for authenticated encryption of secrets; if true, `ENCRYPTION_KEY` must be 24 bytes
+    4. `LICENSE_KEY` - your Retool license key
+    5. `PGSSLMODE` - set to `require`
 1. Push the code: `git push heroku master`
 
 To lockdown the version of Retool used, just edit the first line under `./heroku/Dockerfile` to:
@@ -102,7 +110,8 @@ FROM tryretool/backend:X.Y.Z
 1. Edit the `Dockerfile` to set the version of Retool you want to install. To do this, replace `X.Y.Z` in `FROM tryretool/backend:X.Y.Z` with your desired version. See [Select a Retool version number](#select-a-retool-version-number) to help you choose a version.
 1. Create a new Aptible app with `aptible apps:create your-app-name`
 1. Add a database: `aptible db:create your-database-name --type postgresql`
-1. Set your config variables (your database connection string will be in your Aptible Dashboard and you can parse out the individual values by following [these instructions](https://www.aptible.com/documentation/deploy/reference/databases/credentials.html#using-database-credentials)). Be sure to rename `EXPIRED-LICENSE-KEY-TRIAL` to the license key provided to you.
+1. Set your config variables (your database connection string will be in your Aptible Dashboard and you can parse out the individual values by following [these instructions](https://www.aptible.com/documentation/deploy/reference/databases/credentials.html#using-database-credentials)). Be sure to rename `EXPIRED-LICENSE-KEY-TRIAL` to the license key provided to you. 
+1. If secrets need an authenticated encryption method, add `USE_GCM_ENCRYTPION=true` to the command below and change `ENCRYPTION_KEY=$(cat /dev/urandom | base64 | head -c 24)`
     ```
     aptible config:set --app your-app-name \
         POSTGRES_DB=your-db \

@@ -78,7 +78,7 @@ export default config
 function playwrightTest(appName, testNames, folderName) {
   const encodedAppName = encodeURIComponent(appName);
   const encodedFolderName = encodeURIComponent(folderName);
-  const testAppName = appName.replace("'", "");
+  const testAppName = appName.replaceAll("'", "");
 
   const beforeEachHook =
 `  test.beforeEach(async ({ page }) => {
