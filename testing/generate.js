@@ -78,7 +78,7 @@ export default config
 function playwrightTest(appName, testNames, folderName) {
   const encodedAppName = encodeURIComponent(appName);
   const encodedFolderName = encodeURIComponent(folderName);
-  const testAppName = appName.replaceAll("'", "");
+  const testAppName = appName.replace("'", "");
 
   const beforeEachHook =
 `  test.beforeEach(async ({ page }) => {
@@ -183,12 +183,12 @@ export class RetoolApplication {
 
 test.use({ storageState: 'state.json' })
 
-const folderName = '${folderName ? folderName.replace("'", "") + '-' : ''}'
-const appName = '${testAppName}'
-const resultsDir = 'results'
-const resultsPath = path.join(resultsDir, folderName +  appName + '-test-results.json')
+const folderName = \`${folderName ? folderName.replace("'", "") + '-' : ''}\`
+const appName = \`${testAppName.replace("'", "").replace("`", "")}\`
+const resultsDir = \`results\`
+const resultsPath = path.join(resultsDir, folderName +  appName + \`-test-results.json\`)
 
-test.describe('${folderName ? folderName.replace("'", "") + '/' : ''}${testAppName}', () => {\n${beforeEachHook}\n\n${individualTests}
+test.describe(\`${folderName ? folderName.replace("'", "") + '/' : ''}${testAppName}\`, () => {\n${beforeEachHook}\n\n${individualTests}
 })
 `
 }
@@ -212,12 +212,19 @@ function main() {
   
   // TODO: Support protected applications
   const protectedPath = path.join(basePath, '.retool', 'protected-apps.yaml');
-  if (fs.existsSync(path)) {
+  if (fs.existsSync(protectedPath)) {
     console.log('Testing Protected Applications in CI is currently not supported');
     process.exit(1);
   }
 
-  const apps = glob.sync(path.join(basePath, 'apps', '**', '*.yml'));
+  // optional argument to run tests only in a folder
+  const folder = process.argv[2]
+  const appsPath = 'apps' + (folder ? `/${folder}` : '')
+  const apps = glob.sync(path.join(basePath, appsPath, '**', '*.yml'));
+
+  if (folder) {
+    console.log(`Running tests only for apps in the ${folder} folder`)
+  }
 
   for (const file of apps) {
     try {
