@@ -196,7 +196,7 @@ test.describe(\`${folderName ? folderName.replace("'", "") + '/' : ''}${testAppN
 function main() {
   const usingSourceControl = process.env.USING_SOURCE_CONTROL
 
-  const basePath = usingSourceControl ? '../retool-pa-repo' : '../retool';
+  const basePath = usingSourceControl ? '../retool-source-control-repo' : '../retool';
   const workingDir = 'ms-playwright';
 
   // const basePath = '../seedrepo';
