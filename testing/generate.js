@@ -194,9 +194,9 @@ test.describe(\`${folderName ? folderName.replace("'", "") + '/' : ''}${testAppN
 }
 
 function main() {
-  const usingProtectedApps = process.env.USING_PROTECTED_APPS
+  const usingSourceControl = process.env.USING_SOURCE_CONTROL
 
-  const basePath = usingProtectedApps ? '../retool-pa-repo' : '../retool';
+  const basePath = usingSourceControl ? '../retool-pa-repo' : '../retool';
   const workingDir = 'ms-playwright';
 
   // const basePath = '../seedrepo';
@@ -212,16 +212,16 @@ function main() {
     // console.log('error creating directory');
   }
   
-  const protectedPath = path.join(basePath, '.retool', 'protected-apps.yaml');
-  if (!fs.existsSync(protectedPath)) {
-    console.log('Protected apps repository is missing ./retool/protected-apps.yaml');
+  const sourceControlPath = path.join(basePath, '.retool', 'protected-apps.yaml');
+  if (!fs.existsSync(sourceControlPath)) {
+    console.log('Source Control repository is missing ./retool/protected-apps.yaml');
     process.exit(0);
   }
 
   // optional argument to run tests only in a folder
   const folder = process.argv[2]
   const appsPath = 'apps' + (folder ? `/${folder}` : '')
-  const apps = glob.sync(path.join(basePath, appsPath, '**', usingProtectedApps ? 'app.yml' : '*.yml'));
+  const apps = glob.sync(path.join(basePath, appsPath, '**', usingSourceControl ? 'app.yml' : '*.yml'));
 
   if (folder) {
     console.log(`Running tests only for apps in the ${folder} folder`)
@@ -247,9 +247,9 @@ function main() {
       const parsed = path.parse(file);
       const parentDirectory = parsed.dir
       const grandparentDirectory = path.parse(parsed.dir).dir 
-      const directory = usingProtectedApps ? grandparentDirectory : parentDirectory
+      const directory = usingSourceControl ? grandparentDirectory : parentDirectory
 
-      const appName = usingProtectedApps ? path.basename(parentDirectory) : parsed.name
+      const appName = usingSourceControl ? path.basename(parentDirectory) : parsed.name
       const folderName = path.basename(directory)
       
       if (directory !== path.join(basePath, 'apps')) {
