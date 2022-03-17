@@ -213,7 +213,7 @@ function main() {
   }
   
   const sourceControlPath = path.join(basePath, '.retool', 'protected-apps.yaml');
-  if (!fs.existsSync(sourceControlPath)) {
+  if (usingSourceControl && !fs.existsSync(sourceControlPath)) {
     console.log('Source Control repository is missing ./retool/protected-apps.yaml');
     process.exit(0);
   }
