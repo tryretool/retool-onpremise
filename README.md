@@ -33,6 +33,7 @@
   - [Troubleshooting](#troubleshooting)
   - [Updating Retool](#updating-retool)
   - [Environment variables](#environment-variables)
+  - [Deployment Health Checklist](#deployment-health-checklist)
   - [Docker cheatsheet](#docker-cheatsheet)
 
 ## Select a Retool version number
@@ -328,7 +329,6 @@ We provide Fargate template files supporting [public](/cloudformation/fargate.ya
 
 ### Google Cloud Platform - Managed Deployments
 
-### GKE
 
 ## Additional Resources
 
@@ -351,6 +351,9 @@ Retool also has a health check endpoint that you can set up to monitor livelines
   - If you have not enabled SSL yet, you will need to add the line `COOKIE_INSECURE=true` to your `docker.env` file / environment configuration so that the authentication cookies can be sent over http. Make sure to run `sudo docker-compose up -d` after modifying the `docker.env` file.
 - `TypeError: Cannot read property 'licenseVerification' of null` or `TypeError: Cannot read property 'name' of null`
   - There is an issue with your license key. Double check that the license key is correct and that it has no trailing whitespaces.
+- I want to use a private IP of the machine, not the default public one
+    - When you run `./install.sh`, instead of just clicking enter, type in your private IP. If you want to change this after it has already been set, modify the DOMAINS variable in the docker.env file.
+
 
 ### Updating Retool
 
@@ -393,6 +396,20 @@ To update Retool (this will automatically fetch the latest version of Retool)
 git commit --allow-empty -m 'Redeploying'
 git push heroku master
 ```
+
+### Deployment Health Checklist
+
+###### Overview
+We recommend completing our Deployment Health Checklist to help you improve the stability and reliability of your Retool deployment.
+
+Please fill out the checklist and share it with our team. This information will help us better understand your infrastructure so that we can support you through product changes, proactive outreach, and more informed support.
+
+###### Instructions
+Make a copy of the [Deployment Health Checklist](https://docs.google.com/spreadsheets/d/19XYpWTnYrvsllTuM2VQGFWLiXzMHmTNAzZKyWY-sfSU) for your Retool deployment. Add your company name to the document title for reference.
+Fill out the requested information on the first and second tabs.
+Share your filled out with your Retool contact or support@retool.com. We will reference this in the event of any support conversations.
+
+
 
 ### Docker cheatsheet
 
