@@ -113,10 +113,10 @@ services:
     env_file: ./docker.env
     environment:
       STAGE: 'local' # <- Change 'local' to 'production' to use a LetsEncrypt signed SSL cert
-      KEEPALIVE_TIMEOUT: 125
-      PROXY_CONNECT_TIMEOUT: 120
-      PROXY_SEND_TIMEOUT: 120
-      PROXY_READ_TIMEOUT: 120
+      KEEPALIVE_TIMEOUT: 605
+      PROXY_CONNECT_TIMEOUT: 600
+      PROXY_SEND_TIMEOUT: 600
+      PROXY_READ_TIMEOUT: 600
     networks:
       - frontend-network
 
