@@ -113,6 +113,7 @@ services:
     env_file: ./docker.env
     environment:
       STAGE: 'local' # <- Change 'local' to 'production' to use a LetsEncrypt signed SSL cert
+      CLIENT_MAX_BODY_SIZE: 1G
     networks:
       - frontend-network
 
