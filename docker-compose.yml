@@ -114,6 +114,10 @@ services:
     environment:
       STAGE: 'local' # <- Change 'local' to 'production' to use a LetsEncrypt signed SSL cert
       CLIENT_MAX_BODY_SIZE: 1G
+      KEEPALIVE_TIMEOUT: 605
+      PROXY_CONNECT_TIMEOUT: 600
+      PROXY_SEND_TIMEOUT: 600
+      PROXY_READ_TIMEOUT: 600
     networks:
       - frontend-network
 
