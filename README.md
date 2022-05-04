@@ -229,16 +229,19 @@ Deploy Retool on a managed service. We've provided some starter template files f
 
 ### Deploying on Kubernetes
 
-1. Navigate into the `kubernetes` directory
-1. Edit the `retool-container.yaml` and `retool-jobs-runner.yaml` files to set the version of Retool you want to install. To do this, replace `X.Y.Z` in `image: tryretool/backend:X.Y.Z` with your desired version. See [Select a Retool version number](#select-a-retool-version-number) to help you choose a version.
-1. Copy the `retool-secrets.template.yaml` file to `retool-secrets.yaml` and inside the `{{ ... }}` sections, replace with a suitable base64 encoded string.
+1. Navigate to the appropriate CLI (e.g. the terminal for minikube, the AWS CLI for EKS, etc.).
+2. Run the command `git clone https://github.com/tryretool/retool-onpremise.git`.
+3. Run the command `cd retool-onpremise` to enter the cloned repository's directory.
+4. Run the command `cd kubernetes` to navigate into the kubernetes directory
+5. Edit the `retool-container.yaml` and `retool-jobs-runner.yaml` files to set the version of Retool you want to install. To do this, replace `X.Y.Z` in `image: tryretool/backend:X.Y.Z` with your desired version. See [Select a Retool version number](#select-a-retool-version-number) to help you choose a version.
+6. Copy the `retool-secrets.template.yaml` file to `retool-secrets.yaml` and inside the `{{ ... }}` sections, replace with a suitable base64 encoded string.
    1. To base64 encode your license key, run `echo -n <license key> | base64` in the command line. Be sure to add the `-n` character, as it removes the trailing newline character from the encoding.
    1. If you do not wish to add google authentication, replace the templates with an empty string.
    1. You will need a license key in order to proceed.
-1. Run `kubectl apply -f ./retool-secrets.yaml`
-1. Run `kubectl apply -f ./retool-postgres.yaml`
-1. Run `kubectl apply -f ./retool-container.yaml`
-1. Run `kubectl apply -f ./retool-jobs-runner.yaml`
+7. Run `kubectl apply -f ./retool-secrets.yaml`
+8. Run `kubectl apply -f ./retool-postgres.yaml`
+9. Run `kubectl apply -f ./retool-container.yaml`
+10. Run `kubectl apply -f ./retool-jobs-runner.yaml`
 
 For ease of use, this will create a postgres container with a persistent volume for the storage of Retool data. We recommend that you use a managed database service like RDS as a long-term solution. The application will be exposed on a public ip address on port 3000 - we leave it to the user to handle DNS and SSL.
 
