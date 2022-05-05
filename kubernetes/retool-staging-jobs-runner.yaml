@@ -78,7 +78,7 @@ spec:
             secretKeyRef:
               name: retoolstagingsecrets
               key: github_app_private_key
-        image: tryretool/backend:2.85.26
+        image: tryretool/backend:2.89.11
         name: jobs-runner
         ports:
         - containerPort: 3000
@@ -90,7 +90,7 @@ spec:
             cpu: "1"
             memory: "1.5Gi"
       - name: cloud-sql-proxy
-        image: gcr.io/cloudsql-docker/gce-proxy:1.27.0
+        image: gcr.io/cloudsql-docker/gce-proxy:1.30.0
         imagePullPolicy: IfNotPresent
         command: ["/cloud_sql_proxy",
           "-instances=tn-mvp-staging:us-central1:staging-upgraded=tcp:5432" ]
