@@ -44,7 +44,7 @@ echo "POSTGRES_PASSWORD=${postgresPassword}" >> docker.env
 echo '' >> docker.env
 
 echo "# Change '${hostname}' to retool.yourcompany.com to set up SSL properly" >> docker.env
-echo "DOMAINS=${hostname} -> http://api:3000" >> docker.env
+echo "DOMAINS='${hostname} -> http://api:3000'" >> docker.env
 echo '' >> docker.env
 
 echo '## Used to create links for your users, like new user invitations and forgotten password resets' >> docker.env
