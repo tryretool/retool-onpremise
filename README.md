@@ -62,7 +62,7 @@ Just use the Deploy to Render button below! Here are [some docs](https://render.
 - Linux Virtual Machine
   - Ubuntu `16.04` or higher
 - `2` vCPUs
-- `8` GiB + of Memory
+- `4` GiB + of Memory
 - `60` GiB + of Storage 
 - Networking Requirements for Initial Setup:
   - `80` (http): for connecting to the server from the browser
@@ -75,14 +75,15 @@ Just use the Deploy to Render button below! Here are [some docs](https://render.
 Spin up a new EC2 instance. If using AWS, use the following steps:
 
 1. Click **Launch Instance** from the EC2 dashboard.
-1. Click **Select** for an instance of Ubuntu `16.04` or higher.
-1. Select an instance type of at least `t3.medium` and click **Next**.
-1. Ensure you select the VPC that also includes the databases / API’s you will want to connect to and click **Next**.
-1. Increase the storage size to `60` GB or higher and click **Next**.
-1. Optionally add some Tags (e.g. `app = retool`) and click **Next**. This makes it easier to find if you have a lot of instances.
-1. Set the network security groups for ports `80`, `443`, `22` and `3000`, with sources set to `0.0.0.0/0` and `::/0`, and click **Review and Launch**. We need to open ports `80` (http) and `443` (https) so you can connect to the server from a browser, as well as port `22` (ssh) so that you can ssh into the instance to configure it and run Retool. By default on a vanilla EC2, Retool will run on port `3000`.
-1. On the **Review Instance Launch** screen, click **Launch** to start your instance.
+1. Name the instance and optionally add some Tags (e.g. `app = retool`). This makes it easier to find if you have a lot of instances.
+1. Select an instance of Ubuntu `16.04` or higher.
+1. Select an instance type of at least `t3.medium`.
+1. Ensure you select the VPC that also includes the databases / API’s you will want to connect to.
+1. Set the network security group rules for ports `80`, `443`, `22` and `3000`, with sources set to `0.0.0.0/0` and `::/0`. We need to open ports `80` (http) and `443` (https) so you can connect to the server from a browser, as well as port `22` (ssh) so that you can ssh into the instance to configure it and run Retool. By default on a vanilla EC2, Retool will run on port `3000`.
 1. If you're connecting to internal databases, whitelist the VPS's IP address in your database.
+1. Increase the storage size to `60` GB or higher.
+
+1. Click **Launch** to start your instance.
 1. From your command line tool, SSH into your EC2 instance.
 1. Run the command `git clone https://github.com/tryretool/retool-onpremise.git`.
 1. Run the command `cd retool-onpremise` to enter the cloned repository's directory.
