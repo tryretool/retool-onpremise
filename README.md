@@ -306,12 +306,12 @@ If running into OOM issues (especially on larger instance sizes with >4 vCPUs)
 We provide Fargate template files supporting [public](/cloudformation/fargate.yaml) and [private](/cloudformation/fargate.private.yaml) subnets.
 
 1. In the ECS Dashboard, click **Create Cluster**
-2. In **Step 1: Select a cluster template**, select `Networking Only (Powered by AWS Fargate)` as the cluster template.
-3. In **Step 2: Configure cluster**, be sure to enable CloudWatch Container Insights. This will help us monitor logs and the health of our deployment through CloudWatch.
-4. Download the [public](/cloudformation/fargate.yaml) or [private](/cloudformation/fargate.private.yaml) template file.
-5. Edit the template file to provide your license key and any required [environment variables](https://docs.retool.com/docs/environment-variables) (under the Environment key within the retool ContainerDefinitions). Do not edit any other parts of the template file. 
-6. Go to the AWS Cloudformation dashboard, and click **Create Stack with new resources → Upload a template file**. Upload your edited `.yaml` file.
-7. Enter the following parameters:
+1. In **Step 1: Select a cluster template**, select `Networking Only (Powered by AWS Fargate)` as the cluster template.
+1. In **Step 2: Configure cluster**, be sure to enable CloudWatch Container Insights. This will help us monitor logs and the health of our deployment through CloudWatch.
+1. Download the [public](/cloudformation/fargate.yaml) or [private](/cloudformation/fargate.private.yaml) template file.
+1. Edit the template file to provide your license key and any required [environment variables](https://docs.retool.com/docs/environment-variables) (under the Environment key within the retool ContainerDefinitions). Do not edit any other parts of the template file. 
+1. Go to the AWS Cloudformation dashboard, and click **Create Stack with new resources → Upload a template file**. Upload your edited `.yaml` file.
+1. Enter the following parameters:
    - Cluster: the name of the ECS cluster you created earlier
    - DesiredCount: 2
    - Environment: staging
@@ -321,12 +321,12 @@ We provide Fargate template files supporting [public](/cloudformation/fargate.ya
    - MinimumPercent: 50
    - SubnetId: Select 2 subnets in your VPC - make sure these subnets are public (have an internet gateway in their route table)
    - VPC ID: select the VPC you want to use
-8. Click through to create the stack; this could take up to 15 minutes; you can monitor the progress of the stack being created in the `Events` tab in Cloudformation
-9. In the **Outputs** section, you should be able to find the ALB DNS URL.
-10. Currently the load balancer is listening on port 3000; to make it available on port 80 we have to go to the **EC2 dashboard → Load Balancers → Listeners** and click Edit to to change the port to 80.
+1. Click through to create the stack; this could take up to 15 minutes; you can monitor the progress of the stack being created in the `Events` tab in Cloudformation
+1. In the **Outputs** section, you should be able to find the ALB DNS URL.
+1. Currently the load balancer is listening on port 3000; to make it available on port 80 we have to go to the **EC2 dashboard → Load Balancers → Listeners** and click Edit to to change the port to 80.
    - If you get an error that your security group does not allow traffic on this listener port, you must add an inbound rule allowing HTTP on port 80.
-11. In the **Outputs** section within the CloudFormation dashboard, you should be able to find the ALB DNS URL. This is where Retool should be running.
-12. The backend tries to guess your domain to create invite links, but with a load balancer in front of Retool you'll need to set the `BASE_DOMAIN` environment variable to your fully qualified domain (i.e. `https://retool.company.com`). Docs [here](https://docs.retool.com/docs/environment-variables).
+1. In the **Outputs** section within the CloudFormation dashboard, you should be able to find the ALB DNS URL. This is where Retool should be running.
+1. The backend tries to guess your domain to create invite links, but with a load balancer in front of Retool you'll need to set the `BASE_DOMAIN` environment variable to your fully qualified domain (i.e. `https://retool.company.com`). Docs [here](https://docs.retool.com/docs/environment-variables).
 
 ### Google Cloud Platform - Managed Deployments
 
