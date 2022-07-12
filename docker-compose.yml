@@ -31,6 +31,7 @@ services:
       - ./keys:/root/.ssh
       - ssh:/retool_backend/autogen_ssh_keys
       - ./retool:/usr/local/retool-git-repo
+      - ${BOOTSTRAP_SOURCE:-./retool}:/usr/local/retool-repo
 
   test-runner:
     build:
@@ -43,6 +44,7 @@ services:
       - testing
     volumes:
       - ./retool:/usr/local/retool-git-repo
+      - ${BOOTSTRAP_SOURCE:-./retool}:/usr/local/retool-repo
     ipc: host
 
   jobs-runner:
@@ -111,6 +113,11 @@ services:
     env_file: ./docker.env
     environment:
       STAGE: 'local' # <- Change 'local' to 'production' to use a LetsEncrypt signed SSL cert
+      CLIENT_MAX_BODY_SIZE: 40M
+      KEEPALIVE_TIMEOUT: 605
+      PROXY_CONNECT_TIMEOUT: 600
+      PROXY_SEND_TIMEOUT: 600
+      PROXY_READ_TIMEOUT: 600
     networks:
       - frontend-network
 

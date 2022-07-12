@@ -183,18 +183,20 @@ export class RetoolApplication {
 
 test.use({ storageState: 'state.json' })
 
-const folderName = '${folderName ? folderName.replace("'", "") + '-' : ''}'
-const appName = '${testAppName}'
-const resultsDir = 'results'
-const resultsPath = path.join(resultsDir, folderName +  appName + '-test-results.json')
+const folderName = \`${folderName ? folderName.replace("'", "") + '-' : ''}\`
+const appName = \`${testAppName.replace("'", "").replace("`", "")}\`
+const resultsDir = \`results\`
+const resultsPath = path.join(resultsDir, folderName +  appName + \`-test-results.json\`)
 
-test.describe('${folderName ? folderName.replace("'", "") + '/' : ''}${testAppName}', () => {\n${beforeEachHook}\n\n${individualTests}
+test.describe(\`${folderName ? folderName.replace("'", "") + '/' : ''}${testAppName}\`, () => {\n${beforeEachHook}\n\n${individualTests}
 })
 `
 }
 
 function main() {
-  const basePath = '../retool';
+  const usingSourceControl = process.env.USING_SOURCE_CONTROL
+
+  const basePath = usingSourceControl ? '../retool-source-control-repo' : '../retool';
   const workingDir = 'ms-playwright';
 
   // const basePath = '../seedrepo';
@@ -210,14 +212,20 @@ function main() {
     // console.log('error creating directory');
   }
   
-  // TODO: Support protected applications
-  const protectedPath = path.join(basePath, '.retool', 'protected-apps.yaml');
-  if (fs.existsSync(path)) {
-    console.log('Testing Protected Applications in CI is currently not supported');
-    process.exit(1);
+  const sourceControlPath = path.join(basePath, '.retool', 'protected-apps.yaml');
+  if (usingSourceControl && !fs.existsSync(sourceControlPath)) {
+    console.log('Source Control repository is missing ./.retool/protected-apps.yaml');
+    process.exit(0);
   }
 
-  const apps = glob.sync(path.join(basePath, 'apps', '**', '*.yml'));
+  // optional argument to run tests only in a folder
+  const folder = process.argv[2]
+  const appsPath = 'apps' + (folder ? `/${folder}` : '')
+  const apps = glob.sync(path.join(basePath, appsPath, '**', usingSourceControl ? 'app.yml' : '*.yml'));
+
+  if (folder) {
+    console.log(`Running tests only for apps in the ${folder} folder`)
+  }
 
   for (const file of apps) {
     try {
@@ -234,21 +242,26 @@ function main() {
       if (doc.appTemplate.testEntities.array.length === 0) {
         continue
       }
-      const parsed = path.parse(file);
+      
       const testNames = doc.appTemplate.testEntities.array.map(test => test.object.name)
+      const parsed = path.parse(file);
+      const parentDirectory = parsed.dir
+      const grandparentDirectory = path.parse(parsed.dir).dir 
+      const directory = usingSourceControl ? grandparentDirectory : parentDirectory
 
-      if (parsed.dir !== path.join(basePath, 'apps')) {
-        const dirName = path.basename(parsed.dir);
-
-        if (dirName !== 'archive') {
-           const fileName = slugify(`${dirName}-${parsed.name}`, {lower: true});
+      const appName = usingSourceControl ? path.basename(parentDirectory) : parsed.name
+      const folderName = path.basename(directory)
+      
+      if (directory !== path.join(basePath, 'apps')) {
+        if (folderName !== 'archive') {
+           const fileName = slugify(`${folderName}-${appName}`, {lower: true});
            const testPath = path.join(workingDir, 'tests', `${fileName}.spec.ts`);
-           fs.writeFileSync(testPath, playwrightTest(parsed.name, testNames, dirName));
+           fs.writeFileSync(testPath, playwrightTest(appName, testNames, folderName));
         }
       } else {
-        const fileName = slugify(parsed.name, {lower: true});
+        const fileName = slugify(appName, {lower: true});
         const testPath = path.join(workingDir, 'tests', `${fileName}.spec.ts`);
-        fs.writeFileSync(testPath, playwrightTest(parsed.name, testNames));
+        fs.writeFileSync(testPath, playwrightTest(appName, testNames));
       }
     } catch (e) {
       console.error(e);

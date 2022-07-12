@@ -5,3 +5,4 @@ docker.env
 retool-secrets.yaml
 retool-staging-secrets.yaml
 helm/charts
+.idea/
