@@ -110,7 +110,7 @@ services:
       - backend-network
       - db-connector-network
     volumes:
-      - data:/var/lib/retooldb/data
+      - retooldb:/var/lib/postgresql/data
 
   # Not required, but leave this container to use nginx for handling the frontend & SSL certification
   https-portal:
@@ -141,3 +141,4 @@ volumes:
   ssh:
   data:
   user-data:
+  retooldb:
