@@ -101,6 +101,17 @@ services:
     volumes:
       - data:/var/lib/postgresql/data
 
+  # Postgres for storing application data
+  user-postgres:
+    image: 'postgres:11.13'
+    env_file: ./user_data/user_data.env
+    networks:
+      - frontend-network
+      - backend-network
+      - db-connector-network
+    volumes:
+      - user-data:/var/lib/postgresql/data
+
   # Not required, but leave this container to use nginx for handling the frontend & SSL certification
   https-portal:
     image: tryretool/https-portal:latest
