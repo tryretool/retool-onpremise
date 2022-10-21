@@ -104,7 +104,7 @@ services:
   # Postgres for storing application data
   user-postgres:
     image: 'postgres:11.13'
-    env_file: ./userData/userData.env
+    env_file: ./user_data/user_data.env
     networks:
       - frontend-network
       - backend-network
