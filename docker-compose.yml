@@ -101,16 +101,16 @@ services:
     volumes:
       - data:/var/lib/postgresql/data
 
-  # RetoolDB, a database accessible to the user
-  retooldb:
+  # Postgres for storing application data
+  user-postgres:
     image: 'postgres:11.13'
-    env_file: retooldb.env
+    env_file: ./userData/userData.env
     networks:
       - frontend-network
       - backend-network
       - db-connector-network
     volumes:
-      - retooldb:/var/lib/postgresql/data
+      - user-data:/var/lib/postgresql/data
 
   # Not required, but leave this container to use nginx for handling the frontend & SSL certification
   https-portal:
@@ -141,4 +141,3 @@ volumes:
   ssh:
   data:
   user-data:
-  retooldb:
