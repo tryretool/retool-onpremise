@@ -6,19 +6,19 @@ metadata:
     kompose.version: ""
   creationTimestamp: null
   labels:
-    io.kompose.service: api
+    app: api
   name: api
 spec:
   replicas: 1
   strategy: {}
   selector:
     matchLabels:
-      io.kompose.service: api
+      app: api
   template:
     metadata:
       creationTimestamp: null
       labels:
-        io.kompose.service: api
+        app: api
     spec:
       containers:
       - args:
@@ -90,15 +90,15 @@ metadata:
     kompose.version: ""
   creationTimestamp: null
   labels:
-    io.kompose.service: api
+    app: api
   name: api
 spec:
   type: LoadBalancer
   ports:
-  - name: "3000"
+  - name: http
     port: 3000
     targetPort: 3000
+    protocol: TCP
   selector:
-    io.kompose.service: api
-status:
-  loadBalancer: {}
+    app: api
+
