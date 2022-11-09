@@ -261,9 +261,10 @@ else
 fi
 
 WAITED=0
-# one request every three seconds. It takes about 40 seconds for the api to get ready so 1 minute should be enough margin
+# one request every three seconds. It takes about 40 seconds for the api to get ready so 2 minute should be enough margin
 while [ $WAITED -lt 40 ] && ! api_running; do
     WAITED=$((WAITED + 1))
+    # Breaking early if the container already failed due to error.
     if ! $($MAYBE_SUDO docker container inspect -f {{.State.Running}} $API_CONTAINER_ID ); then
       break
     fi
