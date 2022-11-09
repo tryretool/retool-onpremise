@@ -217,14 +217,14 @@ echo " -- ${GREEN}${BOLD}!! RETOOL IS BOOTING !!${NORMAL} --"
 # NB: the API doesn't start up the first time, this is why the below is complex
 
 WAITED=0
-
+API_CONTAINER_ID=""
 api_container_up() {
-  API_DOCKER_CONTAINER = "$($MAYBE_SUDO docker ps | grep 'retool-onpremise-api')"
+  API_DOCKER_CONTAINER="$($MAYBE_SUDO docker ps | grep 'retool-onpremise[-_]api')"
   test -n "$API_DOCKER_CONTAINER"
 }
 
 api_running() {
-  healthcheck_response = $(curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/api/checkHealth)
+  healthcheck_response=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/api/checkHealth)
   test $healthcheck_response -eq 200
 }
 printf "%s%s%s%s" "Waiting for Retool to start up... " "${RED}${BOLD}" "<Pressing Ctrl-C may prevent proper start-up>" "$NORMAL"
@@ -253,16 +253,27 @@ while [ $WAITED -lt 20 ]; do
     sleep 1
 done
 
+if ! api_container_up; then
+  echo "ERROR: Failed starting the Retool api container"
+  exit 1
+else
+  API_CONTAINER_ID=$($MAYBE_SUDO docker ps -a | grep -i retool-onpremise[-_]api | awk '{print $1}')
+fi
+
 WAITED=0
 # one request every three seconds. It takes about 40 seconds for the api to get ready so 1 minute should be enough margin
-while [ $WAITED -lt 20 ] && ! api_running; do
+while [ $WAITED -lt 40 ] && ! api_running; do
     WAITED=$((WAITED + 1))
+    if ! $($MAYBE_SUDO docker container inspect -f {{.State.Running}} $API_CONTAINER_ID ); then
+      break
+    fi
     sleep 3
 done
 
+echo
 if ! api_running; then
-  echo "There was an issue starting the retool container"
-  echo "You can view the logs by running: docker logs $(docker ps -a | grep -i retool-onpremise-api | awk '{print $1}')"
+  echo "There was an issue starting the Retool container"
+  echo "You can view the logs by running: docker logs $API_CONTAINER_ID')"
   exit 1
 fi
 # NB: empty stuff to fully wipe out previous line completely
