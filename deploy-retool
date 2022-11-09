@@ -218,22 +218,26 @@ echo " -- ${GREEN}${BOLD}!! RETOOL IS BOOTING !!${NORMAL} --"
 
 WAITED=0
 
-api_running() {
-  API_DOCKER_CONTAINER="$($MAYBE_SUDO docker ps | grep 'retool-onpremise_api')"
+api_container_up() {
+  API_DOCKER_CONTAINER = "$($MAYBE_SUDO docker ps | grep 'retool-onpremise-api')"
   test -n "$API_DOCKER_CONTAINER"
 }
 
+api_running() {
+  healthcheck_response = $(curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/api/checkHealth)
+  test $healthcheck_response -eq 200
+}
 printf "%s%s%s%s" "Waiting for Retool to start up... " "${RED}${BOLD}" "<Pressing Ctrl-C may prevent proper start-up>" "$NORMAL"
 
-while [ $WAITED -lt 20 ] && api_running; do
+while [ $WAITED -lt 20 ] && api_container_up; do
   WAITED=$((WAITED + 1))
   sleep 1
 done
 
-if ! api_running; then
+if ! api_container_up; then
   $MAYBE_SUDO docker-compose up -d > /dev/null 2>&1
   WAITED=0
-  while [ $WAITED -lt 10 ] && ! api_running; do
+  while [ $WAITED -lt 10 ] && ! api_container_up; do
     WAITED=$((WAITED + 1))
     sleep 1
   done
@@ -242,13 +246,25 @@ fi
 # Due to a race condition with migration runner, check if api container stays up for 20 seconds.
 WAITED=0
 while [ $WAITED -lt 20 ]; do
-    if ! api_running; then
+    if ! api_container_up; then
         $MAYBE_SUDO docker-compose up -d > /dev/null 2>&1
     fi
     WAITED=$((WAITED + 1))
     sleep 1
 done
 
+WAITED=0
+# one request every three seconds. It takes about 40 seconds for the api to get ready so 1 minute should be enough margin
+while [ $WAITED -lt 20 ] && ! api_running; do
+    WAITED=$((WAITED + 1))
+    sleep 3
+done
+
+if ! api_running; then
+  echo "There was an issue starting the retool container"
+  echo "You can view the logs by running: docker logs $(docker ps -a | grep -i retool-onpremise-api | awk '{print $1}')"
+  exit 1
+fi
 # NB: empty stuff to fully wipe out previous line completely
 printf "\r%s%s%s%s%s%s%s%s" "$MAGENTA" 'Check out your ' "$BOLD" 'BROWSER' "${NORMAL}${MAGENTA}" ' for some awesomeness!!!' "$NORMAL" '                              '
 echo
