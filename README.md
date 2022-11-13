@@ -215,7 +215,7 @@ You can manually deploy to Heroku using the following steps:
 1. Create a new Aptible app with `aptible apps:create your-app-name`
 1. Add a database: `aptible db:create your-database-name --type postgresql`
 1. Set your config variables (your database connection string will be in your Aptible Dashboard and you can parse out the individual values by following [these instructions](https://www.aptible.com/documentation/deploy/reference/databases/credentials.html#using-database-credentials)). Be sure to rename `EXPIRED-LICENSE-KEY-TRIAL` to the license key provided to you.
-1. If secrets need an authenticated encryption method, add `USE_GCM_ENCRYTPION=true` to the command below and change `ENCRYPTION_KEY=$(cat /dev/urandom | base64 | head -c 24)`
+1. If secrets need an authenticated encryption method, add `USE_GCM_ENCRYPTION=true` to the command below and change `ENCRYPTION_KEY=$(cat /dev/urandom | base64 | head -c 24)`
 
    ```yml
    aptible config:set --app your-app-name \
