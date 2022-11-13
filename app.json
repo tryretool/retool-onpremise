@@ -1,29 +1,62 @@
 {
   "name": "retool",
-  "description": "Retool heroku",
+  "description": "Retool Heroku",
+  "keywords": [
+    "retool"
+  ],
+  "logo": "https://avatars.githubusercontent.com/u/33817679",
+  "repository": "https://github.com/tryretool/retool-onpremise",
   "stack": "container",
+  "formation": {
+    "web": {
+      "quantity": 1,
+      "size": "performance-m"
+    }
+  },
   "env": {
-    "NODE_ENV": {
-      "description": "The environment to run Retool",
-      "value": "production"
+    "ENCRYPTION_KEY": {
+      "description": "A secret key for encrypting secret credentials when connecting Retool to other databases or API endpoints",
+      "required": true,
+      "generator": "secret"
+    },
+    "HEROKU_HOSTED": {
+      "required": true,
+      "value": "true"
     },
     "HOST_ENV": {
       "description": "Whether service is hosted by Heroku or not",
+      "required": true,
       "value": "HEROKU"
     },
     "JWT_SECRET": {
       "description": "A secret key for signing JSON Web Tokens",
+      "required": true,
       "generator": "secret"
     },
-    "ENCRYPTION_KEY": {
-      "description": "A secret key for encrypting secret credentials when connecting Retool to other databases or API endpoints",
-      "generator": "secret"
+    "LICENSE_KEY": {
+      "description": "Your Retool license key",
+      "required": true
+    },
+    "NODE_ENV": {
+      "description": "The environment to run Retool",
+      "required": true,
+      "value": "production"
+    },
+    "PGSSLMODE": {
+      "required": true,
+      "value": "require"
+    },
+    "USE_GCM_ENCRYPTION": {
+      "description": "Set to `true` for authenticated encryption of secrets",
+      "required": false
     }
   },
-  "addons": [{
-    "plan": "heroku-postgresql",
-    "options": {
-      "version": "11"
+  "addons": [
+    {
+      "plan": "heroku-postgresql:standard-0",
+      "options": {
+        "version": "11"
+      }
     }
-  }]
+  ]
 }
