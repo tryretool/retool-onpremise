@@ -1,24 +1,18 @@
 apiVersion: apps/v1 
 kind: Deployment
 metadata:
-  annotations:
-    kompose.cmd: ./kompose convert
-    kompose.version: ""
-  creationTimestamp: null
   labels:
-    io.kompose.service: api
+    app: api
   name: api
 spec:
   replicas: 1
-  strategy: {}
   selector:
     matchLabels:
-      io.kompose.service: api
+      app: api
   template:
     metadata:
-      creationTimestamp: null
       labels:
-        io.kompose.service: api
+        app: api
     spec:
       containers:
       - args:
@@ -80,17 +74,12 @@ spec:
             cpu: "1"
             memory: 1024M
       restartPolicy: Always
-status: {}
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  annotations:
-    kompose.cmd: ./kompose convert
-    kompose.version: ""
-  creationTimestamp: null
   labels:
-    io.kompose.service: api
+    app: api
   name: api
 spec:
   type: LoadBalancer
@@ -99,6 +88,4 @@ spec:
     port: 3000
     targetPort: 3000
   selector:
-    io.kompose.service: api
-status:
-  loadBalancer: {}
+    app: api
