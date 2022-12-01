@@ -296,6 +296,7 @@ Resources:
     Properties:
       NetworkConfiguration:
         AwsvpcConfiguration:
+          AssignPublicIp: ENABLED
           SecurityGroups: [!Ref 'ALBSecurityGroup']
           Subnets: !Ref 'SubnetId'
       Cluster: !Ref 'Cluster'
