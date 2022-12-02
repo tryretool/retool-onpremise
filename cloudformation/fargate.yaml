@@ -213,7 +213,6 @@ Resources:
       MasterUsername: !Join ['', ['{{resolve:secretsmanager:', !Ref RetoolRDSSecret, ':SecretString:username}}' ]]
       MasterUserPassword: !Join ['', ['{{resolve:secretsmanager:', !Ref RetoolRDSSecret, ':SecretString:password}}' ]]
       Port: "5432"
-      PubliclyAccessible: true
       VPCSecurityGroups: [!GetAtt [RDSSecurityGroup, GroupId]]
       DBSubnetGroupName: !Ref 'RDSSubnetGroup'
 
