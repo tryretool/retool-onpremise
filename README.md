@@ -40,7 +40,7 @@
 
 We recommend you set your Retool deployment to a specific version of Retool (that is, a specific semver version number in the format `X.Y.Z`, instead of a tag name). This will help prevent unexpected behavior in your Retool instances. When you are ready to upgrade Retool, you can bump the version number to the specific new version you want.
 
-To help you select a version, see our guide on [Retool Release Versions](https://docs.retool.com/docs/updating-retool-on-premise#retool-release-versions).
+To help you select a version, see our guide on [Retool Release Versions](https://docs.retool.com/docs/self-hosted-release-notes).
 
 ## One-Click Deploy
 
