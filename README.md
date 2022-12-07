@@ -11,7 +11,6 @@
 
 - [Select a Retool version number](#select-a-retool-version-number)
 - [One-Click Deploy](#one-click-deploy)
-  - [AWS w/ Opta](#one-click-deployment-to-aws-using-opta)
   - [Render](#one-click-deployment-to-render)
 - [Single deployments](#single-deployments)
   - [General Machine Specifications](#general-machine-specifications)
@@ -43,12 +42,6 @@ We recommend you set your Retool deployment to a specific version of Retool (tha
 To help you select a version, see our guide on [Retool Release Versions](https://docs.retool.com/docs/self-hosted-release-notes).
 
 ## One-Click Deploy
-
-### One-click Deployment to AWS using Opta
-
-Just use the Deploy to AWS button below!
-
-[![Deploy](https://raw.githubusercontent.com/run-x/opta/main/assets/deploy-to-aws-button.svg)](https://app.runx.dev/deploy-with-aws?url=https%3A%2F%2Fgithub.com%2Ftryretool%2Fretool-onpremise%2Fblob%2Fmaster%2Fopta%2Fopta.yaml&name=Retool)
 
 ### One-click Deployment to Render
 
