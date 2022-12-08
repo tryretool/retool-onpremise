@@ -43,6 +43,18 @@ To help you select a version, see our guide on [Retool Release Versions](https:/
 
 ## One-Click Deploy
 
+### One-click Deployment to AWS (CloudFormation + EC2)
+
+Region name | Region code | Launch
+--- | --- | ---
+US East (N. Virginia) | us-east-1 | [![Launch Stack](https://cdn.rawgit.com/buildkite/cloudformation-launch-stack-button-svg/master/launch-stack.svg)](https://us-east-1.console.aws.amazon.com/cloudformation/home?region=us-east-1#/stacks/quickcreate?templateURL=https://s3-external-1.amazonaws.com/cf-templates-x1ljyg3aygh-us-east-1/2021157Dqr-SSOPLaunchJuneo3g1bsca3hh&stackName=retool) 
+US West (N. California) |	us-west-1 | [![Launch Stack](https://cdn.rawgit.com/buildkite/cloudformation-launch-stack-button-svg/master/launch-stack.svg)](https://us-west-1.console.aws.amazon.com/cloudformation/home?region=us-west-1#/stacks/quickcreate?templateURL=https://s3-external-1.amazonaws.com/cf-templates-x1ljyg3aygh-us-east-1/2021157Dqr-SSOPLaunchJuneo3g1bsca3hh&stackName=retool) 
+EU (Ireland) |	eu-west-1 | [![Launch Stack](https://cdn.rawgit.com/buildkite/cloudformation-launch-stack-button-svg/master/launch-stack.svg)](https://eu-west-1.console.aws.amazon.com/cloudformation/home?region=eu-west-1#/stacks/quickcreate?templateURL=https://s3-external-1.amazonaws.com/cf-templates-x1ljyg3aygh-us-east-1/2021157Dqr-SSOPLaunchJuneo3g1bsca3hh&stackName=retool) 
+Asia Pacific (Mumbai) |	ap-south-1 | [![Launch Stack](https://cdn.rawgit.com/buildkite/cloudformation-launch-stack-button-svg/master/launch-stack.svg)](https://ap-south-1.console.aws.amazon.com/cloudformation/home?region=ap-south-1#/stacks/quickcreate?templateURL=https://s3-external-1.amazonaws.com/cf-templates-x1ljyg3aygh-us-east-1/2021157Dqr-SSOPLaunchJuneo3g1bsca3hh&stackName=retool)
+US East (Ohio) | us-east-2 | [![Launch Stack](https://cdn.rawgit.com/buildkite/cloudformation-launch-stack-button-svg/master/launch-stack.svg)](https://us-east-2.console.aws.amazon.com/cloudformation/home?region=us-east-2#/stacks/quickcreate?templateURL=https://s3-external-1.amazonaws.com/cf-templates-x1ljyg3aygh-us-east-1/2021157Dqr-SSOPLaunchJuneo3g1bsca3hh&stackName=retool) 
+US West (Oregon) |	us-west-2 | [![Launch Stack](https://cdn.rawgit.com/buildkite/cloudformation-launch-stack-button-svg/master/launch-stack.svg)](https://us-west-2.console.aws.amazon.com/cloudformation/home?region=us-west-2#/stacks/quickcreate?templateURL=https://s3-external-1.amazonaws.com/cf-templates-x1ljyg3aygh-us-east-1/2021157Dqr-SSOPLaunchJuneo3g1bsca3hh&stackName=retool) 
+EU (Frankfurt) |	eu-central-1 | [![Launch Stack](https://cdn.rawgit.com/buildkite/cloudformation-launch-stack-button-svg/master/launch-stack.svg)](https://eu-central-1.console.aws.amazon.com/cloudformation/home?region=eu-central-1#/stacks/quickcreate?templateURL=https://s3-external-1.amazonaws.com/cf-templates-x1ljyg3aygh-us-east-1/2021157Dqr-SSOPLaunchJuneo3g1bsca3hh&stackName=retool) 
+
 ### One-click Deployment to Render
 
 Just use the Deploy to Render button below! Here are [some docs](https://render.com/docs/deploy-retool) on deploying Retool with Render.
