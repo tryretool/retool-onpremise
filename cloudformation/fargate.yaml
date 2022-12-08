@@ -93,7 +93,7 @@ Resources:
           - Name: NODE_ENV
             Value: production
           - Name: SERVICE_TYPE
-            Value: MAIN_BACKEND,DB_CONNECTOR
+            Value: MAIN_BACKEND,DB_CONNECTOR,DB_SSH_CONNECTOR
           - Name: "FORCE_DEPLOYMENT"
             Value: !Ref "Force"
           - Name: POSTGRES_DB
