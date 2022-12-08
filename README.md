@@ -192,7 +192,6 @@ You can manually deploy to Heroku using the following steps:
 1. Add a database: `heroku addons:create heroku-postgresql:mini`
 1. In the `Settings` page of your Heroku app, add the following environment variables:
    1. `NODE_ENV` - set to `production`
-   1. `HEROKU_HOSTED` set to `true`
    1. `JWT_SECRET` - set to a long secure random string used to sign JSON Web Tokens
    1. `ENCRYPTION_KEY` - a long secure random string used to encrypt database credentials
    1. `USE_GCM_ENCRYPTION` set to `true` for authenticated encryption of secrets; if true, `ENCRYPTION_KEY` must be 24 bytes
