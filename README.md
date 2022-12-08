@@ -197,7 +197,7 @@ You can manually deploy to Heroku using the following steps:
    1. `USE_GCM_ENCRYPTION` set to `true` for authenticated encryption of secrets; if true, `ENCRYPTION_KEY` must be 24 bytes
    1. `LICENSE_KEY` - your Retool license key
    1. `PGSSLMODE` - set to `require`
-1. _Optional_: To lockdown the version of Retool used, just edit the first line
+1. _Optional_: To select the version of Retool used, just edit the first line
    under `./heroku/Dockerfile` to:
    ```docker
    FROM tryretool/backend:X.Y.Z
