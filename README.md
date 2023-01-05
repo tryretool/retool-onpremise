@@ -11,6 +11,7 @@
 
 - [Select a Retool version number](#select-a-retool-version-number)
 - [One-Click Deploy](#one-click-deploy)
+  - [AWS](#one-click-deployment-to-aws)
   - [Render](#one-click-deployment-to-render)
 - [Single deployments](#single-deployments)
   - [General Machine Specifications](#general-machine-specifications)
@@ -43,7 +44,7 @@ To help you select a version, see our guide on [Retool Release Versions](https:/
 
 ## One-Click Deploy
 
-### One-click Deployment to AWS (CloudFormation + EC2)
+### One-click Deployment to AWS
 
 Region name | Region code | Launch
 --- | --- | ---
