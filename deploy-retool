@@ -207,7 +207,9 @@ log_step 'updating Retool!'
 $MAYBE_SUDO docker-compose pull
 
 log_step "running Retool! ${WHITE}${BOLD}This can take up to 5 minutes${NORMAL}"
+
 $MAYBE_SUDO docker-compose up -d
+
 echo ""
 echo " -- ${GREEN}${BOLD}!! RETOOL IS BOOTING !!${NORMAL} --"
 
