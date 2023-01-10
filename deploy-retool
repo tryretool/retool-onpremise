@@ -66,7 +66,7 @@ command_present() {
 
 retool_containers_present() {
   # NB: awk is to remove whitespace from `wc`
-  RETOOL_IMAGES="$($MAYBE_SUDO docker image ls | grep 'retool-onpremise' | wc -l | awk '{print $1}')"
+  RETOOL_IMAGES="$($MAYBE_SUDO docker image ls | grep 'retool.*onpremise' | wc -l | awk '{print $1}')"
   test "$RETOOL_IMAGES" -gt '0'
 }
 
@@ -207,9 +207,7 @@ log_step 'updating Retool!'
 $MAYBE_SUDO docker-compose pull
 
 log_step "running Retool! ${WHITE}${BOLD}This can take up to 5 minutes${NORMAL}"
-
 $MAYBE_SUDO docker-compose up -d
-
 echo ""
 echo " -- ${GREEN}${BOLD}!! RETOOL IS BOOTING !!${NORMAL} --"
 
@@ -219,8 +217,8 @@ echo " -- ${GREEN}${BOLD}!! RETOOL IS BOOTING !!${NORMAL} --"
 WAITED=0
 API_CONTAINER_ID=""
 api_container_up() {
-  API_DOCKER_CONTAINER="$($MAYBE_SUDO docker ps | grep 'retool-onpremise[-_]api')"
-  test -n "$API_DOCKER_CONTAINER"
+  API_DOCKER_CONTAINER_UP=$($MAYBE_SUDO docker-compose ps --filter "status=running" | grep 'retool.*api'| wc -l | awk '{print $1}')
+  test "$API_DOCKER_CONTAINER_UP" -gt '0'
 }
 
 api_running() {
@@ -257,7 +255,8 @@ if ! api_container_up; then
   echo "ERROR: Failed starting the Retool api container"
   exit 1
 else
-  API_CONTAINER_ID=$($MAYBE_SUDO docker ps -a | grep -i retool-onpremise[-_]api | awk '{print $1}')
+  API_CONTAINER_ID=$( $MAYBE_SUDO docker inspect --format="{{.Id}}" $(docker-compose ps | grep 'api' | cut -d ' ' -f 1)
+)
 fi
 
 WAITED=0
@@ -271,7 +270,6 @@ while [ $WAITED -lt 40 ] && ! api_running; do
     sleep 3
 done
 
-echo
 if ! api_running; then
   echo "There was an issue starting the Retool container"
   echo "You can view the logs by running: docker logs $API_CONTAINER_ID')"
