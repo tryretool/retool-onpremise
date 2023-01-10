@@ -1,0 +1,209 @@
+version: '2'
+services:
+  api:
+    build:
+      context: ./
+      dockerfile: Dockerfile
+    env_file: ./docker.env
+    environment:
+      - SERVICE_TYPE=MAIN_BACKEND
+      - DB_CONNECTOR_HOST=http://db-connector
+      - DB_CONNECTOR_PORT=3002
+      - DB_SSH_CONNECTOR_HOST=http://db-ssh-connector
+      - DB_SSH_CONNECTOR_PORT=3002
+      - WORKFLOW_TEMPORAL_CLUSTER_FRONTEND_HOST=temporal
+      - WORKFLOW_TEMPORAL_CLUSTER_FRONTEND_PORT=7233
+      - WORKFLOW_BACKEND_HOST=http://api:3000
+    networks:
+      - frontend-network
+      - backend-network
+      - db-connector-network
+      - db-ssh-connector-network
+      - workflows-network
+    depends_on:
+      - postgres
+      - db-connector
+      - db-ssh-connector
+      - jobs-runner
+      - workflows-worker
+    command: bash -c "./docker_scripts/wait-for-it.sh postgres:5432; ./docker_scripts/start_api.sh"
+    links:
+      - postgres
+    ports:
+      - '3000:3000'
+    restart: on-failure
+    volumes:
+      - ./keys:/root/.ssh
+      - ssh:/retool_backend/autogen_ssh_keys
+      - ./retool:/usr/local/retool-git-repo
+      - ${BOOTSTRAP_SOURCE:-./retool}:/usr/local/retool-repo
+  test-runner:
+    build:
+      context: testing
+    networks:
+      - frontend-network
+    depends_on:
+      - api
+    profiles:
+      - testing
+    volumes:
+      - ./retool:/usr/local/retool-git-repo
+      - ${BOOTSTRAP_SOURCE:-./retool}:/usr/local/retool-repo
+    ipc: host
+
+  jobs-runner:
+    build:
+      context: ./
+      dockerfile: Dockerfile
+    env_file: ./docker.env
+    environment:
+      - SERVICE_TYPE=JOBS_RUNNER
+    networks:
+      - backend-network
+    depends_on:
+      - postgres
+    command: bash -c "chmod -R +x ./docker_scripts; sync; ./docker_scripts/wait-for-it.sh postgres:5432; ./docker_scripts/start_api.sh"
+    links:
+      - postgres
+    volumes:
+      - ./keys:/root/.ssh
+      
+  db-connector:
+    build:
+      context: ./
+      dockerfile: Dockerfile
+    command: bash -c "./retool_backend"
+    env_file: ./docker.env
+    environment:
+      - SERVICE_TYPE=DB_CONNECTOR_SERVICE
+    networks:
+      - db-connector-network
+    restart: on-failure
+
+  db-ssh-connector:
+    build:
+      context: ./
+      dockerfile: Dockerfile
+    command: bash -c "./docker_scripts/generate_key_pair.sh; ./retool_backend"
+    env_file: ./docker.env
+    environment:
+      - SERVICE_TYPE=DB_SSH_CONNECTOR_SERVICE
+    networks:
+      - db-ssh-connector-network
+    volumes:
+      - ssh:/retool_backend/autogen_ssh_keys
+      - ./keys:/retool_backend/keys
+    restart: on-failure
+  
+  workflows-worker:
+    build:
+      context: ./
+      dockerfile: Dockerfile
+    command: bash -c "./retool_backend"
+    env_file: ./docker.env
+    depends_on:
+      - temporal
+    environment:
+      - SERVICE_TYPE=WORKFLOW_TEMPORAL_WORKER
+      - NODE_OPTIONS=--max_old_space_size=1024
+      - DISABLE_DATABASE_MIGRATIONS=true
+      - WORKFLOW_TEMPORAL_CLUSTER_FRONTEND_HOST=temporal
+      - WORKFLOW_TEMPORAL_CLUSTER_FRONTEND_PORT=7233
+      - WORKFLOW_BACKEND_HOST=http://api:3000
+    networks:
+      - backend-network
+      - db-connector-network
+      - workflows-network
+    restart: on-failure
+
+  # Retool's storage database. See these docs to migrate to an externally hosted database: https://docs.retool.com/docs/configuring-retools-storage-database
+  postgres:
+    image: 'postgres:11.13'
+    env_file: docker.env
+    networks:
+      - backend-network
+      - db-connector-network
+    volumes:
+      - data:/var/lib/postgresql/data
+
+  # Postgres for storing application data
+  user-postgres:
+    image: 'postgres:11.13'
+    env_file: ./user_data/user_data.env
+    networks:
+      - frontend-network
+      - backend-network
+      - db-connector-network
+    volumes:
+      - user-data:/var/lib/postgresql/data
+
+  # Not required, but leave this container to use nginx for handling the frontend & SSL certification
+  https-portal:
+    image: tryretool/https-portal:latest
+    ports:
+      - '80:80'
+      - '443:443'
+    links:
+      - api
+    restart: always
+    env_file: ./docker.env
+    environment:
+      STAGE: 'local' # <- Change 'local' to 'production' to use a LetsEncrypt signed SSL cert
+      CLIENT_MAX_BODY_SIZE: 40M
+      KEEPALIVE_TIMEOUT: 605
+      PROXY_CONNECT_TIMEOUT: 600
+      PROXY_SEND_TIMEOUT: 600
+      PROXY_READ_TIMEOUT: 600
+    networks:
+      - frontend-network
+
+  temporal:
+    container_name: temporal
+    env_file: ./docker.env
+    environment:
+      - DB=postgresql
+      - DYNAMIC_CONFIG_FILE_PATH=config/dynamicconfig/development-sql.yaml
+    image: tryretool/one-offs:retool-temporal-1.1.0
+    networks:
+      - temporal-network
+      - workflows-network
+    ports:
+      - '127.0.0.1:7233:7233'
+    volumes:
+      - ./dynamicconfig:/etc/temporal/config/dynamicconfig
+  temporal-admin-tools:
+    container_name: temporal-admin-tools
+    depends_on:
+      - temporal
+    environment:
+      - TEMPORAL_CLI_ADDRESS=temporal:7233
+    image: temporalio/admin-tools:1.18.5
+    networks:
+      - temporal-network
+    stdin_open: true
+    tty: true
+  temporal-ui:
+    container_name: temporal-ui
+    depends_on:
+      - temporal
+    environment:
+      - TEMPORAL_ADDRESS=temporal:7233
+      - TEMPORAL_CORS_ORIGINS=http://localhost:3000
+    image: temporalio/ui:2.9.1
+    networks:
+      - temporal-network
+    ports:
+      - '8080:8080'
+
+networks:
+  frontend-network:
+  backend-network:
+  workflows-network:
+  db-connector-network:
+  db-ssh-connector-network:
+  temporal-network:
+
+volumes:
+  ssh:
+  data:
+  user-data:
