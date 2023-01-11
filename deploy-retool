@@ -233,7 +233,7 @@ if ! api_container_up; then
   echo "ERROR: Failed starting the Retool api container"
   exit 1
 else
-  API_CONTAINER_ID=$( $MAYBE_SUDO docker inspect --format="{{.Id}}" $(docker compose ps | grep 'retool.*api' | cut -d ' ' -f 1)
+  API_CONTAINER_ID=$( $MAYBE_SUDO docker inspect --format="{{.Id}}" $($MAYBE_SUDO docker compose ps | grep 'retool.*api' | cut -d ' ' -f 1)
 )
 fi
 
