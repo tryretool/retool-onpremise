@@ -114,6 +114,7 @@ if [ ! -d "$DOCKER_CONTEXT" ]; then
 
   # NB: this is to make onprem containers to all get named the same.
   cd retool-onpremise
+  git switch fix-ssop-start-up
   if ! command_present unzip; then
     git checkout ssop # TODO(hirday): delete this.
   fi
