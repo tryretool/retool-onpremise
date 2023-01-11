@@ -82,7 +82,7 @@ DOCKER_CONTEXT="$INSTALL_DIRECTORY/retool-onpremise"
 
 cd "$HOME"
 
-if [ ! -d "$DOCKER_CONTEXT" ]; then
+if [ ! -d "$DOCKER_CO$NTEXT" ]; then
   if [ -d "$INSTALL_DIRECTORY" ]; then
     log_step 'found a partial install, cleaning it up...'
     rm -rf "$INSTALL_DIRECTORY"
@@ -124,67 +124,68 @@ if [ ! -d "$DOCKER_CONTEXT" ]; then
   read -p "Enter your license key: " licenseKey
   echo "LICENSE_KEY=$licenseKey" >> docker.env
 
-  if ! command_present docker; then
-    # shellcheck disable=2016
-    log_warn '`docker` not found! Attempting to install. This may take a few minutes.'
-    ./get-docker.sh
-
-    if ! command_present docker; then
-      if [[ "$OSTYPE" == "darwin"* ]]; then
-        error_exit "please install \`docker\` manually" \
-          "Instructions can be found at ${WHITE}${BOLD}https://docs.docker.com/${NORMAL}" \
-          "${BOLD}Remember${NORMAL} to start the \`Docker\` app from the UI."
-      else
-        error_exit "please install \`docker\` manually" \
-          "Instructions can be found at ${WHITE}${BOLD}https://docs.docker.com/${NORMAL}" \
-          "${BOLD}Remember${NORMAL} to start the \`docker\` daemon/service."
-      fi
-    fi
-  else
-    # shellcheck disable=2016
-    log_step '`docker` found!'
-  fi
-
-  if ! command_present docker-compose; then
-    # shellcheck disable=2016
-    log_warn '`docker-compose` not found! Attempting to install'
-    ./get-docker-compose.sh
-
-    if ! command_present docker-compose; then
-      if [[ "$OSTYPE" == "darwin"* ]]; then
-        error_exit "please install \`docker-compose\` manually" \
-          "Usually, \`docker\` and \`docker-compose\` are bundled together, consider uninstalling your existing docker implementation" \
-          "Instructions can be found at ${WHITE}${BOLD}https://docs.docker.com/${NORMAL}" \
-          "${BOLD}Remember${NORMAL} to start the \`Docker\` app and wait for it to be ${GREEN}${BOLD}READY${NORMAL}."
-      else
-        error_exit "please install \`docker-compose\` manually" \
-          "Usually, \`docker\` and \`docker-compose\` are bundled together, consider uninstalling your existing docker implementation" \
-          "Instructions can be found at ${WHITE}${BOLD}https://docs.docker.com/${NORMAL}" \
-          "${BOLD}Remember${NORMAL} to start the \`docker\` daemon/service and wait for it to be ${GREEN}${BOLD}READY${NORMAL}."
-      fi
-    fi
-  else
-    # shellcheck disable=2016
-    log_step '`docker-compose` found!'
-  fi
-
-  if [[ $DISTRO == *"CentOS"* ]]; then
-    echo 'Starting docker service and making compose accessible by root user'
-    if [ ! -f /usr/bin/docker-compose ]; then
-      sudo ln -s /usr/local/bin/docker-compose  /usr/bin/docker-compose
-    fi
-    sudo systemctl enable docker.service
-    sudo systemctl start docker.service
-  fi
-
-  if retool_containers_present; then
-    log_step 'noticed you have tried Retool before, cleaning up...'
-    $MAYBE_SUDO docker-compose rm -fsv
-  fi
 else
   cd "$DOCKER_CONTEXT" || error_exit "Couldn't \`cd\` into '$DOCKER_CONTEXT'" \
     "if you are having repeat issues, you can \`rm -rf $INSTALL_DIRECTORY\`" \
     "if you're still having issues, you can stop all docker containers using the \`docker\` command"
+fi
+
+if ! command_present docker; then
+  # shellcheck disable=2016
+  log_warn '`docker` not found! Attempting to install. This may take a few minutes.'
+  ./get-docker.sh
+
+  if ! command_present docker; then
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+      error_exit "please install \`docker\` manually" \
+        "Instructions can be found at ${WHITE}${BOLD}https://docs.docker.com/${NORMAL}" \
+        "${BOLD}Remember${NORMAL} to start the \`Docker\` app from the UI."
+    else
+      error_exit "please install \`docker\` manually" \
+        "Instructions can be found at ${WHITE}${BOLD}https://docs.docker.com/${NORMAL}" \
+        "${BOLD}Remember${NORMAL} to start the \`docker\` daemon/service."
+    fi
+  fi
+else
+  # shellcheck disable=2016
+  log_step '`docker` found!'
+fi
+
+if ! command_present docker-compose; then
+  # shellcheck disable=2016
+  log_warn '`docker-compose` not found! Attempting to install'
+  ./get-docker-compose.sh
+
+  if ! command_present docker-compose; then
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+      error_exit "please install \`docker-compose\` manually" \
+        "Usually, \`docker\` and \`docker-compose\` are bundled together, consider uninstalling your existing docker implementation" \
+        "Instructions can be found at ${WHITE}${BOLD}https://docs.docker.com/${NORMAL}" \
+        "${BOLD}Remember${NORMAL} to start the \`Docker\` app and wait for it to be ${GREEN}${BOLD}READY${NORMAL}."
+    else
+      error_exit "please install \`docker-compose\` manually" \
+        "Usually, \`docker\` and \`docker-compose\` are bundled together, consider uninstalling your existing docker implementation" \
+        "Instructions can be found at ${WHITE}${BOLD}https://docs.docker.com/${NORMAL}" \
+        "${BOLD}Remember${NORMAL} to start the \`docker\` daemon/service and wait for it to be ${GREEN}${BOLD}READY${NORMAL}."
+    fi
+  fi
+else
+  # shellcheck disable=2016
+  log_step '`docker-compose` found!'
+fi
+
+if [[ $DISTRO == *"CentOS"* ]]; then
+  echo 'Starting docker service and making compose accessible by root user'
+  if [ ! -f /usr/bin/docker-compose ]; then
+    sudo ln -s /usr/local/bin/docker-compose  /usr/bin/docker-compose
+  fi
+  sudo systemctl enable docker.service
+  sudo systemctl start docker.service
+fi
+
+if retool_containers_present; then
+  log_step 'noticed you have tried Retool before, cleaning up...'
+  $MAYBE_SUDO docker-compose rm -fsv
 fi
 
 if (! $MAYBE_SUDO docker stats --no-stream) && [ "$OSTYPE" == "linux-gnu" ] && [ "$DISTRO" != "*centos*" ]; then
