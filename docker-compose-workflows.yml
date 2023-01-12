@@ -76,6 +76,8 @@ services:
     env_file: ./docker.env
     environment:
       - SERVICE_TYPE=DB_CONNECTOR_SERVICE
+      - DBCONNECTOR_POSTGRES_POOL_MAX_SIZE=100
+      - DBCONNECTOR_QUERY_TIMEOUT_MS=120000
     networks:
       - db-connector-network
     restart: on-failure
@@ -88,6 +90,8 @@ services:
     env_file: ./docker.env
     environment:
       - SERVICE_TYPE=DB_SSH_CONNECTOR_SERVICE
+      - DBCONNECTOR_POSTGRES_POOL_MAX_SIZE=100
+      - DBCONNECTOR_QUERY_TIMEOUT_MS=120000
     networks:
       - db-ssh-connector-network
     volumes:
