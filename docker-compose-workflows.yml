@@ -127,6 +127,7 @@ services:
     networks:
       - backend-network
       - db-connector-network
+      - temporal-network
     volumes:
       - data:/var/lib/postgresql/data
 
