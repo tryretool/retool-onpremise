@@ -76,6 +76,11 @@ Just use the Deploy to Render button below! Here are [some docs](https://render.
   - `22` (SSH): To allow you to SSH into your instance and configure it
   - `3000` (Retool): This is the default port Retool runs on
 
+#### With Workflows
+If your deployment contains [Retool Workflows](http://retool.com/products/workflows), you may need additional resourcing.
+
+We recommend bumping up the cluster memory to at least `12` GiB of memory and `4` vCPUs.
+
 ### AWS Deploy With EC2
 
 Spin up a new EC2 instance. If using AWS, use the following steps:
