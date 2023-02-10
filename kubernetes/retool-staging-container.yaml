@@ -85,7 +85,7 @@ spec:
             secretKeyRef:
               name: retoolstagingsecrets
               key: github_app_private_key
-        image: tryretool/backend:2.103.4
+        image: tryretool/backend:2.107.4
         name: retool-staging-api
         ports:
         - containerPort: 3000
