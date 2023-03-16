@@ -1,0 +1,3 @@
+INSERT into groups (id, name, "createdAt", "updatedAt", "organizationId", "universalAccess", "universalResourceAccess", "universalQueryLibraryAccess", "userListAccess", "auditLogAccess", "unpublishedReleaseAccess") values (1, 'admin', NOW(), NOW(), 1, 'own',  'write', 'write', TRUE, TRUE, TRUE);
+INSERT into groups (id, name, "createdAt", "updatedAt", "organizationId", "universalAccess", "universalResourceAccess", "universalQueryLibraryAccess", "userListAccess", "auditLogAccess", "unpublishedReleaseAccess") values (2, 'All Users', NOW(), NOW(), 1, 'write',  'write', 'write', TRUE, FALSE, FALSE);
+INSERT into user_groups ("userId", "groupId", "createdAt", "updatedAt", "isAdmin") VALUES (1, 1, NOW(), NOW(), TRUE), (1, 2, NOW(), NOW(), TRUE);
