@@ -114,6 +114,8 @@ Spin up a new EC2 instance. If using AWS, use the following steps:
 1. Navigate to your server's IP address in a web browser. Retool should now be running on port `3000`.
 1. Click Sign Up, since we're starting from a clean slate. The first user to create an account on an instance becomes the administrator.
 
+[View a diagram](/images/aws_ec2_deployment.png) of the Retool instance running in your VPC.
+
 ### GCP Deploy With Compute Engine Virtual Machine
 
 1. Click the Compute Engine Resource from the GCP Dashboard and select VM Instances
