@@ -58,11 +58,11 @@ echo "RETOOLDB_POSTGRES_PASSWORD=${retooldbPostgresPassword}" >> docker.env
 echo '' >> docker.env
 
 echo '## Set and generate retooldb postgres credentials' >> retooldb.env
+echo 'POSTGRES_HOST=retooldb-postgres' >> retooldb.env
 echo 'POSTGRES_DB=postgres' >> retooldb.env
 echo 'POSTGRES_USER=root' >> retooldb.env
-echo 'POSTGRES_HOST=retooldb-postgres' >> retooldb.env
-echo 'POSTGRES_PORT=5432' >> retooldb.env
 echo "POSTGRES_PASSWORD=${retooldbPostgresPassword}" >> retooldb.env
+echo 'POSTGRES_PORT=5432' >> retooldb.env
 echo '' >> retooldb.env
 
 echo "# Change '${hostname}' to retool.yourcompany.com to set up SSL properly" >> docker.env
