@@ -346,7 +346,7 @@ We provide Fargate template files supporting [public](/cloudformation/fargate.ya
 
 ## Additional Resources
 
-**For details on additional features like SAML SSO, gRPC, custom certs, and more, visit our [docs](https://docs.retool.com/docs).**
+**For details on additional features like SAML SSO, gRPC, custom certs, retooldb, and more, visit our [docs](https://docs.retool.com/docs).**
 
 ### Environment Variables
 
