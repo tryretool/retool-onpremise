@@ -1,0 +1,109 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: "retool-temporal-dynamic-config"
+  labels:
+    app.kubernetes.io/name: retool-temporal
+    app.kubernetes.io/instance: retool
+data:
+  dynamic_config.yaml: |-
+    limit.maxIDLength:
+      - value: 255
+        constraints: {}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: "retool-temporal-server-config"
+data:
+  config_template.yaml: |-
+    log:
+      stdout: true
+      level: "debug,info"
+
+    persistence:
+      defaultStore: default
+      visibilityStore: visibility
+      numHistoryShards: 128
+      datastores:
+        default:
+          sql:
+            pluginName: "postgres"
+            driverName: "postgres"
+            databaseName: "temporal"
+            connectAddr: "postgres:5432"
+            connectProtocol: "tcp"
+            user: postgres
+            password: "{{ .Env.TEMPORAL_STORE_PASSWORD }}"
+            maxConnLifetime: 1h
+            maxConns: 20
+        visibility:
+          sql:
+            pluginName: "postgres"
+            driverName: "postgres"
+            databaseName: "temporal_visibility"
+            connectAddr: "postgres:5432"
+            connectProtocol: "tcp"
+            user: "postgres"
+            password: "{{ .Env.TEMPORAL_VISIBILITY_STORE_PASSWORD }}"
+            maxConnLifetime: 1h
+            maxConns: 20
+
+    global:
+      membership:
+        name: temporal
+        maxJoinDuration: 30s
+        broadcastAddress: {{ default .Env.POD_IP "0.0.0.0" }}
+
+      pprof:
+        port: 7936
+
+    services:
+      frontend:
+        rpc:
+          grpcPort: 7233
+          membershipPort: 6933
+          bindOnIP: "0.0.0.0"
+
+      history:
+        rpc:
+          grpcPort: 7234
+          membershipPort: 6934
+          bindOnIP: "0.0.0.0"
+
+      matching:
+        rpc:
+          grpcPort: 7235
+          membershipPort: 6935
+          bindOnIP: "0.0.0.0"
+
+      worker:
+        rpc:
+          grpcPort: 7239
+          membershipPort: 6939
+          bindOnIP: "0.0.0.0"
+    clusterMetadata:
+      enableGlobalDomain: false
+      failoverVersionIncrement: 10
+      masterClusterName: "active"
+      currentClusterName: "active"
+      clusterInformation:
+        active:
+          enabled: true
+          initialFailoverVersion: 1
+          rpcName: "temporal-frontend"
+          rpcAddress: "127.0.0.1:7933"
+
+    dcRedirectionPolicy:
+      policy: "noop"
+      toDC: ""
+
+    archival:
+      status: "disabled"
+
+    publicClient:
+      hostPort: "retool-temporal-frontend:7233"
+
+    dynamicConfigClient:
+      filepath: "/etc/temporal/dynamic_config/dynamic_config.yaml"
+      pollInterval: "10s"
