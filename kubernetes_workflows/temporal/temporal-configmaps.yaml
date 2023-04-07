@@ -33,7 +33,7 @@ data:
             databaseName: "temporal"
             connectAddr: "postgres:5432"
             connectProtocol: "tcp"
-            user: postgres
+            user: "postgres"
             password: "{{ .Env.TEMPORAL_STORE_PASSWORD }}"
             maxConnLifetime: 1h
             maxConns: 20
