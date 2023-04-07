@@ -1,0 +1,94 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    retoolService: workflow-worker
+  name: workflow-worker
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      retoolService: workflow-worker
+  revisionHistoryLimit: 3
+  template:
+    metadata:
+      labels:
+        retoolService: workflow-worker
+    spec:
+      containers:
+      - args:
+        - bash
+        - -c
+        - ./docker_scripts/wait-for-it.sh -t 0 $POSTGRES_HOST:$POSTGRES_PORT;
+          ./docker_scripts/start_api.sh
+        env:
+        - name: JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: retoolsecrets
+              key: jwt_secret
+        - name: SERVICE_TYPE
+          value: WORKFLOW_TEMPORAL_WORKER
+        - name: NODE_ENV
+          value: production
+        - name: POSTGRES_DB
+          value: hammerhead_production
+        - name: POSTGRES_HOST
+          value: postgres
+        - name: POSTGRES_PORT
+          value: "5432"
+        - name: POSTGRES_USER
+          value: retool_internal_user
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: retoolsecrets
+              key: postgres_password
+        - name: ENCRYPTION_KEY
+          valueFrom:
+            secretKeyRef:
+              name: retoolsecrets
+              key: encryption_key
+        - name: LICENSE_KEY
+          valueFrom:
+            secretKeyRef:
+              name: retoolsecrets
+              key: license_key
+        - name: CLIENT_ID
+          valueFrom:
+            secretKeyRef:
+              name: retoolsecrets
+              key: google_client_id
+        - name: CLIENT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: retoolsecrets
+              key: google_client_secret
+        - name: NODE_OPTIONS
+          value: --max_old_space_size=1024
+        - name: DISABLE_DATABASE_MIGRATIONS
+          value: "true"
+        - name: WORKFLOW_TEMPORAL_CLUSTER_FRONTEND_HOST
+          value: "retool-temporal-frontend"
+        - name: WORKFLOW_TEMPORAL_CLUSTER_FRONTEND_PORT
+          value: "7233"
+        - name: WORKFLOW_TEMPORAL_CLUSTER_NAMESPACE
+          value: "workflows"
+        - name: WORKFLOW_BACKEND_HOST
+          value: http://workflows-api
+        image: tryretool/backend:X.Y.Z
+        name: workflow-worker
+        ports:
+        - containerPort: 3005
+          name: retool
+          protocol: TCP
+        - containerPort: 9090
+          name: metrics
+          protocol: TCP
+        resources:
+          limits:
+            cpu: 4096m
+            memory: 8192Mi
+          requests:
+            cpu: 2048m
+            memory: 4096Mi
