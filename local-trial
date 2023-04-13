@@ -209,7 +209,7 @@ echo ""
 echo " -- ${GREEN}${BOLD}!! RETOOL IS BOOTING !!${NORMAL} --"
 
 
-# NB: the API doesn't start up the first time, this is why the below is complex
+# NB: the API does not start up the first time, this is why the below is complex
 
 WAITED=0
 

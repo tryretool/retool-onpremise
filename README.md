@@ -11,7 +11,7 @@
 
 - [Select a Retool version number](#select-a-retool-version-number)
 - [One-Click Deploy](#one-click-deploy)
-  - [AWS w/ Opta](#one-click-deployment-to-aws-using-opta)
+  - [AWS](#one-click-deployment-to-aws)
   - [Render](#one-click-deployment-to-render)
 - [Single deployments](#single-deployments)
   - [General Machine Specifications](#general-machine-specifications)
@@ -40,15 +40,21 @@
 
 We recommend you set your Retool deployment to a specific version of Retool (that is, a specific semver version number in the format `X.Y.Z`, instead of a tag name). This will help prevent unexpected behavior in your Retool instances. When you are ready to upgrade Retool, you can bump the version number to the specific new version you want.
 
-To help you select a version, see our guide on [Retool Release Versions](https://docs.retool.com/docs/updating-retool-on-premise#retool-release-versions).
+To help you select a version, see our guide on [Retool Release Versions](https://docs.retool.com/docs/self-hosted-release-notes).
 
 ## One-Click Deploy
 
-### One-click Deployment to AWS using Opta
+### One-click Deployment to AWS
 
-Just use the Deploy to AWS button below!
-
-[![Deploy](https://raw.githubusercontent.com/run-x/opta/main/assets/deploy-to-aws-button.svg)](https://app.runx.dev/deploy-with-aws?url=https%3A%2F%2Fgithub.com%2Ftryretool%2Fretool-onpremise%2Fblob%2Fmaster%2Fopta%2Fopta.yaml&name=Retool)
+Region name | Region code | Launch
+--- | --- | ---
+US East (N. Virginia) | us-east-1 | [![Launch Stack](https://cdn.rawgit.com/buildkite/cloudformation-launch-stack-button-svg/master/launch-stack.svg)](https://us-east-1.console.aws.amazon.com/cloudformation/home?region=us-east-1#/stacks/quickcreate?templateURL=https://s3-external-1.amazonaws.com/cf-templates-x1ljyg3aygh-us-east-1/2021157Dqr-SSOPLaunchJuneo3g1bsca3hh&stackName=retool) 
+US West (N. California) |	us-west-1 | [![Launch Stack](https://cdn.rawgit.com/buildkite/cloudformation-launch-stack-button-svg/master/launch-stack.svg)](https://us-west-1.console.aws.amazon.com/cloudformation/home?region=us-west-1#/stacks/quickcreate?templateURL=https://s3-external-1.amazonaws.com/cf-templates-x1ljyg3aygh-us-east-1/2021157Dqr-SSOPLaunchJuneo3g1bsca3hh&stackName=retool) 
+EU (Ireland) |	eu-west-1 | [![Launch Stack](https://cdn.rawgit.com/buildkite/cloudformation-launch-stack-button-svg/master/launch-stack.svg)](https://eu-west-1.console.aws.amazon.com/cloudformation/home?region=eu-west-1#/stacks/quickcreate?templateURL=https://s3-external-1.amazonaws.com/cf-templates-x1ljyg3aygh-us-east-1/2021157Dqr-SSOPLaunchJuneo3g1bsca3hh&stackName=retool) 
+Asia Pacific (Mumbai) |	ap-south-1 | [![Launch Stack](https://cdn.rawgit.com/buildkite/cloudformation-launch-stack-button-svg/master/launch-stack.svg)](https://ap-south-1.console.aws.amazon.com/cloudformation/home?region=ap-south-1#/stacks/quickcreate?templateURL=https://s3-external-1.amazonaws.com/cf-templates-x1ljyg3aygh-us-east-1/2021157Dqr-SSOPLaunchJuneo3g1bsca3hh&stackName=retool)
+US East (Ohio) | us-east-2 | [![Launch Stack](https://cdn.rawgit.com/buildkite/cloudformation-launch-stack-button-svg/master/launch-stack.svg)](https://us-east-2.console.aws.amazon.com/cloudformation/home?region=us-east-2#/stacks/quickcreate?templateURL=https://s3-external-1.amazonaws.com/cf-templates-x1ljyg3aygh-us-east-1/2021157Dqr-SSOPLaunchJuneo3g1bsca3hh&stackName=retool) 
+US West (Oregon) |	us-west-2 | [![Launch Stack](https://cdn.rawgit.com/buildkite/cloudformation-launch-stack-button-svg/master/launch-stack.svg)](https://us-west-2.console.aws.amazon.com/cloudformation/home?region=us-west-2#/stacks/quickcreate?templateURL=https://s3-external-1.amazonaws.com/cf-templates-x1ljyg3aygh-us-east-1/2021157Dqr-SSOPLaunchJuneo3g1bsca3hh&stackName=retool) 
+EU (Frankfurt) |	eu-central-1 | [![Launch Stack](https://cdn.rawgit.com/buildkite/cloudformation-launch-stack-button-svg/master/launch-stack.svg)](https://eu-central-1.console.aws.amazon.com/cloudformation/home?region=eu-central-1#/stacks/quickcreate?templateURL=https://s3-external-1.amazonaws.com/cf-templates-x1ljyg3aygh-us-east-1/2021157Dqr-SSOPLaunchJuneo3g1bsca3hh&stackName=retool) 
 
 ### One-click Deployment to Render
 
@@ -70,13 +76,18 @@ Just use the Deploy to Render button below! Here are [some docs](https://render.
   - `22` (SSH): To allow you to SSH into your instance and configure it
   - `3000` (Retool): This is the default port Retool runs on
 
+#### With Workflows
+If your deployment contains [Retool Workflows](http://retool.com/products/workflows), you may need additional resourcing.
+
+We recommend bumping up the cluster memory to at least `12` GiB of memory and `4` vCPUs.
+
 ### AWS Deploy With EC2
 
 Spin up a new EC2 instance. If using AWS, use the following steps:
 
 1. Click **Launch Instance** from the EC2 dashboard.
 1. Click **Select** for an instance of Ubuntu `16.04` or higher.
-1. Select an instance type of at least `t3.medium` and click **Next**.
+1. Select an instance type of at least `t3.large` and click **Next**.
 1. Ensure you select the VPC that also includes the databases / API’s you will want to connect to and click **Next**.
 1. Increase the storage size to `60` GB or higher and click **Next**.
 1. Optionally add some Tags (e.g. `app = retool`) and click **Next**. This makes it easier to find if you have a lot of instances.
@@ -102,6 +113,8 @@ Spin up a new EC2 instance. If using AWS, use the following steps:
 1. Run `sudo docker-compose ps` to make sure all the containers are up and running.
 1. Navigate to your server's IP address in a web browser. Retool should now be running on port `3000`.
 1. Click Sign Up, since we're starting from a clean slate. The first user to create an account on an instance becomes the administrator.
+
+![A diagram of the Retool instance running in your VPC](https://d3399nw8s4ngfo.cloudfront.net/docs/7aff03f8-88d6-4e4b-9dbf-631850d64dc0.png)
 
 ### GCP Deploy With Compute Engine Virtual Machine
 
@@ -333,7 +346,7 @@ We provide Fargate template files supporting [public](/cloudformation/fargate.ya
 
 ## Additional Resources
 
-**For details on additional features like SAML SSO, gRPC, custom certs, and more, visit our [docs](https://docs.retool.com/docs).**
+**For details on additional features like SAML SSO, gRPC, custom certs, retooldb, and more, visit our [docs](https://docs.retool.com/docs).**
 
 ### Environment Variables
 

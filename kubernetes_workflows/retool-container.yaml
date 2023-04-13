@@ -1,4 +1,4 @@
-apiVersion: apps/v1
+apiVersion: apps/v1 
 kind: Deployment
 metadata:
   labels:
@@ -21,13 +21,6 @@ spec:
         - ./docker_scripts/wait-for-it.sh -t 0 $POSTGRES_HOST:$POSTGRES_PORT;
           ./docker_scripts/start_api.sh
         env:
-        - name: BASE_DOMAIN
-          value: "https://retool.treasurefinancial.com"
-        - name: RESTRICTED_DOMAIN
-          # matches the Google business account not the company URI
-          value: "treasure.tech"
-        - name: COOKIE_INSECURE
-          value: "false"
         - name: JWT_SECRET
           valueFrom:
             secretKeyRef:
@@ -38,13 +31,13 @@ spec:
         - name: NODE_ENV
           value: production
         - name: POSTGRES_DB
-          value: "retool_prod"
+          value: hammerhead_production
         - name: POSTGRES_HOST
-          value: 127.0.0.1 # loopback because of cloud-sql-proxy
+          value: postgres
         - name: POSTGRES_PORT
           value: "5432"
         - name: POSTGRES_USER
-          value: "retool-prod"
+          value: retool_internal_user
         - name: POSTGRES_PASSWORD
           valueFrom:
             secretKeyRef:
@@ -70,46 +63,24 @@ spec:
             secretKeyRef:
               name: retoolsecrets
               key: google_client_secret
-        - name: GITHUB_APP_ID
-          value: "154266"
-        - name: GITHUB_APP_INSTALLATION_ID
-          value: "20910151"
-        - name: GITHUB_APP_PRIVATE_KEY
-          valueFrom:
-            secretKeyRef:
-              name: retoolsecrets
-              key: github_app_private_key
-        - name: LOG_LEVEL  # debugging
-          value: "verbose"
-        image: tryretool/backend:2.113.8
-        name: retool-api
+        - name: WORKFLOW_TEMPORAL_CLUSTER_FRONTEND_HOST
+          value: "retool-temporal-frontend"
+        - name: WORKFLOW_TEMPORAL_CLUSTER_FRONTEND_PORT
+          value: "7233"
+        - name: WORKFLOW_TEMPORAL_CLUSTER_NAMESPACE
+          value: "workflows"
+        - name: WORKFLOW_BACKEND_HOST
+          value: http://workflows-api
+        image: tryretool/backend:X.Y.Z
+        name: api
         ports:
         - containerPort: 3000
         resources:
           limits:
-            memory: "2Gi"
-            cpu: "1"
+            memory: 2048M
           requests:
             cpu: "1"
-            memory: "1Gi"
-      - name: cloud-sql-proxy
-        image: gcr.io/cloudsql-docker/gce-proxy:1.30.0
-        imagePullPolicy: IfNotPresent
-        command: ["/cloud_sql_proxy",
-          "-instances=treasure-production:us-west1:treasure-production=tcp:5432" ]
-        securityContext:
-            runAsNonRoot: true
-            runAsUser: 65532
-        resources:
-          limits:
-            memory: "1Gi"
-            cpu: "500m"
-          requests:
-            memory: "512Mi"
-            cpu: "250m"
-      # any node pools that schedule this job must have workload-identity properly configured
-      serviceAccount: workload-identity
-      serviceAccountName: workload-identity
+            memory: 1024M
       restartPolicy: Always
 ---
 apiVersion: v1

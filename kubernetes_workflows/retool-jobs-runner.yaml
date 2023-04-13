@@ -1,4 +1,4 @@
-apiVersion: apps/v1
+apiVersion: apps/v1 
 kind: Deployment
 metadata:
   labels:
@@ -31,13 +31,13 @@ spec:
         - name: NODE_ENV
           value: production
         - name: POSTGRES_DB
-          value: "retool_prod"
+          value: hammerhead_production
         - name: POSTGRES_HOST
-          value: 127.0.0.1
+          value: postgres
         - name: POSTGRES_PORT
           value: "5432"
         - name: POSTGRES_USER
-          value: "retool-prod"
+          value: retool_internal_user
         - name: POSTGRES_PASSWORD
           valueFrom:
             secretKeyRef:
@@ -63,44 +63,15 @@ spec:
             secretKeyRef:
               name: retoolsecrets
               key: google_client_secret
-        - name: GITHUB_APP_ID
-          value: "154266"
-        - name: GITHUB_APP_INSTALLATION_ID
-          value: "20910151"
-        - name: GITHUB_APP_PRIVATE_KEY
-          valueFrom:
-            secretKeyRef:
-              name: retoolsecrets
-              key: github_app_private_key
-        - name: LOG_LEVEL  # debugging
-          value: "verbose"
-        image: tryretool/backend:2.113.8
+        image: tryretool/backend:X.Y.Z
         name: jobs-runner
         ports:
         - containerPort: 3000
         resources:
           limits:
-            memory: "2Gi"
-            cpu: "500m"
+            cpu: "4"
+            memory: 8192M
           requests:
-            cpu: "250m"
-            memory: "1Gi"
-      - name: cloud-sql-proxy
-        image: gcr.io/cloudsql-docker/gce-proxy:1.30.0
-        imagePullPolicy: IfNotPresent
-        command: ["/cloud_sql_proxy",
-          "-instances=treasure-production:us-west1:treasure-production=tcp:5432" ]
-        securityContext:
-            runAsNonRoot: true
-            runAsUser: 65532
-        resources:
-          limits:
-            memory: "1Gi"
-            cpu: "500m"
-          requests:
-            memory: "512Mi"
-            cpu: "250m"
-      serviceAccount: workload-identity
-      serviceAccountName: workload-identity
+            cpu: "2"
+            memory: 4096M
       restartPolicy: Always
-status: {}

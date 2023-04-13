@@ -11,17 +11,21 @@ services:
       - DB_CONNECTOR_PORT=3002
       - DB_SSH_CONNECTOR_HOST=http://db-ssh-connector
       - DB_SSH_CONNECTOR_PORT=3002
+      - WORKFLOW_TEMPORAL_CLUSTER_FRONTEND_HOST=temporal
+      - WORKFLOW_TEMPORAL_CLUSTER_FRONTEND_PORT=7233
+      - WORKFLOW_BACKEND_HOST=http://api:3000
     networks:
       - frontend-network
       - backend-network
       - db-connector-network
       - db-ssh-connector-network
+      - workflows-network
     depends_on:
       - postgres
-      - retooldb-postgres
       - db-connector
       - db-ssh-connector
       - jobs-runner
+      - workflows-worker
     command: bash -c "./docker_scripts/wait-for-it.sh postgres:5432; ./docker_scripts/start_api.sh"
     links:
       - postgres
@@ -33,7 +37,6 @@ services:
       - ssh:/retool_backend/autogen_ssh_keys
       - ./retool:/usr/local/retool-git-repo
       - ${BOOTSTRAP_SOURCE:-./retool}:/usr/local/retool-repo
-
   test-runner:
     build:
       context: testing
@@ -73,6 +76,8 @@ services:
     env_file: ./docker.env
     environment:
       - SERVICE_TYPE=DB_CONNECTOR_SERVICE
+      - DBCONNECTOR_POSTGRES_POOL_MAX_SIZE=100
+      - DBCONNECTOR_QUERY_TIMEOUT_MS=120000
     networks:
       - db-connector-network
     restart: on-failure
@@ -85,11 +90,34 @@ services:
     env_file: ./docker.env
     environment:
       - SERVICE_TYPE=DB_SSH_CONNECTOR_SERVICE
+      - DBCONNECTOR_POSTGRES_POOL_MAX_SIZE=100
+      - DBCONNECTOR_QUERY_TIMEOUT_MS=120000
     networks:
       - db-ssh-connector-network
     volumes:
       - ssh:/retool_backend/autogen_ssh_keys
       - ./keys:/retool_backend/keys
+    restart: on-failure
+  
+  workflows-worker:
+    build:
+      context: ./
+      dockerfile: Dockerfile
+    command: bash -c "./retool_backend"
+    env_file: ./docker.env
+    depends_on:
+      - temporal
+    environment:
+      - SERVICE_TYPE=WORKFLOW_TEMPORAL_WORKER
+      - NODE_OPTIONS=--max_old_space_size=1024
+      - DISABLE_DATABASE_MIGRATIONS=true
+      - WORKFLOW_TEMPORAL_CLUSTER_FRONTEND_HOST=temporal
+      - WORKFLOW_TEMPORAL_CLUSTER_FRONTEND_PORT=7233
+      - WORKFLOW_BACKEND_HOST=http://api:3000
+    networks:
+      - backend-network
+      - db-connector-network
+      - workflows-network
     restart: on-failure
 
   # Retool's storage database. See these docs to migrate to an externally hosted database: https://docs.retool.com/docs/configuring-retools-storage-database
@@ -99,17 +127,20 @@ services:
     networks:
       - backend-network
       - db-connector-network
+      - temporal-network
     volumes:
       - data:/var/lib/postgresql/data
 
-  retooldb-postgres:
-    image: "postgres:14.3"
-    env_file: retooldb.env
+  # Postgres for storing application data
+  user-postgres:
+    image: 'postgres:11.13'
+    env_file: ./user_data/user_data.env
     networks:
+      - frontend-network
       - backend-network
       - db-connector-network
     volumes:
-      - retooldb-data:/var/lib/postgresql/data
+      - user-data:/var/lib/postgresql/data
 
   # Not required, but leave this container to use nginx for handling the frontend & SSL certification
   https-portal:
@@ -131,13 +162,53 @@ services:
     networks:
       - frontend-network
 
+  temporal:
+    container_name: temporal
+    env_file: ./docker.env
+    environment:
+      - DB=postgresql
+      - DYNAMIC_CONFIG_FILE_PATH=config/dynamicconfig/development-sql.yaml
+    image: tryretool/one-offs:retool-temporal-1.1.0
+    networks:
+      - temporal-network
+      - workflows-network
+    ports:
+      - '127.0.0.1:7233:7233'
+    volumes:
+      - ./dynamicconfig:/etc/temporal/config/dynamicconfig
+  temporal-admin-tools:
+    container_name: temporal-admin-tools
+    depends_on:
+      - temporal
+    environment:
+      - TEMPORAL_CLI_ADDRESS=temporal:7233
+    image: temporalio/admin-tools:1.18.5
+    networks:
+      - temporal-network
+    stdin_open: true
+    tty: true
+  temporal-ui:
+    container_name: temporal-ui
+    depends_on:
+      - temporal
+    environment:
+      - TEMPORAL_ADDRESS=temporal:7233
+      - TEMPORAL_CORS_ORIGINS=http://localhost:3000
+    image: temporalio/ui:2.9.1
+    networks:
+      - temporal-network
+    ports:
+      - '8080:8080'
+
 networks:
   frontend-network:
   backend-network:
+  workflows-network:
   db-connector-network:
   db-ssh-connector-network:
+  temporal-network:
 
 volumes:
   ssh:
   data:
-  retooldb-data:
+  user-data:
