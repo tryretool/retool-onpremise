@@ -9,7 +9,7 @@ fi
 touch retooldb.env
 
 echo '## Set and generate retooldb postgres credentials' >> docker.env
-echo '## These variables are only for the initial deploy and all resource updates will need to be done in the Retool UI' >> retooldb.env
+echo '## These variables are only for the initial deploy and all resource updates will need to be done in the Retool UI' >> docker.env
 echo 'RETOOLDB_POSTGRES_HOST=retooldb-postgres' >> docker.env
 echo 'RETOOLDB_POSTGRES_DB=postgres' >> docker.env
 echo 'RETOOLDB_POSTGRES_USER=root' >> docker.env
