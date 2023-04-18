@@ -22,6 +22,7 @@ services:
       - workflows-network
     depends_on:
       - postgres
+      - retooldb-postgres
       - db-connector
       - db-ssh-connector
       - jobs-runner
@@ -131,16 +132,14 @@ services:
     volumes:
       - data:/var/lib/postgresql/data
 
-  # Postgres for storing application data
-  user-postgres:
-    image: 'postgres:11.13'
-    env_file: ./user_data/user_data.env
+  retooldb-postgres:
+    image: "postgres:14.3"
+    env_file: retooldb.env
     networks:
-      - frontend-network
       - backend-network
       - db-connector-network
     volumes:
-      - user-data:/var/lib/postgresql/data
+      - retooldb-data:/var/lib/postgresql/data
 
   # Not required, but leave this container to use nginx for handling the frontend & SSL certification
   https-portal:
@@ -211,4 +210,4 @@ networks:
 volumes:
   ssh:
   data:
-  user-data:
+  retooldb-data:
