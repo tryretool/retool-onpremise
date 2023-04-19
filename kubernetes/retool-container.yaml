@@ -73,7 +73,14 @@ spec:
           requests:
             cpu: "1"
             memory: 1024M
+        volumeMounts:
+        - name: api-data
+          mountPath: /var/lib/api-data
       restartPolicy: Always
+      volumes:
+      - name: api-data
+        persistentVolumeClaim:
+          claimName: api-data
 ---
 apiVersion: v1
 kind: Service
@@ -89,3 +96,14 @@ spec:
     targetPort: 3000
   selector:
     app: api
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: api-data
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
