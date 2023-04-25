@@ -2,17 +2,17 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   labels:
-    app: jobs-runner
+    io.kompose.service: jobs-runner
   name: jobs-runner
 spec:
   replicas: 1 # jobs-runner pod should never be more than 1
   selector:
     matchLabels:
-      app: jobs-runner
+      io.kompose.service: jobs-runner
   template:
     metadata:
       labels:
-        app: jobs-runner
+        io.kompose.service: jobs-runner
     spec:
       containers:
       - args:
@@ -74,7 +74,7 @@ spec:
               key: github_app_private_key
         - name: LOG_LEVEL  # debugging
           value: "verbose"
-        image: tryretool/backend:2.113.8
+        image: tryretool/backend:2.116.3
         name: jobs-runner
         ports:
         - containerPort: 3000
