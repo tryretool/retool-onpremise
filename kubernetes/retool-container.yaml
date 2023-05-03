@@ -74,13 +74,13 @@ spec:
             cpu: "1"
             memory: 1024M
         volumeMounts:
-        - name: api-data
-          mountPath: /var/lib/api-data
+        - name: retool-pv
+          mountPath: /retool_backend/pv-data
       restartPolicy: Always
       volumes:
-      - name: api-data
+      - name: retool-pv
         persistentVolumeClaim:
-          claimName: api-data
+          claimName: retool-pvc
 ---
 apiVersion: v1
 kind: Service
@@ -100,7 +100,7 @@ spec:
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: api-data
+  name: retool-pvc
 spec:
   accessModes:
     - ReadWriteOnce
