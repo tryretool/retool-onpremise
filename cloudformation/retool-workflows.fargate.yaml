@@ -64,20 +64,24 @@ Resources:
         - CidrIp: 0.0.0.0/0
           Description: Allow all outbound traffic by default
           IpProtocol: "-1"
-      SecurityGroupIngress:
-        - IpProtocol: tcp
-          FromPort: 7233
-          ToPort: 7233
-          SourceSecurityGroupId: !Ref 'ALBSecurityGroup'
       VpcId: !Ref 'VpcId'
+
+  TemporalFrontendIngress:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !Ref 'TemporalSecurityGroup'
+      IpProtocol: tcp
+      FromPort: 7233
+      ToPort: 7233
+      SourceSecurityGroupId: !Ref 'ALBSecurityGroup'
 
   TemporalSelfIngress:
     Type: AWS::EC2::SecurityGroupIngress
     Properties:
       GroupId: !Ref 'TemporalSecurityGroup'
-      IpProtocol: tcp
-      FromPort: 0
-      ToPort: 65535
+      IpProtocol: -1
+      SourceSecurityGroupId: !Ref 'TemporalSecurityGroup'
+
 
   CloudwatchLogsGroup:
     Type: AWS::Logs::LogGroup
@@ -145,11 +149,11 @@ Resources:
           - Name: ENCRYPTION_KEY
             Value: !Join ['', ['{{resolve:secretsmanager:', !Ref RetoolEncryptionKeySecret, ':SecretString:password}}' ]]
           - Name: WORKFLOW_TEMPORAL_CLUSTER_FRONTEND_HOST
-            Value: temporal.retoolsvc # TODO: does this even work?
+            Value: temporal.retoolsvc
           - Name: WORKFLOW_TEMPORAL_CLUSTER_FRONTEND_PORT
             Value: "7233"
           - Name: WORKFLOW_BACKEND_HOST
-            Value: http://workflows-backend.retoolsvc:3000 # TODO: how does this work
+            Value: http://workflows-backend.retoolsvc:3000
           - Name: LICENSE_KEY
             Value: "EXPIRED-LICENSE-KEY-TRIAL"
           # Remove below when serving Retool over https
@@ -208,7 +212,7 @@ Resources:
             Value: "EXPIRED-LICENSE-KEY-TRIAL"
         Command: ["./docker_scripts/start_api.sh"]
 
-  RetoolWorkkflowsBackendTask: # TODO: deprecate separate backends for workflows?
+  RetoolWorkkflowsBackendTask:
     Type: AWS::ECS::TaskDefinition
     Properties:
       Family: 'retool'
@@ -253,11 +257,11 @@ Resources:
           - Name: ENCRYPTION_KEY
             Value: !Join ['', ['{{resolve:secretsmanager:', !Ref RetoolEncryptionKeySecret, ':SecretString:password}}' ]]
           - Name: WORKFLOW_TEMPORAL_CLUSTER_FRONTEND_HOST
-            Value: temporal.retoolsvc # TODO: does this even work?
+            Value: temporal.retoolsvc
           - Name: WORKFLOW_TEMPORAL_CLUSTER_FRONTEND_PORT
             Value: "7233"
           - Name: WORKFLOW_BACKEND_HOST
-            Value: http://workflows-backend.retoolsvc:3000 # TODO: how does this work
+            Value: http://workflows-backend.retoolsvc:3000
           - Name: LICENSE_KEY
             Value: "EXPIRED-LICENSE-KEY-TRIAL"
           # Remove below when serving Retool over https
@@ -310,11 +314,11 @@ Resources:
           - Name: ENCRYPTION_KEY
             Value: !Join ['', ['{{resolve:secretsmanager:', !Ref RetoolEncryptionKeySecret, ':SecretString:password}}' ]]
           - Name: WORKFLOW_TEMPORAL_CLUSTER_FRONTEND_HOST
-            Value: temporal.retoolsvc # TODO: does this even work?
+            Value: temporal.retoolsvc
           - Name: WORKFLOW_TEMPORAL_CLUSTER_FRONTEND_PORT
             Value: "7233"
           - Name: WORKFLOW_BACKEND_HOST
-            Value: http://workflows-backend.retoolsvc:3000 # TODO: how does this work
+            Value: http://workflows-backend.retoolsvc:3000
           - Name: LICENSE_KEY
             Value: "EXPIRED-LICENSE-KEY-TRIAL"
         Command: ["./docker_scripts/start_api.sh"]
@@ -598,19 +602,43 @@ Resources:
         GenerateStringKey: 'password'
         PasswordLength: 16
         ExcludeCharacters: '"@/\'
-  RetoolTemporalRDSInstance:
-    Type: AWS::RDS::DBInstance
+
+  # RDS-based Temporal DB
+  # RetoolTemporalRDSInstance:
+  #   Type: AWS::RDS::DBInstance
+  #   Properties:
+  #     AllocatedStorage: "80"
+  #     DBInstanceClass: "db.m4.large"
+  #     Engine: postgres
+  #     EngineVersion: "11.12"
+  #     DBName: "temporal"
+  #     MasterUsername: !Join ['', ['{{resolve:secretsmanager:', !Ref RetoolTemporalRDSSecret, ':SecretString:username}}' ]]
+  #     MasterUserPassword: !Join ['', ['{{resolve:secretsmanager:', !Ref RetoolTemporalRDSSecret, ':SecretString:password}}' ]]
+  #     Port: "5432"
+  #     VPCSecurityGroups: [!GetAtt [RDSSecurityGroup, GroupId]]
+  #     DBSubnetGroupName: !Ref 'RDSSubnetGroup'
+
+  # Aurora-based Temporal DB
+  RetoolTemporalRDSCluster:
+    Type: AWS::RDS::DBCluster
     Properties:
-      AllocatedStorage: "80"
-      DBInstanceClass: "db.m4.large"
-      Engine: postgres
-      EngineVersion: "11.12"
-      DBName: "temporal"
+      Engine: "aurora-postgresql"
+      EngineVersion: "14.5"
       MasterUsername: !Join ['', ['{{resolve:secretsmanager:', !Ref RetoolTemporalRDSSecret, ':SecretString:username}}' ]]
       MasterUserPassword: !Join ['', ['{{resolve:secretsmanager:', !Ref RetoolTemporalRDSSecret, ':SecretString:password}}' ]]
       Port: "5432"
-      VPCSecurityGroups: [!GetAtt [RDSSecurityGroup, GroupId]]
+      VpcSecurityGroupIds: [!GetAtt [RDSSecurityGroup, GroupId]]
       DBSubnetGroupName: !Ref 'RDSSubnetGroup'
+      ServerlessV2ScalingConfiguration:
+        MinCapacity: 0.5
+        MaxCapacity: 10
+  RetoolTemporalRDSInstance:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      Engine: "aurora-postgresql"
+      DBInstanceClass: "db.serverless"
+      DBClusterIdentifier: !Ref 'RetoolTemporalRDSCluster'
+
   TemporalClusterFrontendTask:
     Type: AWS::ECS::TaskDefinition
     Properties:
@@ -663,8 +691,8 @@ Resources:
               Value: temporal_visibility
             - Name: DYNAMIC_CONFIG_FILE_PATH
               Value: /etc/temporal/ecs/dynamic_config/dynamicconfig-sql.yaml
-            - Name: PUBLIC_FRONTEND_ADDRESS
-              Value: temporal.retoolsvc:7233
+            - Name: ECS_DEPLOYED
+              Value: true
           PortMappings:
             - ContainerPort: 7233
               HostPort: 7233
@@ -726,6 +754,8 @@ Resources:
               Value: /etc/temporal/ecs/dynamic_config/dynamicconfig-sql.yaml
             - Name: PUBLIC_FRONTEND_ADDRESS
               Value: temporal.retoolsvc:7233
+            - Name: ECS_DEPLOYED
+              Value: true
           PortMappings:
             - ContainerPort: 7234
               HostPort: 7234
@@ -787,6 +817,8 @@ Resources:
               Value: /etc/temporal/ecs/dynamic_config/dynamicconfig-sql.yaml
             - Name: PUBLIC_FRONTEND_ADDRESS
               Value: temporal.retoolsvc:7233
+            - Name: ECS_DEPLOYED
+              Value: true
           PortMappings:
             - ContainerPort: 7235
               HostPort: 7235
@@ -848,6 +880,8 @@ Resources:
               Value: /etc/temporal/ecs/dynamic_config/dynamicconfig-sql.yaml
             - Name: PUBLIC_FRONTEND_ADDRESS
               Value: temporal.retoolsvc:7233
+            - Name: ECS_DEPLOYED
+              Value: true
           PortMappings:
             - ContainerPort: 7239
               HostPort: 7239
