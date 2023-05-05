@@ -653,7 +653,7 @@ Resources:
       ContainerDefinitions:
         - Name: temporal-cluster-frontend
           Essential: 'true'
-          Image: retool-temporal-1.1.2
+          Image: tryretool/one-offs:retool-temporal-1.1.2
           LogConfiguration:
             LogDriver: awslogs
             Options:
@@ -714,7 +714,7 @@ Resources:
       ContainerDefinitions:
         - Name: temporal-cluster-history
           Essential: 'true'
-          Image: retool-temporal-1.1.2
+          Image: tryretool/one-offs:retool-temporal-1.1.2
           LogConfiguration:
             LogDriver: awslogs
             Options:
@@ -777,7 +777,7 @@ Resources:
       ContainerDefinitions:
         - Name: temporal-cluster-matching
           Essential: 'true'
-          Image: retool-temporal-1.1.2
+          Image: tryretool/one-offs:retool-temporal-1.1.2
           LogConfiguration:
             LogDriver: awslogs
             Options:
@@ -840,7 +840,7 @@ Resources:
       ContainerDefinitions:
         - Name: temporal-cluster-worker
           Essential: 'true'
-          Image: retool-temporal-1.1.2
+          Image: tryretool/one-offs:retool-temporal-1.1.2
           LogConfiguration:
             LogDriver: awslogs
             Options:
