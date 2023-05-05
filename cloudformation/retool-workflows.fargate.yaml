@@ -653,7 +653,7 @@ Resources:
       ContainerDefinitions:
         - Name: temporal-cluster-frontend
           Essential: 'true'
-          Image: tryretool/one-offs:retool-temporal-1.1.2-a
+          Image: retool-temporal-1.1.2
           LogConfiguration:
             LogDriver: awslogs
             Options:
@@ -692,7 +692,7 @@ Resources:
             - Name: DYNAMIC_CONFIG_FILE_PATH
               Value: /etc/temporal/ecs/dynamic_config/dynamicconfig-sql.yaml
             - Name: ECS_DEPLOYED
-              Value: true
+              Value: "true"
           PortMappings:
             - ContainerPort: 7233
               HostPort: 7233
@@ -714,7 +714,7 @@ Resources:
       ContainerDefinitions:
         - Name: temporal-cluster-history
           Essential: 'true'
-          Image: tryretool/one-offs:retool-temporal-1.1.2-a
+          Image: retool-temporal-1.1.2
           LogConfiguration:
             LogDriver: awslogs
             Options:
@@ -755,7 +755,7 @@ Resources:
             - Name: PUBLIC_FRONTEND_ADDRESS
               Value: temporal.retoolsvc:7233
             - Name: ECS_DEPLOYED
-              Value: true
+              Value: "true"
           PortMappings:
             - ContainerPort: 7234
               HostPort: 7234
@@ -777,7 +777,7 @@ Resources:
       ContainerDefinitions:
         - Name: temporal-cluster-matching
           Essential: 'true'
-          Image: tryretool/one-offs:retool-temporal-1.1.2-a
+          Image: retool-temporal-1.1.2
           LogConfiguration:
             LogDriver: awslogs
             Options:
@@ -818,7 +818,7 @@ Resources:
             - Name: PUBLIC_FRONTEND_ADDRESS
               Value: temporal.retoolsvc:7233
             - Name: ECS_DEPLOYED
-              Value: true
+              Value: "true"
           PortMappings:
             - ContainerPort: 7235
               HostPort: 7235
@@ -840,7 +840,7 @@ Resources:
       ContainerDefinitions:
         - Name: temporal-cluster-worker
           Essential: 'true'
-          Image: tryretool/one-offs:retool-temporal-1.1.2-a
+          Image: retool-temporal-1.1.2
           LogConfiguration:
             LogDriver: awslogs
             Options:
@@ -881,7 +881,7 @@ Resources:
             - Name: PUBLIC_FRONTEND_ADDRESS
               Value: temporal.retoolsvc:7233
             - Name: ECS_DEPLOYED
-              Value: true
+              Value: "true"
           PortMappings:
             - ContainerPort: 7239
               HostPort: 7239
