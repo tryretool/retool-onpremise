@@ -902,7 +902,7 @@ Resources:
       Memory: '512'
       ContainerDefinitions:
         - Name: temporal-cluster-web
-          Image: temporalio/web:2.14.0
+          Image: temporalio/ui:2.14.0
           LogConfiguration:
             LogDriver: awslogs
             Options:
