@@ -167,7 +167,7 @@ Resources:
   RetoolJobsRunnerTask:
     Type: AWS::ECS::TaskDefinition
     Properties:
-      Family: 'retool'
+      Family: 'retool-jobs-runner'
       TaskRoleArn: !Ref 'RetoolTaskRole'
       ExecutionRoleArn: !Ref 'RetoolExecutionRole'
       RequiresCompatibilities:
@@ -215,7 +215,7 @@ Resources:
   RetoolWorkkflowsBackendTask:
     Type: AWS::ECS::TaskDefinition
     Properties:
-      Family: 'retool'
+      Family: 'retool-workflows-backend'
       TaskRoleArn: !Ref 'RetoolTaskRole'
       ExecutionRoleArn: !Ref 'RetoolExecutionRole'
       RequiresCompatibilities:
@@ -272,7 +272,7 @@ Resources:
   RetoolWorkflowsWorkerTask:
     Type: AWS::ECS::TaskDefinition
     Properties:
-      Family: 'retool'
+      Family: 'retool-workflows-worker'
       TaskRoleArn: !Ref 'RetoolTaskRole'
       ExecutionRoleArn: !Ref 'RetoolExecutionRole'
       RequiresCompatibilities:
@@ -642,7 +642,7 @@ Resources:
   TemporalClusterFrontendTask:
     Type: AWS::ECS::TaskDefinition
     Properties:
-      Family: 'retool'
+      Family: 'retool-temporal-frontend'
       TaskRoleArn: !Ref 'RetoolTaskRole'
       ExecutionRoleArn: !Ref 'RetoolExecutionRole'
       RequiresCompatibilities:
@@ -703,7 +703,7 @@ Resources:
   TemporalClusterHistoryTask:
     Type: AWS::ECS::TaskDefinition
     Properties:
-      Family: 'retool'
+      Family: 'retool-temporal-history'
       TaskRoleArn: !Ref 'RetoolTaskRole'
       ExecutionRoleArn: !Ref 'RetoolExecutionRole'
       RequiresCompatibilities:
@@ -766,7 +766,7 @@ Resources:
   TemporalClusterMatchingTask:
     Type: AWS::ECS::TaskDefinition
     Properties:
-      Family: 'retool'
+      Family: 'retool-temporal-matching'
       TaskRoleArn: !Ref 'RetoolTaskRole'
       ExecutionRoleArn: !Ref 'RetoolExecutionRole'
       RequiresCompatibilities:
@@ -829,7 +829,7 @@ Resources:
   TemporalClusterWorkerTask:
     Type: AWS::ECS::TaskDefinition
     Properties:
-      Family: 'retool'
+      Family: 'retool-temporal-worker'
       TaskRoleArn: !Ref 'RetoolTaskRole'
       ExecutionRoleArn: !Ref 'RetoolExecutionRole'
       RequiresCompatibilities:
@@ -892,7 +892,7 @@ Resources:
   TemporalClusterWebTask:
     Type: AWS::ECS::TaskDefinition
     Properties:
-      Family: 'retool'
+      Family: 'retool-temporal-web'
       TaskRoleArn: !Ref 'RetoolTaskRole'
       ExecutionRoleArn: !Ref 'RetoolExecutionRole'
       RequiresCompatibilities:
