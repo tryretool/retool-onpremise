@@ -598,7 +598,7 @@ Resources:
     Properties:
       Description: 'This is the secret for the Retool Temporal RDS instance'
       GenerateSecretString:
-        SecretStringTemplate: '{"username": "temporal"}'
+        SecretStringTemplate: '{"username": "retool"}'
         GenerateStringKey: 'password'
         PasswordLength: 16
         ExcludeCharacters: '"@/\'
