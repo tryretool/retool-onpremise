@@ -173,8 +173,8 @@ Resources:
       RequiresCompatibilities:
         - FARGATE
       NetworkMode: awsvpc
-      Cpu: '2048'
-      Memory: '4096'
+      Cpu: '1024'
+      Memory: '2048'
       ContainerDefinitions:
       - Name: 'retool-jobs-runner'
         Essential: 'true'
@@ -709,8 +709,8 @@ Resources:
       RequiresCompatibilities:
         - FARGATE
       NetworkMode: awsvpc
-      Cpu: '256'
-      Memory: '512'
+      Cpu: '512'
+      Memory: '1024'
       ContainerDefinitions:
         - Name: temporal-cluster-history
           Essential: 'true'
@@ -772,8 +772,8 @@ Resources:
       RequiresCompatibilities:
         - FARGATE
       NetworkMode: awsvpc
-      Cpu: '256'
-      Memory: '512'
+      Cpu: '512'
+      Memory: '1024'
       ContainerDefinitions:
         - Name: temporal-cluster-matching
           Essential: 'true'
