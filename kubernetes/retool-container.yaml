@@ -14,6 +14,9 @@ spec:
       labels:
         app: api
     spec:
+      securityContext:
+        runAsUser: 1000
+        fsGroup: 2000
       containers:
       - args:
         - bash
@@ -73,7 +76,14 @@ spec:
           requests:
             cpu: "1"
             memory: 1024M
+        volumeMounts:
+        - name: retool-pv
+          mountPath: /retool_backend/pv-data
       restartPolicy: Always
+      volumes:
+      - name: retool-pv
+        persistentVolumeClaim:
+          claimName: retool-pvc
 ---
 apiVersion: v1
 kind: Service
@@ -89,3 +99,14 @@ spec:
     targetPort: 3000
   selector:
     app: api
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: retool-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
