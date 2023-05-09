@@ -125,10 +125,10 @@ Resources:
       TaskRoleArn: !Ref 'RetoolTaskRole'
       ContainerDefinitions:
       - Name: 'retool-jobs-runner'
-        Cpu: '1024'
+        Cpu: '2048'
+        Memory: '4096'
         Essential: 'true'
         Image: !Ref 'Image'
-        Memory: '2048'
         LogConfiguration:
           LogDriver: awslogs
           Options:

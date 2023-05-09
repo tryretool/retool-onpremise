@@ -127,8 +127,8 @@ Resources:
     Type: AWS::ECS::TaskDefinition
     Properties:
       NetworkMode: awsvpc
-      Cpu: '1024'
-      Memory: '2048'
+      Cpu: '2048'
+      Memory: '4096'
       Family: 'retool'
       TaskRoleArn: !Ref 'RetoolTaskRole'
       ExecutionRoleArn: !Ref 'RetoolExecutionRole'
