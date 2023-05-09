@@ -179,28 +179,43 @@ Spin up a new EC2 instance. If using AWS, use the following steps:
 
 ### Deploying Retool on Heroku
 
+#### Automatic deploy
+
+[![Deploy](https://www.herokucdn.com/deploy/button.svg)](https://heroku.com/deploy?template=https://github.com/tryretool/retool-onpremise)
+
+You can deploy to Heroku using the following steps:
+
+1. Click the button above to begin your deployment
+1. Provide a unique App name, e.g. `<your-org>-retool`
+1. Provide required config vars:
+    * `LICENSE_KEY` - your Retool license key
+1. Set any optional config vars:
+    * `USE_GCM_ENCRYPTION` set to `true` for authenticated encryption of
+      secrets; if true, `ENCRYPTION_KEY` must be 24 bytes
+1. Click "Deploy app"
+
+#### Manual deploy
+
 You can manually deploy to Heroku using the following steps:
 
 1. Install the Heroku CLI, and login. Documentation for this can be found here: <https://devcenter.heroku.com/articles/getting-started-with-nodejs#set-up>
 1. Clone this repo `git clone https://github.com/tryretool/retool-onpremise`
 1. Change the working directory to the newly cloned repository `cd ./retool-onpremise`
 1. Create a new Heroku app with the stack set to `container` with `heroku create your-app-name --stack=container`
-1. Add a free database: `heroku addons:create heroku-postgresql:hobby-dev`
+1. Add a database: `heroku addons:create heroku-postgresql:mini`
 1. In the `Settings` page of your Heroku app, add the following environment variables:
    1. `NODE_ENV` - set to `production`
-   1. `HEROKU_HOSTED` set to `true`
    1. `JWT_SECRET` - set to a long secure random string used to sign JSON Web Tokens
    1. `ENCRYPTION_KEY` - a long secure random string used to encrypt database credentials
    1. `USE_GCM_ENCRYPTION` set to `true` for authenticated encryption of secrets; if true, `ENCRYPTION_KEY` must be 24 bytes
    1. `LICENSE_KEY` - your Retool license key
    1. `PGSSLMODE` - set to `require`
+1. _Optional_: To select the version of Retool used, just edit the first line
+   under `./heroku/Dockerfile` to:
+   ```docker
+   FROM tryretool/backend:X.Y.Z
+   ```
 1. Push the code: `git push heroku master`
-
-To lockdown the version of Retool used, just edit the first line under `./heroku/Dockerfile` to:
-
-```docker
-FROM tryretool/backend:X.Y.Z
-```
 
 ### Deploying Retool using Aptible
 
@@ -212,7 +227,7 @@ FROM tryretool/backend:X.Y.Z
 1. Create a new Aptible app with `aptible apps:create your-app-name`
 1. Add a database: `aptible db:create your-database-name --type postgresql`
 1. Set your config variables (your database connection string will be in your Aptible Dashboard and you can parse out the individual values by following [these instructions](https://www.aptible.com/documentation/deploy/reference/databases/credentials.html#using-database-credentials)). Be sure to rename `EXPIRED-LICENSE-KEY-TRIAL` to the license key provided to you.
-1. If secrets need an authenticated encryption method, add `USE_GCM_ENCRYTPION=true` to the command below and change `ENCRYPTION_KEY=$(cat /dev/urandom | base64 | head -c 24)`
+1. If secrets need an authenticated encryption method, add `USE_GCM_ENCRYPTION=true` to the command below and change `ENCRYPTION_KEY=$(cat /dev/urandom | base64 | head -c 24)`
 
    ```yml
    aptible config:set --app your-app-name \
@@ -395,19 +410,16 @@ kubectl set image deploy/api api=tryretool/backend:X.Y.Z
 
 ### Heroku deployments
 
-To update a Heroku deployment that was created with the button above, you may first set up a `git` repo to push to Heroku
+To update a Heroku deployment that was created with the button above, you'll
+need to push the desired changes to the Heroku remote.
 
 ```zsh
-heroku login
-git clone https://github.com/tryretool/retool-onpremise
-cd retool-onpremise
-heroku git:remote -a YOUR_HEROKU_APP_NAME
-```
-
-To update Retool (this will automatically fetch the latest version of Retool)
-
-```zsh
-git commit --allow-empty -m 'Redeploying'
+# This assumes you already have the `heroku` CLI installed and are logged in
+heroku git:clone --app=<your-retool-app-name> # default remote name is "heroku"
+git remote add upstream https://github.com/tryretool/retool-onpremise
+# This will incpororate the remote changes into your _local_ copy
+# Also assumes both branches are "master"
+git pull upstream master
 git push heroku master
 ```
 
