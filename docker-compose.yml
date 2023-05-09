@@ -34,20 +34,6 @@ services:
       - ./retool:/usr/local/retool-git-repo
       - ${BOOTSTRAP_SOURCE:-./retool}:/usr/local/retool-repo
 
-  test-runner:
-    build:
-      context: testing
-    networks:
-      - frontend-network
-    depends_on:
-      - api
-    profiles:
-      - testing
-    volumes:
-      - ./retool:/usr/local/retool-git-repo
-      - ${BOOTSTRAP_SOURCE:-./retool}:/usr/local/retool-repo
-    ipc: host
-
   jobs-runner:
     build:
       context: ./
