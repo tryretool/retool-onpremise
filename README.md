@@ -322,7 +322,7 @@ We provide Fargate template files supporting [public](/cloudformation/fargate.ya
 1. In **Step 1: Select a cluster template**, select `Networking Only (Powered by AWS Fargate)` as the cluster template.
 1. In **Step 2: Configure cluster**, be sure to enable CloudWatch Container Insights. This will help us monitor logs and the health of our deployment through CloudWatch.
 1. Download the [public](/cloudformation/fargate.yaml) or [private](/cloudformation/fargate.private.yaml) template file.
-1. Edit the template file to provide your license key and any required [environment variables](https://docs.retool.com/docs/environment-variables) (under the Environment key within the retool ContainerDefinitions). Do not modify the Parameters object on line 2 of the template file. CloudFormation will prompt for these values after you upload the template file.
+1. Edit the template file to provide your license key and any required [environment variables](https://docs.retool.com/docs/environment-variables). The license key needs to be entered on both line 116 as well as on line 171. (under the Environment key within the retool ContainerDefinitions). Do not modify the Parameters object on line 2 of the template file. CloudFormation will prompt for these values after you upload the template file.
 1. Go to the AWS CloudFormation dashboard, and click **Create Stack with new resources → Upload a template file**. Upload your edited `.yaml` file.
 1. Enter the following parameters:
    - Cluster: the name of the ECS cluster you created earlier
