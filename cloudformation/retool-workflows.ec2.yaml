@@ -511,7 +511,7 @@ Resources:
       DnsConfig:
         DnsRecords:
           - TTL: 60
-            Type: A
+            Type: SRV
         NamespaceId: !GetAtt [WorkflowsCloudMapNamespace, Id]
         RoutingPolicy: MULTIVALUE
       HealthCheckCustomConfig:
@@ -894,7 +894,7 @@ Resources:
       DnsConfig:
         DnsRecords:
           - TTL: 60
-            Type: A
+            Type: SRV
         NamespaceId: !GetAtt [WorkflowsCloudMapNamespace, Id]
         RoutingPolicy: MULTIVALUE
       HealthCheckCustomConfig:
