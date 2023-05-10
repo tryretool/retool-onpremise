@@ -255,6 +255,8 @@ Resources:
           # Remove below when serving Retool over https
           - Name: COOKIE_INSECURE
             Value: "true"
+        PortMappings:
+        - ContainerPort: '3000'
         Command: ["./docker_scripts/start_api.sh"]
 
   RetoolWorkflowsWorkerTask:
@@ -838,7 +840,7 @@ Resources:
     Properties:
       ServiceRegistries:
         - RegistryArn: !GetAtt [TemporalFrontendCloudmapService, Arn]
-          ContainerName: "retool-temporal-frontend"
+          ContainerName: "temporal-cluster-frontend"
           ContainerPort: 7233
       Cluster: !Ref 'Cluster'
       DesiredCount: !Ref 'DesiredCount'
