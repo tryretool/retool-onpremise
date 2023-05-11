@@ -109,6 +109,7 @@ Resources:
     Properties:
       Family: 'retool'
       TaskRoleArn: !Ref 'RetoolTaskRole'
+      NetworkMode: awsvpc
       ContainerDefinitions:
       - Name: 'retool'
         Cpu: '2048'
@@ -165,6 +166,7 @@ Resources:
     Properties:
       Family: 'retool-jobs-runner'
       TaskRoleArn: !Ref 'RetoolTaskRole'
+      NetworkMode: awsvpc
       ContainerDefinitions:
       - Name: 'retool-jobs-runner'
         Cpu: '1024'
@@ -209,6 +211,7 @@ Resources:
     Properties:
       Family: 'retool-workflows-backend'
       TaskRoleArn: !Ref 'RetoolTaskRole'
+      NetworkMode: awsvpc
       ContainerDefinitions:
       - Name: 'retool-workflows-backend'
         Cpu: '2048'
@@ -264,6 +267,7 @@ Resources:
     Properties:
       Family: 'retool-workflows-worker'
       TaskRoleArn: !Ref 'RetoolTaskRole'
+      NetworkMode: awsvpc
       ContainerDefinitions:
       - Name: 'retool-workflows-worker'
         Cpu: '2048'
@@ -418,6 +422,11 @@ Resources:
     Type: AWS::ECS::Service
     DependsOn: ALBListener
     Properties:
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: DISABLED # must be run in private subnet with NAT gateway
+          SecurityGroups: [!Ref 'ALBSecurityGroup']
+          Subnets: !Ref 'SubnetId'
       Cluster: !Ref 'Cluster'
       DesiredCount: !Ref 'DesiredCount'
       DeploymentConfiguration:
@@ -428,11 +437,15 @@ Resources:
         ContainerPort: '3000'
         TargetGroupArn: !Ref 'ECSTG'
       TaskDefinition: !Ref 'RetoolTask'
-      Role: !Ref 'RetoolServiceRole'
 
   RetoolJobsRunnerECSservice:
     Type: AWS::ECS::Service
     Properties:
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: DISABLED # must be run in private subnet with NAT gateway
+          SecurityGroups: [!Ref 'ALBSecurityGroup']
+          Subnets: !Ref 'SubnetId'
       Cluster: !Ref 'Cluster'
       DesiredCount: 1
       TaskDefinition: !Ref 'RetoolJobsRunnerTask'
@@ -440,6 +453,11 @@ Resources:
   RetoolWorkflowsWorkerECSService:
     Type: AWS::ECS::Service
     Properties:
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: DISABLED # must be run in private subnet with NAT gateway
+          SecurityGroups: [!Ref 'ALBSecurityGroup']
+          Subnets: !Ref 'SubnetId'
       Cluster: !Ref 'Cluster'
       DesiredCount: !Ref 'DesiredCount'
       DeploymentConfiguration:
@@ -451,10 +469,13 @@ Resources:
     DependsOn: RetoolWorkflowBackendServiceCloudmapService
     Type: AWS::ECS::Service
     Properties:
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: DISABLED # must be run in private subnet with NAT gateway
+          SecurityGroups: [!Ref 'ALBSecurityGroup']
+          Subnets: !Ref 'SubnetId'
       ServiceRegistries:
         - RegistryArn: !GetAtt [RetoolWorkflowBackendServiceCloudmapService, Arn]
-          ContainerName: "retool-workflows-backend"
-          ContainerPort: 3000
       Cluster: !Ref 'Cluster'
       DesiredCount: !Ref 'DesiredCount'
       DeploymentConfiguration:
@@ -511,7 +532,7 @@ Resources:
       DnsConfig:
         DnsRecords:
           - TTL: 60
-            Type: SRV
+            Type: A
         NamespaceId: !GetAtt [WorkflowsCloudMapNamespace, Id]
         RoutingPolicy: MULTIVALUE
       HealthCheckCustomConfig:
@@ -583,6 +604,7 @@ Resources:
     Properties:
       Family: 'retool-temporal-frontend'
       TaskRoleArn: !Ref 'RetoolTaskRole'
+      NetworkMode: awsvpc
       ContainerDefinitions:
         - Name: temporal-cluster-frontend
           Cpu: '256'
@@ -640,6 +662,7 @@ Resources:
     Properties:
       Family: 'retool-temporal-history'
       TaskRoleArn: !Ref 'RetoolTaskRole'
+      NetworkMode: awsvpc
       ContainerDefinitions:
         - Name: temporal-cluster-history
           Cpu: '512'
@@ -699,6 +722,7 @@ Resources:
     Properties:
       Family: 'retool-temporal-matching'
       TaskRoleArn: !Ref 'RetoolTaskRole'
+      NetworkMode: awsvpc
       ContainerDefinitions:
         - Name: temporal-cluster-matching
           Cpu: '512'
@@ -758,6 +782,7 @@ Resources:
     Properties:
       Family: 'retool-temporal-worker'
       TaskRoleArn: !Ref 'RetoolTaskRole'
+      NetworkMode: awsvpc
       ContainerDefinitions:
         - Name: temporal-cluster-worker
           Cpu: '256'
@@ -817,6 +842,7 @@ Resources:
     Properties:
       Family: 'retool-temporal-web'
       TaskRoleArn: !Ref 'RetoolTaskRole'
+      NetworkMode: awsvpc
       ContainerDefinitions:
         - Name: temporal-cluster-web
           Cpu: '256'
@@ -838,10 +864,13 @@ Resources:
   TemporalFrontendService:
     Type: AWS::ECS::Service
     Properties:
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: DISABLED # must be run in private subnet with NAT gateway
+          SecurityGroups: [!Ref 'ALBSecurityGroup']
+          Subnets: !Ref 'SubnetId'
       ServiceRegistries:
         - RegistryArn: !GetAtt [TemporalFrontendCloudmapService, Arn]
-          ContainerName: "temporal-cluster-frontend"
-          ContainerPort: 7233
       Cluster: !Ref 'Cluster'
       DesiredCount: !Ref 'DesiredCount'
       DeploymentConfiguration:
@@ -852,6 +881,11 @@ Resources:
     Type: AWS::ECS::Service
     DependsOn: TemporalFrontendService
     Properties:
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: DISABLED # must be run in private subnet with NAT gateway
+          SecurityGroups: [!Ref 'ALBSecurityGroup']
+          Subnets: !Ref 'SubnetId'
       Cluster: !Ref 'Cluster'
       DesiredCount: !Ref 'DesiredCount'
       DeploymentConfiguration:
@@ -862,6 +896,11 @@ Resources:
     Type: AWS::ECS::Service
     DependsOn: TemporalFrontendService
     Properties:
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: DISABLED # must be run in private subnet with NAT gateway
+          SecurityGroups: [!Ref 'ALBSecurityGroup']
+          Subnets: !Ref 'SubnetId'
       Cluster: !Ref 'Cluster'
       DesiredCount: !Ref 'DesiredCount'
       DeploymentConfiguration:
@@ -872,6 +911,11 @@ Resources:
     Type: AWS::ECS::Service
     DependsOn: TemporalFrontendService
     Properties:
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: DISABLED # must be run in private subnet with NAT gateway
+          SecurityGroups: [!Ref 'ALBSecurityGroup']
+          Subnets: !Ref 'SubnetId'
       Cluster: !Ref 'Cluster'
       DesiredCount: !Ref 'DesiredCount'
       DeploymentConfiguration:
@@ -882,6 +926,11 @@ Resources:
     Type: AWS::ECS::Service
     DependsOn: TemporalFrontendService
     Properties:
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: DISABLED # must be run in private subnet with NAT gateway
+          SecurityGroups: [!Ref 'ALBSecurityGroup']
+          Subnets: !Ref 'SubnetId'
       Cluster: !Ref 'Cluster'
       DesiredCount: !Ref 'DesiredCount'
       DeploymentConfiguration:
@@ -894,7 +943,7 @@ Resources:
       DnsConfig:
         DnsRecords:
           - TTL: 60
-            Type: SRV
+            Type: A
         NamespaceId: !GetAtt [WorkflowsCloudMapNamespace, Id]
         RoutingPolicy: MULTIVALUE
       HealthCheckCustomConfig:
