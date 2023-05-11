@@ -7,6 +7,8 @@
 
 [Deploying Retool on-premise](https://docs.retool.com/docs/self-hosted) ensures that all access to internal data is managed within your own cloud environment. It also provides the flexibility to control how Retool is setup within your infrastructure, the ability to configure logging, and access to enable custom SAML SSO using providers like Okta and Active Directory.
 
+After following the below setup instructions, if you're running into issues you can contact support@retool.com or search our [Community Forums](https://community.retool.com/) and post your question there. Both Retool technical support engineers and other developers who are experts on building with Retool are active in our forums.
+
 ## Table of contents
 
 - [Select a Retool version number](#select-a-retool-version-number)
