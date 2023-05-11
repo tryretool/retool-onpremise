@@ -50,15 +50,28 @@ Resources:
       ToPort: '80'
       CidrIp: '0.0.0.0/0'
   
-  InternalHttpInbound:
+  RetoolSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: !Join [" ", [!Ref 'AWS::StackName', 'retool container security group']]
+      VpcId: !Ref 'VpcId'
+
+  ALBInbound:
     Type: AWS::EC2::SecurityGroupIngress
     Properties:
-      GroupId: !Ref 'ALBSecurityGroup'
+      GroupId: !Ref 'RetoolSecurityGroup'
       IpProtocol: tcp
       FromPort: '3000'
       ToPort: '3000'
-      CidrIp: '0.0.0.0/0'
-    
+      SourceSecurityGroupId: !Ref 'ALBSecurityGroup'
+
+  RetoolSelfIngress:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !Ref 'RetoolSecurityGroup'
+      IpProtocol: -1
+      SourceSecurityGroupId: !Ref 'RetoolSecurityGroup'
+
   TemporalSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
@@ -406,7 +419,7 @@ Resources:
     Type: AWS::ElasticLoadBalancingV2::TargetGroup
     DependsOn: ECSALB
     Properties:
-      TargetType: instance # needed for EC2 with bridge networkmode
+      TargetType: ip
       HealthCheckIntervalSeconds: 61
       HealthCheckPath: '/api/checkHealth'
       HealthCheckProtocol: HTTP
