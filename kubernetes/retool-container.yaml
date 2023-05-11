@@ -72,10 +72,10 @@ spec:
         - containerPort: 3000
         resources:
           limits:
-            memory: 2048M
+            memory: 4096M
           requests:
             cpu: "1"
-            memory: 1024M
+            memory: 2048M
         volumeMounts:
         - name: retool-pv
           mountPath: /retool_backend/pv-data
