@@ -5,7 +5,10 @@ Parameters:
     Description: Environment string sent back to plogger with the logs
   SubnetId:
     Type: List<AWS::EC2::Subnet::Id>
-    Description: Select at two subnets in your selected VPC.
+    Description: Select at two private subnets in your selected VPC.
+  PublicSubnetId:
+    Type: List<AWS::EC2::Subnet::Id>
+    Description: Select at least one public subnet in your selected VPC, for your Application Load Balancer.
   Cluster:
     Type: String
     Description: Cluster to put service in.
@@ -372,7 +375,7 @@ Resources:
       LoadBalancerAttributes:
       - Key: idle_timeout.timeout_seconds
         Value: '60'
-      Subnets: !Ref 'SubnetId'
+      Subnets: !Ref 'PublicSubnetId'
       SecurityGroups: [!Ref 'ALBSecurityGroup']
 
   ALBListener:
@@ -867,7 +870,7 @@ Resources:
       NetworkConfiguration:
         AwsvpcConfiguration:
           AssignPublicIp: DISABLED # must be run in private subnet with NAT gateway
-          SecurityGroups: [!Ref 'ALBSecurityGroup']
+          SecurityGroups: [!Ref 'TemporalSecurityGroup']
           Subnets: !Ref 'SubnetId'
       ServiceRegistries:
         - RegistryArn: !GetAtt [TemporalFrontendCloudmapService, Arn]
@@ -884,7 +887,7 @@ Resources:
       NetworkConfiguration:
         AwsvpcConfiguration:
           AssignPublicIp: DISABLED # must be run in private subnet with NAT gateway
-          SecurityGroups: [!Ref 'ALBSecurityGroup']
+          SecurityGroups: [!Ref 'TemporalSecurityGroup']
           Subnets: !Ref 'SubnetId'
       Cluster: !Ref 'Cluster'
       DesiredCount: !Ref 'DesiredCount'
@@ -899,7 +902,7 @@ Resources:
       NetworkConfiguration:
         AwsvpcConfiguration:
           AssignPublicIp: DISABLED # must be run in private subnet with NAT gateway
-          SecurityGroups: [!Ref 'ALBSecurityGroup']
+          SecurityGroups: [!Ref 'TemporalSecurityGroup']
           Subnets: !Ref 'SubnetId'
       Cluster: !Ref 'Cluster'
       DesiredCount: !Ref 'DesiredCount'
@@ -914,7 +917,7 @@ Resources:
       NetworkConfiguration:
         AwsvpcConfiguration:
           AssignPublicIp: DISABLED # must be run in private subnet with NAT gateway
-          SecurityGroups: [!Ref 'ALBSecurityGroup']
+          SecurityGroups: [!Ref 'TemporalSecurityGroup']
           Subnets: !Ref 'SubnetId'
       Cluster: !Ref 'Cluster'
       DesiredCount: !Ref 'DesiredCount'
@@ -929,7 +932,7 @@ Resources:
       NetworkConfiguration:
         AwsvpcConfiguration:
           AssignPublicIp: DISABLED # must be run in private subnet with NAT gateway
-          SecurityGroups: [!Ref 'ALBSecurityGroup']
+          SecurityGroups: [!Ref 'TemporalSecurityGroup']
           Subnets: !Ref 'SubnetId'
       Cluster: !Ref 'Cluster'
       DesiredCount: !Ref 'DesiredCount'
