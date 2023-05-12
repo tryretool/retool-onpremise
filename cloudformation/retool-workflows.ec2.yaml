@@ -6,9 +6,9 @@ Parameters:
   SubnetId:
     Type: List<AWS::EC2::Subnet::Id>
     Description: Select at two private subnets in your selected VPC.
-  PublicSubnetId:
+  ALBSubnetId:
     Type: List<AWS::EC2::Subnet::Id>
-    Description: Select at least one public subnet in your selected VPC, for your Application Load Balancer.
+    Description: Select the subnets for your Application Load Balancer.
   Cluster:
     Type: String
     Description: Cluster to put service in.
@@ -89,7 +89,7 @@ Resources:
       IpProtocol: tcp
       FromPort: 7233
       ToPort: 7233
-      SourceSecurityGroupId: !Ref 'ALBSecurityGroup'
+      SourceSecurityGroupId: !Ref 'RetoolSecurityGroup'
 
   TemporalSelfIngress:
     Type: AWS::EC2::SecurityGroupIngress
@@ -388,7 +388,7 @@ Resources:
       LoadBalancerAttributes:
       - Key: idle_timeout.timeout_seconds
         Value: '60'
-      Subnets: !Ref 'PublicSubnetId'
+      Subnets: !Ref 'ALBSubnetId'
       SecurityGroups: [!Ref 'ALBSecurityGroup']
 
   ALBListener:
@@ -441,7 +441,7 @@ Resources:
       NetworkConfiguration:
         AwsvpcConfiguration:
           AssignPublicIp: DISABLED # must be run in private subnet with NAT gateway
-          SecurityGroups: [!Ref 'ALBSecurityGroup']
+          SecurityGroups: [!Ref 'RetoolSecurityGroup']
           Subnets: !Ref 'SubnetId'
       Cluster: !Ref 'Cluster'
       DesiredCount: !Ref 'DesiredCount'
@@ -460,7 +460,7 @@ Resources:
       NetworkConfiguration:
         AwsvpcConfiguration:
           AssignPublicIp: DISABLED # must be run in private subnet with NAT gateway
-          SecurityGroups: [!Ref 'ALBSecurityGroup']
+          SecurityGroups: [!Ref 'RetoolSecurityGroup']
           Subnets: !Ref 'SubnetId'
       Cluster: !Ref 'Cluster'
       DesiredCount: 1
@@ -472,7 +472,7 @@ Resources:
       NetworkConfiguration:
         AwsvpcConfiguration:
           AssignPublicIp: DISABLED # must be run in private subnet with NAT gateway
-          SecurityGroups: [!Ref 'ALBSecurityGroup']
+          SecurityGroups: [!Ref 'RetoolSecurityGroup']
           Subnets: !Ref 'SubnetId'
       Cluster: !Ref 'Cluster'
       DesiredCount: !Ref 'DesiredCount'
@@ -488,7 +488,7 @@ Resources:
       NetworkConfiguration:
         AwsvpcConfiguration:
           AssignPublicIp: DISABLED # must be run in private subnet with NAT gateway
-          SecurityGroups: [!Ref 'ALBSecurityGroup']
+          SecurityGroups: [!Ref 'RetoolSecurityGroup']
           Subnets: !Ref 'SubnetId'
       ServiceRegistries:
         - RegistryArn: !GetAtt [RetoolWorkflowBackendServiceCloudmapService, Arn]
