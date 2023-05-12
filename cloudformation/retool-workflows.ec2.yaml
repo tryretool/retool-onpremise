@@ -17,7 +17,10 @@ Parameters:
     Description: Image to use in the service.
   DesiredCount:
     Type: Number
-    Description: Default number of tasks to run
+    Description: Default number of tasks to run for Retool api container
+  DesiredWorkflowsCount:
+    Type: Number
+    Description: Default number of tasks to run for Retool Workflows containers
   MaximumPercent:
     Type: Number
     Description: Maximum percentage of tasks to run during a deployment
@@ -475,7 +478,7 @@ Resources:
           SecurityGroups: [!Ref 'RetoolSecurityGroup']
           Subnets: !Ref 'SubnetId'
       Cluster: !Ref 'Cluster'
-      DesiredCount: !Ref 'DesiredCount'
+      DesiredCount: !Ref 'DesiredWorkflowsCount'
       DeploymentConfiguration:
         MaximumPercent: !Ref 'MaximumPercent'
         MinimumHealthyPercent: !Ref 'MinimumHealthyPercent'
@@ -493,7 +496,7 @@ Resources:
       ServiceRegistries:
         - RegistryArn: !GetAtt [RetoolWorkflowBackendServiceCloudmapService, Arn]
       Cluster: !Ref 'Cluster'
-      DesiredCount: !Ref 'DesiredCount'
+      DesiredCount: !Ref 'DesiredWorkflowsCount'
       DeploymentConfiguration:
         MaximumPercent: !Ref 'MaximumPercent'
         MinimumHealthyPercent: !Ref 'MinimumHealthyPercent'
@@ -888,7 +891,7 @@ Resources:
       ServiceRegistries:
         - RegistryArn: !GetAtt [TemporalFrontendCloudmapService, Arn]
       Cluster: !Ref 'Cluster'
-      DesiredCount: !Ref 'DesiredCount'
+      DesiredCount: !Ref 'DesiredWorkflowsCount'
       DeploymentConfiguration:
         MaximumPercent: !Ref 'MaximumPercent'
         MinimumHealthyPercent: !Ref 'MinimumHealthyPercent'
@@ -903,7 +906,7 @@ Resources:
           SecurityGroups: [!Ref 'TemporalSecurityGroup']
           Subnets: !Ref 'SubnetId'
       Cluster: !Ref 'Cluster'
-      DesiredCount: !Ref 'DesiredCount'
+      DesiredCount: !Ref 'DesiredWorkflowsCount'
       DeploymentConfiguration:
         MaximumPercent: !Ref 'MaximumPercent'
         MinimumHealthyPercent: !Ref 'MinimumHealthyPercent'
@@ -918,7 +921,7 @@ Resources:
           SecurityGroups: [!Ref 'TemporalSecurityGroup']
           Subnets: !Ref 'SubnetId'
       Cluster: !Ref 'Cluster'
-      DesiredCount: !Ref 'DesiredCount'
+      DesiredCount: !Ref 'DesiredWorkflowsCount'
       DeploymentConfiguration:
         MaximumPercent: !Ref 'MaximumPercent'
         MinimumHealthyPercent: !Ref 'MinimumHealthyPercent'
@@ -933,7 +936,7 @@ Resources:
           SecurityGroups: [!Ref 'TemporalSecurityGroup']
           Subnets: !Ref 'SubnetId'
       Cluster: !Ref 'Cluster'
-      DesiredCount: !Ref 'DesiredCount'
+      DesiredCount: 1
       DeploymentConfiguration:
         MaximumPercent: !Ref 'MaximumPercent'
         MinimumHealthyPercent: !Ref 'MinimumHealthyPercent'
@@ -948,7 +951,7 @@ Resources:
           SecurityGroups: [!Ref 'TemporalSecurityGroup']
           Subnets: !Ref 'SubnetId'
       Cluster: !Ref 'Cluster'
-      DesiredCount: !Ref 'DesiredCount'
+      DesiredCount: 1
       DeploymentConfiguration:
         MaximumPercent: !Ref 'MaximumPercent'
         MinimumHealthyPercent: !Ref 'MinimumHealthyPercent'
