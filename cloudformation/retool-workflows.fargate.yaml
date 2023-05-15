@@ -6,6 +6,9 @@ Parameters:
   SubnetId:
     Type: List<AWS::EC2::Subnet::Id>
     Description: Select at two subnets in your selected VPC.
+  ALBSubnetId:
+    Type: List<AWS::EC2::Subnet::Id>
+    Description: Select the subnets for your Application Load Balancer.
   Cluster:
     Type: String
     Description: Cluster to put service in.
@@ -15,6 +18,9 @@ Parameters:
   DesiredCount:
     Type: Number
     Description: Default number of tasks to run
+  DesiredWorkflowsCount:
+    Type: Number
+    Description: Default number of tasks to run for Retool Workflows containers
   MaximumPercent:
     Type: Number
     Description: Maximum percentage of tasks to run during a deployment
@@ -47,14 +53,27 @@ Resources:
       ToPort: '80'
       CidrIp: '0.0.0.0/0'
   
-  InternalHttpInbound:
+  RetoolSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: !Join [" ", [!Ref 'AWS::StackName', 'retool container security group']]
+      VpcId: !Ref 'VpcId'
+
+  ALBInbound:
     Type: AWS::EC2::SecurityGroupIngress
     Properties:
-      GroupId: !Ref 'ALBSecurityGroup'
+      GroupId: !Ref 'RetoolSecurityGroup'
       IpProtocol: tcp
       FromPort: '3000'
       ToPort: '3000'
-      CidrIp: '0.0.0.0/0'
+      SourceSecurityGroupId: !Ref 'ALBSecurityGroup'
+
+  RetoolSelfIngress:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !Ref 'RetoolSecurityGroup'
+      IpProtocol: -1
+      SourceSecurityGroupId: !Ref 'RetoolSecurityGroup'
     
   TemporalSecurityGroup:
     Type: AWS::EC2::SecurityGroup
@@ -73,7 +92,7 @@ Resources:
       IpProtocol: tcp
       FromPort: 7233
       ToPort: 7233
-      SourceSecurityGroupId: !Ref 'ALBSecurityGroup'
+      SourceSecurityGroupId: !Ref 'RetoolSecurityGroup'
 
   TemporalSelfIngress:
     Type: AWS::EC2::SecurityGroupIngress
@@ -382,7 +401,7 @@ Resources:
       LoadBalancerAttributes:
       - Key: idle_timeout.timeout_seconds
         Value: '60'
-      Subnets: !Ref 'SubnetId'
+      Subnets: !Ref 'ALBSubnetId'
       SecurityGroups: [!Ref 'ALBSecurityGroup']
 
   ALBListener:
@@ -435,7 +454,7 @@ Resources:
       NetworkConfiguration:
         AwsvpcConfiguration:
           AssignPublicIp: ENABLED
-          SecurityGroups: [!Ref 'ALBSecurityGroup']
+          SecurityGroups: [!Ref 'RetoolSecurityGroup']
           Subnets: !Ref 'SubnetId'
       Cluster: !Ref 'Cluster'
       DesiredCount: !Ref 'DesiredCount'
@@ -455,7 +474,7 @@ Resources:
       NetworkConfiguration:
         AwsvpcConfiguration:
           AssignPublicIp: ENABLED
-          SecurityGroups: [!Ref 'ALBSecurityGroup']
+          SecurityGroups: [!Ref 'RetoolSecurityGroup']
           Subnets: !Ref 'SubnetId'
       Cluster: !Ref 'Cluster'
       DesiredCount: 1
@@ -468,10 +487,10 @@ Resources:
       NetworkConfiguration:
         AwsvpcConfiguration:
           AssignPublicIp: ENABLED
-          SecurityGroups: [!Ref 'ALBSecurityGroup']
+          SecurityGroups: [!Ref 'RetoolSecurityGroup']
           Subnets: !Ref 'SubnetId'
       Cluster: !Ref 'Cluster'
-      DesiredCount: !Ref 'DesiredCount'
+      DesiredCount: !Ref 'DesiredWorkflowsCount'
       DeploymentConfiguration:
         MaximumPercent: !Ref 'MaximumPercent'
         MinimumHealthyPercent: !Ref 'MinimumHealthyPercent'
@@ -485,12 +504,12 @@ Resources:
       NetworkConfiguration:
         AwsvpcConfiguration:
           AssignPublicIp: ENABLED
-          SecurityGroups: [!Ref 'ALBSecurityGroup']
+          SecurityGroups: [!Ref 'RetoolSecurityGroup']
           Subnets: !Ref 'SubnetId'
       ServiceRegistries:
         - RegistryArn: !GetAtt [RetoolWorkflowBackendFargateServiceCloudmapService, Arn]
       Cluster: !Ref 'Cluster'
-      DesiredCount: !Ref 'DesiredCount'
+      DesiredCount: !Ref 'DesiredWorkflowsCount'
       DeploymentConfiguration:
         MaximumPercent: !Ref 'MaximumPercent'
         MinimumHealthyPercent: !Ref 'MinimumHealthyPercent'
@@ -927,7 +946,7 @@ Resources:
       ServiceRegistries:
         - RegistryArn: !GetAtt [TemporalFrontendCloudmapService, Arn]
       Cluster: !Ref 'Cluster'
-      DesiredCount: !Ref 'DesiredCount'
+      DesiredCount: !Ref 'DesiredWorkflowsCount'
       LaunchType: FARGATE
       DeploymentConfiguration:
         MaximumPercent: !Ref 'MaximumPercent'
@@ -943,7 +962,7 @@ Resources:
           SecurityGroups: [!Ref 'TemporalSecurityGroup']
           Subnets: !Ref 'SubnetId'
       Cluster: !Ref 'Cluster'
-      DesiredCount: !Ref 'DesiredCount'
+      DesiredCount: !Ref 'DesiredWorkflowsCount'
       LaunchType: FARGATE
       DeploymentConfiguration:
         MaximumPercent: !Ref 'MaximumPercent'
@@ -959,7 +978,7 @@ Resources:
           SecurityGroups: [!Ref 'TemporalSecurityGroup']
           Subnets: !Ref 'SubnetId'
       Cluster: !Ref 'Cluster'
-      DesiredCount: !Ref 'DesiredCount'
+      DesiredCount: !Ref 'DesiredWorkflowsCount'
       LaunchType: FARGATE
       DeploymentConfiguration:
         MaximumPercent: !Ref 'MaximumPercent'
@@ -975,7 +994,7 @@ Resources:
           SecurityGroups: [!Ref 'TemporalSecurityGroup']
           Subnets: !Ref 'SubnetId'
       Cluster: !Ref 'Cluster'
-      DesiredCount: !Ref 'DesiredCount'
+      DesiredCount: 1
       LaunchType: FARGATE
       DeploymentConfiguration:
         MaximumPercent: !Ref 'MaximumPercent'
@@ -991,7 +1010,7 @@ Resources:
           SecurityGroups: [!Ref 'TemporalSecurityGroup']
           Subnets: !Ref 'SubnetId'
       Cluster: !Ref 'Cluster'
-      DesiredCount: !Ref 'DesiredCount'
+      DesiredCount: 1
       LaunchType: FARGATE
       DeploymentConfiguration:
         MaximumPercent: !Ref 'MaximumPercent'
