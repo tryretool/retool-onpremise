@@ -1,0 +1,976 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Parameters:
+  Environment:
+    Type: String
+    Description: Environment string sent back to plogger with the logs
+  SubnetId:
+    Type: List<AWS::EC2::Subnet::Id>
+    Description: Select at two private subnets in your selected VPC.
+  ALBSubnetId:
+    Type: List<AWS::EC2::Subnet::Id>
+    Description: Select the subnets for your Application Load Balancer.
+  Cluster:
+    Type: String
+    Description: Cluster to put service in.
+  Image:
+    Type: String
+    Description: Image to use in the service.
+  DesiredCount:
+    Type: Number
+    Description: Default number of tasks to run for Retool api container
+  DesiredWorkflowsCount:
+    Type: Number
+    Description: Default number of tasks to run for Retool Workflows containers
+  MaximumPercent:
+    Type: Number
+    Description: Maximum percentage of tasks to run during a deployment
+    Default: 150
+  MinimumHealthyPercent:
+    Type: Number
+    Default: 50
+    Description: Maximum percentage of tasks to run during a deployment
+  VpcId:
+    Type: AWS::EC2::VPC::Id
+    Description: Select a VPC that allows instances access to the Internet.
+  Force:
+    Type: String
+    Description: "Used to force the deployment even when the image and parameters are otherwised unchanged."
+    Default: "false"
+
+Resources:
+  ALBSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: !Join [" ", [!Ref 'AWS::StackName', 'load balancer security group']]
+      VpcId: !Ref 'VpcId'
+
+  GlobalHttpInbound:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !Ref 'ALBSecurityGroup'
+      IpProtocol: tcp
+      FromPort: '80'
+      ToPort: '80'
+      CidrIp: '0.0.0.0/0'
+  
+  RetoolSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: !Join [" ", [!Ref 'AWS::StackName', 'retool container security group']]
+      VpcId: !Ref 'VpcId'
+
+  ALBInbound:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !Ref 'RetoolSecurityGroup'
+      IpProtocol: tcp
+      FromPort: '3000'
+      ToPort: '3000'
+      SourceSecurityGroupId: !Ref 'ALBSecurityGroup'
+
+  RetoolSelfIngress:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !Ref 'RetoolSecurityGroup'
+      IpProtocol: -1
+      SourceSecurityGroupId: !Ref 'RetoolSecurityGroup'
+
+  TemporalSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: !Join [" ", [!Ref 'AWS::StackName', 'temporal security group']]
+      SecurityGroupEgress:
+        - CidrIp: 0.0.0.0/0
+          Description: Allow all outbound traffic by default
+          IpProtocol: "-1"
+      VpcId: !Ref 'VpcId'
+
+  TemporalFrontendIngress:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !Ref 'TemporalSecurityGroup'
+      IpProtocol: tcp
+      FromPort: 7233
+      ToPort: 7233
+      SourceSecurityGroupId: !Ref 'RetoolSecurityGroup'
+
+  TemporalSelfIngress:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !Ref 'TemporalSecurityGroup'
+      IpProtocol: -1
+      SourceSecurityGroupId: !Ref 'TemporalSecurityGroup'
+
+
+  CloudwatchLogsGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Join ['-', [ECSLogGroup, !Ref 'AWS::StackName']]
+      RetentionInDays: 14
+
+  RDSSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: !Join [" ", [!Ref 'AWS::StackName', 'database security group']]
+      VpcId: !Ref 'VpcId'
+
+  RetoolECSPostgresInbound:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !GetAtt [RDSSecurityGroup, GroupId]
+      IpProtocol: tcp
+      FromPort: '5432'
+      ToPort: '5432'
+      CidrIp: '0.0.0.0/0'
+
+  RetoolTask:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: 'retool'
+      TaskRoleArn: !Ref 'RetoolTaskRole'
+      NetworkMode: awsvpc
+      ContainerDefinitions:
+      - Name: 'retool'
+        Cpu: '2048'
+        Memory: '4096'
+        Essential: 'true'
+        Image: !Ref 'Image'
+        LogConfiguration:
+          LogDriver: awslogs
+          Options:
+            awslogs-group: !Ref 'CloudwatchLogsGroup'
+            awslogs-region: !Ref 'AWS::Region'
+            awslogs-stream-prefix: "SERVICE_RETOOL"
+        Environment:
+          - Name: NODE_ENV
+            Value: production
+          - Name: SERVICE_TYPE
+            Value: MAIN_BACKEND,DB_CONNECTOR,DB_SSH_CONNECTOR
+          - Name: "FORCE_DEPLOYMENT"
+            Value: !Ref "Force"
+          - Name: POSTGRES_DB
+            Value: hammerhead_production
+          - Name: POSTGRES_HOST
+            Value: !GetAtt [RetoolRDSInstance, Endpoint.Address]
+          - Name: POSTGRES_SSL_ENABLED
+            Value: "true"
+          - Name: POSTGRES_PORT
+            Value: "5432"
+          - Name: POSTGRES_USER
+            Value: !Join ['', ['{{resolve:secretsmanager:', !Ref RetoolRDSSecret, ':SecretString:username}}' ]]
+          - Name: POSTGRES_PASSWORD
+            Value: !Join ['', ['{{resolve:secretsmanager:', !Ref RetoolRDSSecret, ':SecretString:password}}' ]]
+          - Name: JWT_SECRET
+            Value: !Join ['', ['{{resolve:secretsmanager:', !Ref RetoolJWTSecret, ':SecretString:password}}' ]]
+          - Name: ENCRYPTION_KEY
+            Value: !Join ['', ['{{resolve:secretsmanager:', !Ref RetoolEncryptionKeySecret, ':SecretString:password}}' ]]
+          - Name: WORKFLOW_TEMPORAL_CLUSTER_FRONTEND_HOST
+            Value: temporal.retoolsvc
+          - Name: WORKFLOW_TEMPORAL_CLUSTER_FRONTEND_PORT
+            Value: "7233"
+          - Name: WORKFLOW_BACKEND_HOST
+            Value: http://workflows-backend.retoolsvc:3000
+          - Name: LICENSE_KEY
+            Value: "EXPIRED-LICENSE-KEY-TRIAL"
+          # Remove below when serving Retool over https
+          - Name: COOKIE_INSECURE
+            Value: "true"
+        PortMappings:
+        - ContainerPort: '3000'
+          # HostPort: '80'
+        Command: ["./docker_scripts/start_api.sh"]
+
+  RetoolJobsRunnerTask:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: 'retool-jobs-runner'
+      TaskRoleArn: !Ref 'RetoolTaskRole'
+      NetworkMode: awsvpc
+      ContainerDefinitions:
+      - Name: 'retool-jobs-runner'
+        Cpu: '1024'
+        Memory: '2048'
+        Essential: 'true'
+        Image: !Ref 'Image'
+        LogConfiguration:
+          LogDriver: awslogs
+          Options:
+            awslogs-group: !Ref 'CloudwatchLogsGroup'
+            awslogs-region: !Ref 'AWS::Region'
+            awslogs-stream-prefix: "SERVICE_RETOOL"
+        Environment:
+          - Name: NODE_ENV
+            Value: production
+          - Name: SERVICE_TYPE
+            Value: JOBS_RUNNER
+          - Name: "FORCE_DEPLOYMENT"
+            Value: !Ref "Force"
+          - Name: POSTGRES_DB
+            Value: hammerhead_production
+          - Name: POSTGRES_HOST
+            Value: !GetAtt [RetoolRDSInstance, Endpoint.Address]
+          - Name: POSTGRES_SSL_ENABLED
+            Value: "true"
+          - Name: POSTGRES_PORT
+            Value: "5432"
+          - Name: POSTGRES_USER
+            Value: !Join ['', ['{{resolve:secretsmanager:', !Ref RetoolRDSSecret, ':SecretString:username}}' ]]
+          - Name: POSTGRES_PASSWORD
+            Value: !Join ['', ['{{resolve:secretsmanager:', !Ref RetoolRDSSecret, ':SecretString:password}}' ]]
+          - Name: JWT_SECRET
+            Value: !Join ['', ['{{resolve:secretsmanager:', !Ref RetoolJWTSecret, ':SecretString:password}}' ]]
+          - Name: ENCRYPTION_KEY
+            Value: !Join ['', ['{{resolve:secretsmanager:', !Ref RetoolEncryptionKeySecret, ':SecretString:password}}' ]]
+          - Name: LICENSE_KEY
+            Value: "EXPIRED-LICENSE-KEY-TRIAL"
+        Command: ["./docker_scripts/start_api.sh"]
+
+  RetoolWorkkflowsBackendTask:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: 'retool-workflows-backend'
+      TaskRoleArn: !Ref 'RetoolTaskRole'
+      NetworkMode: awsvpc
+      ContainerDefinitions:
+      - Name: 'retool-workflows-backend'
+        Cpu: '2048'
+        Memory: '4096'
+        Essential: 'true'
+        Image: !Ref 'Image'
+        LogConfiguration:
+          LogDriver: awslogs
+          Options:
+            awslogs-group: !Ref 'CloudwatchLogsGroup'
+            awslogs-region: !Ref 'AWS::Region'
+            awslogs-stream-prefix: "SERVICE_RETOOL"
+        Environment:
+          - Name: NODE_ENV
+            Value: production
+          - Name: SERVICE_TYPE
+            Value: WORKFLOW_BACKEND,DB_CONNECTOR,DB_SSH_CONNECTOR
+          - Name: "FORCE_DEPLOYMENT"
+            Value: !Ref "Force"
+          - Name: POSTGRES_DB
+            Value: hammerhead_production
+          - Name: POSTGRES_HOST
+            Value: !GetAtt [RetoolRDSInstance, Endpoint.Address]
+          - Name: POSTGRES_SSL_ENABLED
+            Value: "true"
+          - Name: POSTGRES_PORT
+            Value: "5432"
+          - Name: POSTGRES_USER
+            Value: !Join ['', ['{{resolve:secretsmanager:', !Ref RetoolRDSSecret, ':SecretString:username}}' ]]
+          - Name: POSTGRES_PASSWORD
+            Value: !Join ['', ['{{resolve:secretsmanager:', !Ref RetoolRDSSecret, ':SecretString:password}}' ]]
+          - Name: JWT_SECRET
+            Value: !Join ['', ['{{resolve:secretsmanager:', !Ref RetoolJWTSecret, ':SecretString:password}}' ]]
+          - Name: ENCRYPTION_KEY
+            Value: !Join ['', ['{{resolve:secretsmanager:', !Ref RetoolEncryptionKeySecret, ':SecretString:password}}' ]]
+          - Name: WORKFLOW_TEMPORAL_CLUSTER_FRONTEND_HOST
+            Value: temporal.retoolsvc
+          - Name: WORKFLOW_TEMPORAL_CLUSTER_FRONTEND_PORT
+            Value: "7233"
+          - Name: WORKFLOW_BACKEND_HOST
+            Value: http://workflows-backend.retoolsvc:3000
+          - Name: LICENSE_KEY
+            Value: "EXPIRED-LICENSE-KEY-TRIAL"
+          # Remove below when serving Retool over https
+          - Name: COOKIE_INSECURE
+            Value: "true"
+        PortMappings:
+        - ContainerPort: '3000'
+        Command: ["./docker_scripts/start_api.sh"]
+
+  RetoolWorkflowsWorkerTask:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: 'retool-workflows-worker'
+      TaskRoleArn: !Ref 'RetoolTaskRole'
+      NetworkMode: awsvpc
+      ContainerDefinitions:
+      - Name: 'retool-workflows-worker'
+        Cpu: '2048'
+        Memory: '4096'
+        Essential: 'true'
+        Image: !Ref 'Image'
+        LogConfiguration:
+          LogDriver: awslogs
+          Options:
+            awslogs-group: !Ref 'CloudwatchLogsGroup'
+            awslogs-region: !Ref 'AWS::Region'
+            awslogs-stream-prefix: "SERVICE_RETOOL"
+        Environment:
+          - Name: NODE_ENV
+            Value: production
+          - Name: SERVICE_TYPE
+            Value: WORKFLOW_TEMPORAL_WORKER
+          - Name: "FORCE_DEPLOYMENT"
+            Value: !Ref "Force"
+          - Name: POSTGRES_DB
+            Value: hammerhead_production
+          - Name: POSTGRES_HOST
+            Value: !GetAtt [RetoolRDSInstance, Endpoint.Address]
+          - Name: POSTGRES_SSL_ENABLED
+            Value: "true"
+          - Name: POSTGRES_PORT
+            Value: "5432"
+          - Name: POSTGRES_USER
+            Value: !Join ['', ['{{resolve:secretsmanager:', !Ref RetoolRDSSecret, ':SecretString:username}}' ]]
+          - Name: POSTGRES_PASSWORD
+            Value: !Join ['', ['{{resolve:secretsmanager:', !Ref RetoolRDSSecret, ':SecretString:password}}' ]]
+          - Name: JWT_SECRET
+            Value: !Join ['', ['{{resolve:secretsmanager:', !Ref RetoolJWTSecret, ':SecretString:password}}' ]]
+          - Name: ENCRYPTION_KEY
+            Value: !Join ['', ['{{resolve:secretsmanager:', !Ref RetoolEncryptionKeySecret, ':SecretString:password}}' ]]
+          - Name: WORKFLOW_TEMPORAL_CLUSTER_FRONTEND_HOST
+            Value: temporal.retoolsvc
+          - Name: WORKFLOW_TEMPORAL_CLUSTER_FRONTEND_PORT
+            Value: "7233"
+          - Name: WORKFLOW_BACKEND_HOST
+            Value: http://workflows-backend.retoolsvc:3000
+          - Name: LICENSE_KEY
+            Value: "EXPIRED-LICENSE-KEY-TRIAL"
+        Command: ["./docker_scripts/start_api.sh"]
+
+  RetoolJWTSecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Description: 'This is the secret for Retool JWTs'
+      GenerateSecretString:
+        SecretStringTemplate: '{}'
+        GenerateStringKey: 'password'
+        PasswordLength: 16
+        ExcludeCharacters: '"@/\'
+
+  RetoolEncryptionKeySecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Description: 'This is the secret for encrypting credentials'
+      GenerateSecretString:
+        SecretStringTemplate: '{}'
+        GenerateStringKey: 'password'
+        PasswordLength: 16
+        ExcludeCharacters: '"@/\'
+
+  RetoolRDSSecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Description: 'This is the secret for the Retool RDS instance'
+      GenerateSecretString:
+        SecretStringTemplate: '{"username": "retool"}'
+        GenerateStringKey: 'password'
+        PasswordLength: 16
+        ExcludeCharacters: '"@/\'
+
+
+  RetoolRDSInstance:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      AllocatedStorage: "80"
+      DBInstanceClass: "db.m4.large"
+      Engine: postgres
+      EngineVersion: "11.12"
+      DBName: "hammerhead_production"
+      MasterUsername: !Join ['', ['{{resolve:secretsmanager:', !Ref RetoolRDSSecret, ':SecretString:username}}' ]]
+      MasterUserPassword: !Join ['', ['{{resolve:secretsmanager:', !Ref RetoolRDSSecret, ':SecretString:password}}' ]]
+      Port: "5432"
+      VPCSecurityGroups: [!GetAtt [RDSSecurityGroup, GroupId]]
+      DBSubnetGroupName: !Ref 'RDSSubnetGroup'
+
+  RDSSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties: 
+      DBSubnetGroupDescription: !Join [" ", [!Ref 'AWS::StackName', 'rds subnet security group']]
+      SubnetIds: !Ref 'SubnetId' 
+
+  ECSALB:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Name: !Join ['-', [!Ref 'AWS::StackName', 'lb']]
+      Scheme: "internet-facing"
+      LoadBalancerAttributes:
+      - Key: idle_timeout.timeout_seconds
+        Value: '60'
+      Subnets: !Ref 'ALBSubnetId'
+      SecurityGroups: [!Ref 'ALBSecurityGroup']
+
+  ALBListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    DependsOn: RetoolServiceRole
+    Properties:
+      DefaultActions:
+      - Type: forward
+        TargetGroupArn: !Ref 'ECSTG'
+      LoadBalancerArn: !Ref 'ECSALB'
+      Port: '80'
+      Protocol: HTTP
+
+  ECSALBListenerRule:
+    Type: AWS::ElasticLoadBalancingV2::ListenerRule
+    DependsOn: ALBListener
+    Properties:
+      Actions:
+      - Type: forward
+        TargetGroupArn: !Ref 'ECSTG'
+      Conditions:
+      - Field: path-pattern
+        Values: [/]
+      ListenerArn: !Ref 'ALBListener'
+      Priority: 1
+
+  ECSTG:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    DependsOn: ECSALB
+    Properties:
+      TargetType: ip
+      HealthCheckIntervalSeconds: 61
+      HealthCheckPath: '/api/checkHealth'
+      HealthCheckProtocol: HTTP
+      HealthCheckTimeoutSeconds: 60
+      HealthyThresholdCount: 4
+      Name: !Join ['-', [!Ref 'AWS::StackName', 'tg']]
+      Port: '3000'
+      Protocol: HTTP
+      UnhealthyThresholdCount: 2
+      VpcId: !Ref 'VpcId'
+      TargetGroupAttributes:
+      - Key: deregistration_delay.timeout_seconds
+        Value: '30'
+
+  RetoolECSservice:
+    Type: AWS::ECS::Service
+    DependsOn: ALBListener
+    Properties:
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: DISABLED # must be run in private subnet with NAT gateway
+          SecurityGroups: [!Ref 'RetoolSecurityGroup']
+          Subnets: !Ref 'SubnetId'
+      Cluster: !Ref 'Cluster'
+      DesiredCount: !Ref 'DesiredCount'
+      DeploymentConfiguration:
+        MaximumPercent: !Ref 'MaximumPercent'
+        MinimumHealthyPercent: !Ref 'MinimumHealthyPercent'
+      LoadBalancers:
+      - ContainerName: 'retool'
+        ContainerPort: '3000'
+        TargetGroupArn: !Ref 'ECSTG'
+      TaskDefinition: !Ref 'RetoolTask'
+
+  RetoolJobsRunnerECSservice:
+    Type: AWS::ECS::Service
+    Properties:
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: DISABLED # must be run in private subnet with NAT gateway
+          SecurityGroups: [!Ref 'RetoolSecurityGroup']
+          Subnets: !Ref 'SubnetId'
+      Cluster: !Ref 'Cluster'
+      DesiredCount: 1
+      TaskDefinition: !Ref 'RetoolJobsRunnerTask'
+
+  RetoolWorkflowsWorkerECSService:
+    Type: AWS::ECS::Service
+    Properties:
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: DISABLED # must be run in private subnet with NAT gateway
+          SecurityGroups: [!Ref 'RetoolSecurityGroup']
+          Subnets: !Ref 'SubnetId'
+      Cluster: !Ref 'Cluster'
+      DesiredCount: !Ref 'DesiredWorkflowsCount'
+      DeploymentConfiguration:
+        MaximumPercent: !Ref 'MaximumPercent'
+        MinimumHealthyPercent: !Ref 'MinimumHealthyPercent'
+      TaskDefinition: !Ref 'RetoolWorkflowsWorkerTask'
+
+  RetoolWorkkflowsBackendECSService:
+    DependsOn: RetoolWorkflowBackendServiceCloudmapService
+    Type: AWS::ECS::Service
+    Properties:
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: DISABLED # must be run in private subnet with NAT gateway
+          SecurityGroups: [!Ref 'RetoolSecurityGroup']
+          Subnets: !Ref 'SubnetId'
+      ServiceRegistries:
+        - RegistryArn: !GetAtt [RetoolWorkflowBackendServiceCloudmapService, Arn]
+      Cluster: !Ref 'Cluster'
+      DesiredCount: !Ref 'DesiredWorkflowsCount'
+      DeploymentConfiguration:
+        MaximumPercent: !Ref 'MaximumPercent'
+        MinimumHealthyPercent: !Ref 'MinimumHealthyPercent'
+      TaskDefinition: !Ref 'RetoolWorkkflowsBackendTask'
+
+  RetoolServiceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service: [ecs.amazonaws.com]
+          Action: ['sts:AssumeRole']
+      Path: /
+      Policies:
+      - PolicyName: !Join ['-', ['Retool', !Ref 'Environment', 'service-policy']]
+        PolicyDocument:
+          Statement:
+          - Effect: Allow
+            Action: [
+              'elasticloadbalancing:DeregisterInstancesFromLoadBalancer',
+              'elasticloadbalancing:DeregisterTargets',
+              'elasticloadbalancing:Describe*',
+              'elasticloadbalancing:RegisterInstancesWithLoadBalancer',
+              'elasticloadbalancing:RegisterTargets',
+              'ec2:Describe*',
+              'ec2:AuthorizeSecurityGroupIngress']
+            Resource: '*'
+
+  RetoolTaskRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service: ['ecs-tasks.amazonaws.com']
+          Action: ['sts:AssumeRole']
+      Path: /
+      Policies: []
+
+# Workflows
+  WorkflowsCloudMapNamespace:
+    Type: AWS::ServiceDiscovery::PrivateDnsNamespace
+    Properties:
+      Name: retoolsvc
+      Vpc: !Ref 'VpcId'
+  RetoolWorkflowBackendServiceCloudmapService:
+    Type: AWS::ServiceDiscovery::Service
+    Properties:
+      DnsConfig:
+        DnsRecords:
+          - TTL: 60
+            Type: A
+        NamespaceId: !GetAtt [WorkflowsCloudMapNamespace, Id]
+        RoutingPolicy: MULTIVALUE
+      HealthCheckCustomConfig:
+        FailureThreshold: 1
+      Name: workflows-backend
+      NamespaceId: !GetAtt [WorkflowsCloudMapNamespace, Id]
+
+
+# Temporal
+  RetoolTemporalTaskRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service: ['ecs-tasks.amazonaws.com']
+          Action: ['sts:AssumeRole']
+      Path: /
+      Policies: []
+  RetoolTemporalRDSSecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Description: 'This is the secret for the Retool Temporal RDS instance'
+      GenerateSecretString:
+        SecretStringTemplate: '{"username": "retool"}'
+        GenerateStringKey: 'password'
+        PasswordLength: 16
+        ExcludeCharacters: '"@/\'
+
+  # RDS-based Temporal DB
+  # RetoolTemporalRDSInstance:
+  #   Type: AWS::RDS::DBInstance
+  #   Properties:
+  #     AllocatedStorage: "80"
+  #     DBInstanceClass: "db.m4.large"
+  #     Engine: postgres
+  #     EngineVersion: "11.12"
+  #     DBName: "temporal"
+  #     MasterUsername: !Join ['', ['{{resolve:secretsmanager:', !Ref RetoolTemporalRDSSecret, ':SecretString:username}}' ]]
+  #     MasterUserPassword: !Join ['', ['{{resolve:secretsmanager:', !Ref RetoolTemporalRDSSecret, ':SecretString:password}}' ]]
+  #     Port: "5432"
+  #     VPCSecurityGroups: [!GetAtt [RDSSecurityGroup, GroupId]]
+  #     DBSubnetGroupName: !Ref 'RDSSubnetGroup'
+
+  # Aurora-based Temporal DB
+  RetoolTemporalRDSCluster:
+    Type: AWS::RDS::DBCluster
+    Properties:
+      Engine: "aurora-postgresql"
+      EngineVersion: "14.5"
+      MasterUsername: !Join ['', ['{{resolve:secretsmanager:', !Ref RetoolTemporalRDSSecret, ':SecretString:username}}' ]]
+      MasterUserPassword: !Join ['', ['{{resolve:secretsmanager:', !Ref RetoolTemporalRDSSecret, ':SecretString:password}}' ]]
+      Port: "5432"
+      VpcSecurityGroupIds: [!GetAtt [RDSSecurityGroup, GroupId]]
+      DBSubnetGroupName: !Ref 'RDSSubnetGroup'
+      ServerlessV2ScalingConfiguration:
+        MinCapacity: 0.5
+        MaxCapacity: 10
+  RetoolTemporalRDSInstance:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      Engine: "aurora-postgresql"
+      DBInstanceClass: "db.serverless"
+      DBClusterIdentifier: !Ref 'RetoolTemporalRDSCluster'
+
+  TemporalClusterFrontendTask:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: 'retool-temporal-frontend'
+      TaskRoleArn: !Ref 'RetoolTaskRole'
+      NetworkMode: awsvpc
+      ContainerDefinitions:
+        - Name: temporal-cluster-frontend
+          Cpu: '256'
+          Memory: '512'
+          Essential: 'true'
+          Image: tryretool/one-offs:retool-temporal-1.1.2
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Ref 'CloudwatchLogsGroup'
+              awslogs-region: !Ref 'AWS::Region'
+              awslogs-stream-prefix: "SERVICE_RETOOL_TEMPORAL"
+          Environment:
+            - Name: SERVICES
+              Value: frontend
+            - Name: LOG_LEVEL
+              Value: debug,info
+            - Name: NUM_HISTORY_SHARDS
+              Value: "128"
+            - Name: DB
+              Value: postgresql
+            - Name: POSTGRES_HOST
+              Value: !GetAtt [RetoolTemporalRDSInstance, Endpoint.Address]
+            - Name: POSTGRES_PORT
+              Value: 5432
+            - Name: POSTGRES_USER
+              Value: !Join ['', ['{{resolve:secretsmanager:', !Ref RetoolTemporalRDSSecret, ':SecretString:username}}' ]]
+            - Name: POSTGRES_PASSWORD
+              Value: !Join ['', ['{{resolve:secretsmanager:', !Ref RetoolTemporalRDSSecret, ':SecretString:password}}' ]]
+            # - Name: SQL_TLS_ENABLED
+            #   Value: "true"
+            # - Name: SQL_TLS
+            #   Value: "true"
+            # - Name: SQL_TLS_SKIP_HOST_VERIFICATION
+            #   Value: "true"
+            # - Name: SQL_TLS_DISABLE_HOST_VERIFICATION
+            #   Value: "true"
+            - Name: DBNAME
+              Value: temporal
+            - Name: DBNAME_VISIBILITY
+              Value: temporal_visibility
+            - Name: DYNAMIC_CONFIG_FILE_PATH
+              Value: /etc/temporal/ecs/dynamic_config/dynamicconfig-sql.yaml
+            - Name: ECS_DEPLOYED
+              Value: "true"
+          PortMappings:
+            - ContainerPort: 7233
+              HostPort: 7233
+              Protocol: tcp
+            - ContainerPort: 6933
+              HostPort: 6933
+              Protocol: tcp
+  TemporalClusterHistoryTask:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: 'retool-temporal-history'
+      TaskRoleArn: !Ref 'RetoolTaskRole'
+      NetworkMode: awsvpc
+      ContainerDefinitions:
+        - Name: temporal-cluster-history
+          Cpu: '512'
+          Memory: '1024'
+          Essential: 'true'
+          Image: tryretool/one-offs:retool-temporal-1.1.2
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Ref 'CloudwatchLogsGroup'
+              awslogs-region: !Ref 'AWS::Region'
+              awslogs-stream-prefix: "SERVICE_RETOOL_TEMPORAL"
+          Environment:
+            - Name: SERVICES
+              Value: history
+            - Name: LOG_LEVEL
+              Value: debug,info
+            - Name: NUM_HISTORY_SHARDS
+              Value: "128"
+            - Name: DB
+              Value: postgresql
+            - Name: POSTGRES_HOST
+              Value: !GetAtt [RetoolTemporalRDSInstance, Endpoint.Address]
+            - Name: POSTGRES_PORT
+              Value: 5432
+            - Name: POSTGRES_USER
+              Value: !Join ['', ['{{resolve:secretsmanager:', !Ref RetoolTemporalRDSSecret, ':SecretString:username}}' ]]
+            - Name: POSTGRES_PASSWORD
+              Value: !Join ['', ['{{resolve:secretsmanager:', !Ref RetoolTemporalRDSSecret, ':SecretString:password}}' ]]
+            # - Name: SQL_TLS_ENABLED
+            #   Value: "true"
+            # - Name: SQL_TLS
+            #   Value: "true"
+            # - Name: SQL_TLS_SKIP_HOST_VERIFICATION
+            #   Value: "true"
+            # - Name: SQL_TLS_DISABLE_HOST_VERIFICATION
+            #   Value: "true"
+            - Name: DBNAME
+              Value: temporal
+            - Name: DBNAME_VISIBILITY
+              Value: temporal_visibility
+            - Name: DYNAMIC_CONFIG_FILE_PATH
+              Value: /etc/temporal/ecs/dynamic_config/dynamicconfig-sql.yaml
+            - Name: PUBLIC_FRONTEND_ADDRESS
+              Value: temporal.retoolsvc:7233
+            - Name: ECS_DEPLOYED
+              Value: "true"
+          PortMappings:
+            - ContainerPort: 7234
+              HostPort: 7234
+              Protocol: tcp
+            - ContainerPort: 6934
+              HostPort: 6934
+              Protocol: tcp
+  TemporalClusterMatchingTask:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: 'retool-temporal-matching'
+      TaskRoleArn: !Ref 'RetoolTaskRole'
+      NetworkMode: awsvpc
+      ContainerDefinitions:
+        - Name: temporal-cluster-matching
+          Cpu: '512'
+          Memory: '1024'
+          Essential: 'true'
+          Image: tryretool/one-offs:retool-temporal-1.1.2
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Ref 'CloudwatchLogsGroup'
+              awslogs-region: !Ref 'AWS::Region'
+              awslogs-stream-prefix: "SERVICE_RETOOL_TEMPORAL"
+          Environment:
+            - Name: SERVICES
+              Value: matching
+            - Name: LOG_LEVEL
+              Value: debug,info
+            - Name: NUM_HISTORY_SHARDS
+              Value: "128"
+            - Name: DB
+              Value: postgresql
+            - Name: POSTGRES_HOST
+              Value: !GetAtt [RetoolTemporalRDSInstance, Endpoint.Address]
+            - Name: POSTGRES_PORT
+              Value: 5432
+            - Name: POSTGRES_USER
+              Value: !Join ['', ['{{resolve:secretsmanager:', !Ref RetoolTemporalRDSSecret, ':SecretString:username}}' ]]
+            - Name: POSTGRES_PASSWORD
+              Value: !Join ['', ['{{resolve:secretsmanager:', !Ref RetoolTemporalRDSSecret, ':SecretString:password}}' ]]
+            # - Name: SQL_TLS_ENABLED
+            #   Value: "true"
+            # - Name: SQL_TLS
+            #   Value: "true"
+            # - Name: SQL_TLS_SKIP_HOST_VERIFICATION
+            #   Value: "true"
+            # - Name: SQL_TLS_DISABLE_HOST_VERIFICATION
+            #   Value: "true"
+            - Name: DBNAME
+              Value: temporal
+            - Name: DBNAME_VISIBILITY
+              Value: temporal_visibility
+            - Name: DYNAMIC_CONFIG_FILE_PATH
+              Value: /etc/temporal/ecs/dynamic_config/dynamicconfig-sql.yaml
+            - Name: PUBLIC_FRONTEND_ADDRESS
+              Value: temporal.retoolsvc:7233
+            - Name: ECS_DEPLOYED
+              Value: "true"
+          PortMappings:
+            - ContainerPort: 7235
+              HostPort: 7235
+              Protocol: tcp
+            - ContainerPort: 6935
+              HostPort: 6935
+              Protocol: tcp
+  TemporalClusterWorkerTask:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: 'retool-temporal-worker'
+      TaskRoleArn: !Ref 'RetoolTaskRole'
+      NetworkMode: awsvpc
+      ContainerDefinitions:
+        - Name: temporal-cluster-worker
+          Cpu: '256'
+          Memory: '512'
+          Essential: 'true'
+          Image: tryretool/one-offs:retool-temporal-1.1.2
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Ref 'CloudwatchLogsGroup'
+              awslogs-region: !Ref 'AWS::Region'
+              awslogs-stream-prefix: "SERVICE_RETOOL_TEMPORAL"
+          Environment:
+            - Name: SERVICES
+              Value: worker
+            - Name: LOG_LEVEL
+              Value: debug,info
+            - Name: NUM_HISTORY_SHARDS
+              Value: "128"
+            - Name: DB
+              Value: postgresql
+            - Name: POSTGRES_HOST
+              Value: !GetAtt [RetoolTemporalRDSInstance, Endpoint.Address]
+            - Name: POSTGRES_PORT
+              Value: 5432
+            - Name: POSTGRES_USER
+              Value: !Join ['', ['{{resolve:secretsmanager:', !Ref RetoolTemporalRDSSecret, ':SecretString:username}}' ]]
+            - Name: POSTGRES_PASSWORD
+              Value: !Join ['', ['{{resolve:secretsmanager:', !Ref RetoolTemporalRDSSecret, ':SecretString:password}}' ]]
+            # - Name: SQL_TLS_ENABLED
+            #   Value: "true"
+            # - Name: SQL_TLS
+            #   Value: "true"
+            # - Name: SQL_TLS_SKIP_HOST_VERIFICATION
+            #   Value: "true"
+            # - Name: SQL_TLS_DISABLE_HOST_VERIFICATION
+            #   Value: "true"
+            - Name: DBNAME
+              Value: temporal
+            - Name: DBNAME_VISIBILITY
+              Value: temporal_visibility
+            - Name: DYNAMIC_CONFIG_FILE_PATH
+              Value: /etc/temporal/ecs/dynamic_config/dynamicconfig-sql.yaml
+            - Name: PUBLIC_FRONTEND_ADDRESS
+              Value: temporal.retoolsvc:7233
+            - Name: ECS_DEPLOYED
+              Value: "true"
+          PortMappings:
+            - ContainerPort: 7239
+              HostPort: 7239
+              Protocol: tcp
+            - ContainerPort: 6939
+              HostPort: 6939
+              Protocol: tcp
+  TemporalClusterWebTask:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: 'retool-temporal-web'
+      TaskRoleArn: !Ref 'RetoolTaskRole'
+      NetworkMode: awsvpc
+      ContainerDefinitions:
+        - Name: temporal-cluster-web
+          Cpu: '256'
+          Memory: '512'
+          Image: temporalio/ui:2.14.0
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Ref 'CloudwatchLogsGroup'
+              awslogs-region: !Ref 'AWS::Region'
+              awslogs-stream-prefix: "SERVICE_RETOOL_TEMPORAL"
+          Environment:
+            - Name: TEMPORAL_ADDRESS
+              Value: temporal.retoolsvc:7233
+          PortMappings:
+            - ContainerPort: 8088
+              HostPort: 8088
+              Protocol: tcp
+  TemporalFrontendService:
+    Type: AWS::ECS::Service
+    Properties:
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: DISABLED # must be run in private subnet with NAT gateway
+          SecurityGroups: [!Ref 'TemporalSecurityGroup']
+          Subnets: !Ref 'SubnetId'
+      ServiceRegistries:
+        - RegistryArn: !GetAtt [TemporalFrontendCloudmapService, Arn]
+      Cluster: !Ref 'Cluster'
+      DesiredCount: !Ref 'DesiredWorkflowsCount'
+      DeploymentConfiguration:
+        MaximumPercent: !Ref 'MaximumPercent'
+        MinimumHealthyPercent: !Ref 'MinimumHealthyPercent'
+      TaskDefinition: !Ref 'TemporalClusterFrontendTask'
+  TemporalHistoryService:
+    Type: AWS::ECS::Service
+    DependsOn: TemporalFrontendService
+    Properties:
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: DISABLED # must be run in private subnet with NAT gateway
+          SecurityGroups: [!Ref 'TemporalSecurityGroup']
+          Subnets: !Ref 'SubnetId'
+      Cluster: !Ref 'Cluster'
+      DesiredCount: !Ref 'DesiredWorkflowsCount'
+      DeploymentConfiguration:
+        MaximumPercent: !Ref 'MaximumPercent'
+        MinimumHealthyPercent: !Ref 'MinimumHealthyPercent'
+      TaskDefinition: !Ref 'TemporalClusterHistoryTask'
+  TemporalMatchingService:
+    Type: AWS::ECS::Service
+    DependsOn: TemporalFrontendService
+    Properties:
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: DISABLED # must be run in private subnet with NAT gateway
+          SecurityGroups: [!Ref 'TemporalSecurityGroup']
+          Subnets: !Ref 'SubnetId'
+      Cluster: !Ref 'Cluster'
+      DesiredCount: !Ref 'DesiredWorkflowsCount'
+      DeploymentConfiguration:
+        MaximumPercent: !Ref 'MaximumPercent'
+        MinimumHealthyPercent: !Ref 'MinimumHealthyPercent'
+      TaskDefinition: !Ref 'TemporalClusterMatchingTask'
+  TemporalWorkerService:
+    Type: AWS::ECS::Service
+    DependsOn: TemporalFrontendService
+    Properties:
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: DISABLED # must be run in private subnet with NAT gateway
+          SecurityGroups: [!Ref 'TemporalSecurityGroup']
+          Subnets: !Ref 'SubnetId'
+      Cluster: !Ref 'Cluster'
+      DesiredCount: 1
+      DeploymentConfiguration:
+        MaximumPercent: !Ref 'MaximumPercent'
+        MinimumHealthyPercent: !Ref 'MinimumHealthyPercent'
+      TaskDefinition: !Ref 'TemporalClusterWorkerTask'
+  TemporalClusterWebService:
+    Type: AWS::ECS::Service
+    DependsOn: TemporalFrontendService
+    Properties:
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: DISABLED # must be run in private subnet with NAT gateway
+          SecurityGroups: [!Ref 'TemporalSecurityGroup']
+          Subnets: !Ref 'SubnetId'
+      Cluster: !Ref 'Cluster'
+      DesiredCount: 1
+      DeploymentConfiguration:
+        MaximumPercent: !Ref 'MaximumPercent'
+        MinimumHealthyPercent: !Ref 'MinimumHealthyPercent'
+      TaskDefinition: !Ref 'TemporalClusterWebTask'
+  TemporalFrontendCloudmapService:
+    Type: AWS::ServiceDiscovery::Service
+    Properties:
+      DnsConfig:
+        DnsRecords:
+          - TTL: 60
+            Type: A
+        NamespaceId: !GetAtt [WorkflowsCloudMapNamespace, Id]
+        RoutingPolicy: MULTIVALUE
+      HealthCheckCustomConfig:
+        FailureThreshold: 1
+      Name: temporal
+      NamespaceId: !GetAtt [WorkflowsCloudMapNamespace, Id]
+
+Outputs:
+  ECSALB:
+    Description: Your ALB DNS URL
+    Value: !GetAtt [ECSALB, DNSName]
