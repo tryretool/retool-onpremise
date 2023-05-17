@@ -47,7 +47,7 @@ Resources:
   GlobalHttpInbound:
     Type: AWS::EC2::SecurityGroupIngress
     Properties:
-      GroupId: !Ref 'ALBSecurityGroup'
+      GroupId: !GetAtt [ALBSecurityGroup, GroupId]
       IpProtocol: tcp
       FromPort: '80'
       ToPort: '80'
@@ -62,18 +62,18 @@ Resources:
   ALBInbound:
     Type: AWS::EC2::SecurityGroupIngress
     Properties:
-      GroupId: !Ref 'RetoolSecurityGroup'
+      GroupId: !GetAtt [RetoolSecurityGroup, GroupId]
       IpProtocol: tcp
       FromPort: '3000'
       ToPort: '3000'
-      SourceSecurityGroupId: !Ref 'ALBSecurityGroup'
+      SourceSecurityGroupId: !GetAtt [ALBSecurityGroup, GroupId]
 
   RetoolSelfIngress:
     Type: AWS::EC2::SecurityGroupIngress
     Properties:
-      GroupId: !Ref 'RetoolSecurityGroup'
+      GroupId: !GetAtt [RetoolSecurityGroup, GroupId]
       IpProtocol: -1
-      SourceSecurityGroupId: !Ref 'RetoolSecurityGroup'
+      SourceSecurityGroupId: !GetAtt [RetoolSecurityGroup, GroupId]
     
   TemporalSecurityGroup:
     Type: AWS::EC2::SecurityGroup
@@ -88,18 +88,18 @@ Resources:
   TemporalFrontendIngress:
     Type: AWS::EC2::SecurityGroupIngress
     Properties:
-      GroupId: !Ref 'TemporalSecurityGroup'
+      GroupId: !GetAtt [TemporalSecurityGroup, GroupId]
       IpProtocol: tcp
       FromPort: 7233
       ToPort: 7233
-      SourceSecurityGroupId: !Ref 'RetoolSecurityGroup'
+      SourceSecurityGroupId: !GetAtt [RetoolSecurityGroup, GroupId]
 
   TemporalSelfIngress:
     Type: AWS::EC2::SecurityGroupIngress
     Properties:
-      GroupId: !Ref 'TemporalSecurityGroup'
+      GroupId: !GetAtt [TemporalSecurityGroup, GroupId]
       IpProtocol: -1
-      SourceSecurityGroupId: !Ref 'TemporalSecurityGroup'
+      SourceSecurityGroupId: !GetAtt [TemporalSecurityGroup, GroupId]
 
 
   CloudwatchLogsGroup:
@@ -402,7 +402,7 @@ Resources:
       - Key: idle_timeout.timeout_seconds
         Value: '60'
       Subnets: !Ref 'ALBSubnetId'
-      SecurityGroups: [!Ref 'ALBSecurityGroup']
+      SecurityGroups: [!GetAtt [ALBSecurityGroup, GroupId]]
 
   ALBListener:
     Type: AWS::ElasticLoadBalancingV2::Listener
@@ -454,7 +454,7 @@ Resources:
       NetworkConfiguration:
         AwsvpcConfiguration:
           AssignPublicIp: ENABLED
-          SecurityGroups: [!Ref 'RetoolSecurityGroup']
+          SecurityGroups: [!GetAtt [RetoolSecurityGroup, GroupId]]
           Subnets: !Ref 'SubnetId'
       Cluster: !Ref 'Cluster'
       DesiredCount: !Ref 'DesiredCount'
@@ -474,7 +474,7 @@ Resources:
       NetworkConfiguration:
         AwsvpcConfiguration:
           AssignPublicIp: ENABLED
-          SecurityGroups: [!Ref 'RetoolSecurityGroup']
+          SecurityGroups: [!GetAtt [RetoolSecurityGroup, GroupId]]
           Subnets: !Ref 'SubnetId'
       Cluster: !Ref 'Cluster'
       DesiredCount: 1
@@ -487,7 +487,7 @@ Resources:
       NetworkConfiguration:
         AwsvpcConfiguration:
           AssignPublicIp: ENABLED
-          SecurityGroups: [!Ref 'RetoolSecurityGroup']
+          SecurityGroups: [!GetAtt [RetoolSecurityGroup, GroupId]]
           Subnets: !Ref 'SubnetId'
       Cluster: !Ref 'Cluster'
       DesiredCount: !Ref 'DesiredWorkflowsCount'
@@ -504,7 +504,7 @@ Resources:
       NetworkConfiguration:
         AwsvpcConfiguration:
           AssignPublicIp: ENABLED
-          SecurityGroups: [!Ref 'RetoolSecurityGroup']
+          SecurityGroups: [!GetAtt [RetoolSecurityGroup, GroupId]]
           Subnets: !Ref 'SubnetId'
       ServiceRegistries:
         - RegistryArn: !GetAtt [RetoolWorkflowBackendFargateServiceCloudmapService, Arn]
@@ -941,7 +941,7 @@ Resources:
       NetworkConfiguration:
         AwsvpcConfiguration:
           AssignPublicIp: ENABLED
-          SecurityGroups: [!Ref 'TemporalSecurityGroup']
+          SecurityGroups: [!GetAtt [TemporalSecurityGroup, GroupId]]
           Subnets: !Ref 'SubnetId'
       ServiceRegistries:
         - RegistryArn: !GetAtt [TemporalFrontendCloudmapService, Arn]
@@ -959,7 +959,7 @@ Resources:
       NetworkConfiguration:
         AwsvpcConfiguration:
           AssignPublicIp: ENABLED
-          SecurityGroups: [!Ref 'TemporalSecurityGroup']
+          SecurityGroups: [!GetAtt [TemporalSecurityGroup, GroupId]]
           Subnets: !Ref 'SubnetId'
       Cluster: !Ref 'Cluster'
       DesiredCount: !Ref 'DesiredWorkflowsCount'
@@ -975,7 +975,7 @@ Resources:
       NetworkConfiguration:
         AwsvpcConfiguration:
           AssignPublicIp: ENABLED
-          SecurityGroups: [!Ref 'TemporalSecurityGroup']
+          SecurityGroups: [!GetAtt [TemporalSecurityGroup, GroupId]]
           Subnets: !Ref 'SubnetId'
       Cluster: !Ref 'Cluster'
       DesiredCount: !Ref 'DesiredWorkflowsCount'
@@ -991,7 +991,7 @@ Resources:
       NetworkConfiguration:
         AwsvpcConfiguration:
           AssignPublicIp: ENABLED
-          SecurityGroups: [!Ref 'TemporalSecurityGroup']
+          SecurityGroups: [!GetAtt [TemporalSecurityGroup, GroupId]]
           Subnets: !Ref 'SubnetId'
       Cluster: !Ref 'Cluster'
       DesiredCount: 1
@@ -1007,7 +1007,7 @@ Resources:
       NetworkConfiguration:
         AwsvpcConfiguration:
           AssignPublicIp: ENABLED
-          SecurityGroups: [!Ref 'TemporalSecurityGroup']
+          SecurityGroups: [!GetAtt [TemporalSecurityGroup, GroupId]]
           Subnets: !Ref 'SubnetId'
       Cluster: !Ref 'Cluster'
       DesiredCount: 1
