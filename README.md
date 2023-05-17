@@ -14,14 +14,12 @@ After following the below setup instructions, if you're running into issues you 
 - [Select a Retool version number](#select-a-retool-version-number)
 - [One-Click Deploy](#one-click-deploy)
   - [AWS](#one-click-deployment-to-aws)
-  - [Render](#one-click-deployment-to-render)
 - [Single deployments](#single-deployments)
   - [General Machine Specifications](#general-machine-specifications)
   - [AWS w/ EC2](#aws-deploy-with-ec2)
   - [GCP w/ Compute Engine VM](#gcp-deploy-with-compute-engine-virtual-machine)
   - [Azure w/ Azure VM](#azure-deploy-with-azure-virtual-machine)
   - [Heroku](#deploying-retool-on-heroku)
-  - [Aptible](#deploying-retool-using-aptible)
 - [Managed deployments](#managed-deployments)
   - [General](#general-managed-deployments)
     - [Kubernetes](#deploying-on-kubernetes)
@@ -57,12 +55,6 @@ Asia Pacific (Mumbai) |	ap-south-1 | [![Launch Stack](https://cdn.rawgit.com/bui
 US East (Ohio) | us-east-2 | [![Launch Stack](https://cdn.rawgit.com/buildkite/cloudformation-launch-stack-button-svg/master/launch-stack.svg)](https://us-east-2.console.aws.amazon.com/cloudformation/home?region=us-east-2#/stacks/quickcreate?templateURL=https://s3-external-1.amazonaws.com/cf-templates-x1ljyg3aygh-us-east-1/2021157Dqr-SSOPLaunchJuneo3g1bsca3hh&stackName=retool) 
 US West (Oregon) |	us-west-2 | [![Launch Stack](https://cdn.rawgit.com/buildkite/cloudformation-launch-stack-button-svg/master/launch-stack.svg)](https://us-west-2.console.aws.amazon.com/cloudformation/home?region=us-west-2#/stacks/quickcreate?templateURL=https://s3-external-1.amazonaws.com/cf-templates-x1ljyg3aygh-us-east-1/2021157Dqr-SSOPLaunchJuneo3g1bsca3hh&stackName=retool) 
 EU (Frankfurt) |	eu-central-1 | [![Launch Stack](https://cdn.rawgit.com/buildkite/cloudformation-launch-stack-button-svg/master/launch-stack.svg)](https://eu-central-1.console.aws.amazon.com/cloudformation/home?region=eu-central-1#/stacks/quickcreate?templateURL=https://s3-external-1.amazonaws.com/cf-templates-x1ljyg3aygh-us-east-1/2021157Dqr-SSOPLaunchJuneo3g1bsca3hh&stackName=retool) 
-
-### One-click Deployment to Render
-
-Just use the Deploy to Render button below! Here are [some docs](https://render.com/docs/deploy-retool) on deploying Retool with Render.
-
-[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/render-examples/retool)
 
 ## Single Deployments
 
@@ -219,37 +211,7 @@ You can manually deploy to Heroku using the following steps:
    ```
 1. Push the code: `git push heroku master`
 
-### Deploying Retool using Aptible
 
-1. Add your public SSH key to your Aptible account through the Aptible dashboard
-1. Install the Aptible CLI, and login. Documentation for this can be found here: <https://www.aptible.com/documentation/deploy/cli.html>
-1. Clone this repo `git clone https://github.com/tryretool/retool-onpremise`
-1. Change the working directory to the newly cloned repository `cd ./retool-onpremise`
-1. Edit the `Dockerfile` to set the version of Retool you want to install. To do this, replace `X.Y.Z` in `FROM tryretool/backend:X.Y.Z` with your desired version. See [Select a Retool version number](#select-a-retool-version-number) to help you choose a version.
-1. Create a new Aptible app with `aptible apps:create your-app-name`
-1. Add a database: `aptible db:create your-database-name --type postgresql`
-1. Set your config variables (your database connection string will be in your Aptible Dashboard and you can parse out the individual values by following [these instructions](https://www.aptible.com/documentation/deploy/reference/databases/credentials.html#using-database-credentials)). Be sure to rename `EXPIRED-LICENSE-KEY-TRIAL` to the license key provided to you.
-1. If secrets need an authenticated encryption method, add `USE_GCM_ENCRYPTION=true` to the command below and change `ENCRYPTION_KEY=$(cat /dev/urandom | base64 | head -c 24)`
-
-   ```yml
-   aptible config:set --app your-app-name \
-       POSTGRES_DB=your-db \
-       POSTGRES_HOST=your-db-host \
-       POSTGRES_USER=your-user \
-       POSTGRES_PASSWORD=your-db-password \
-       POSTGRES_PORT=your-db-port \
-       POSTGRES_SSL_ENABLED=true \
-       FORCE_SSL=true \
-       NODE_ENV=production \
-       JWT_SECRET=$(cat /dev/urandom | base64 | head -c 256) \
-       ENCRYPTION_KEY=$(cat /dev/urandom | base64 | head -c 64) \
-       LICENSE_KEY=EXPIRED-LICENSE-KEY-TRIAL
-   ```
-
-1. Set your git remote which you can find in the Aptible dashboard: `git remote add aptible your-git-url`
-1. Push the code: `git push aptible master`
-1. Create a default Aptible endpoint
-1. Navigate to your endpoint and sign up as a new user in your Retool instance
 
 ## Managed deployments
 
