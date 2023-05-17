@@ -14,9 +14,6 @@ spec:
       labels:
         app: api
     spec:
-      securityContext:
-        runAsUser: 1000
-        fsGroup: 2000
       containers:
       - args:
         - bash
