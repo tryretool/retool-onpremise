@@ -50,7 +50,7 @@ services:
       - postgres
     volumes:
       - ./keys:/root/.ssh
-      
+
   db-connector:
     build:
       context: ./
@@ -80,7 +80,7 @@ services:
 
   # Retool's storage database. See these docs to migrate to an externally hosted database: https://docs.retool.com/docs/configuring-retools-storage-database
   postgres:
-    image: 'postgres:11.13'
+    image: 'postgres:13.7'
     env_file: docker.env
     networks:
       - backend-network
@@ -89,7 +89,7 @@ services:
       - data:/var/lib/postgresql/data
 
   retooldb-postgres:
-    image: "postgres:14.3"
+    image: 'postgres:14.3'
     env_file: retooldb.env
     networks:
       - backend-network
