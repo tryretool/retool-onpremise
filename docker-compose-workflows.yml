@@ -154,7 +154,7 @@ services:
     environment:
       - DB=postgresql
       - DYNAMIC_CONFIG_FILE_PATH=config/dynamicconfig/development-sql.yaml
-    image: tryretool/one-offs:retool-temporal-1.1.0
+    image: tryretool/one-offs:retool-temporal-1.1.2
     networks:
       - temporal-network
       - workflows-network
