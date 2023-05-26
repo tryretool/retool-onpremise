@@ -9,6 +9,8 @@
 
 After following the below setup instructions, if you're running into issues you can contact support@retool.com or search our [Community Forums](https://community.retool.com/) and post your question there. Both Retool technical support engineers and other developers who are experts on building with Retool are active in our forums.
 
+We have removed several deployment types, such as Heroku and Render, because they are no longer a good fit for production use. However, you can still access the deployment instructions in the [deprecated-onpremise](https://github.com/tryretool/deprecated-onpremise) repo.
+
 ## Table of contents
 
 - [Select a Retool version number](#select-a-retool-version-number)
