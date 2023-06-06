@@ -5,7 +5,7 @@
 
 # Deploying Retool on-premise
 
-Find deployment instructions in the [official deployment guides](https://docs.retool.com/docs/deploy-guide-overview) hosted on docs.retool.com. We officially support the following deployment methods:
+Find deployment instructions in the [official deployment guides](https://docs.retool.com/docs/deploy-guide-overview) hosted on docs.retool.com. Retool officially supports the following deployment methods:
 
 
 ### Single deployments
