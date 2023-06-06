@@ -1,0 +1,42 @@
+piVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    retoolService: code-executor
+  name: code-executor
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      retoolService: code-executor
+  revisionHistoryLimit: 3
+  template:
+    metadata:
+      labels:
+        retoolService: code-executor
+    spec:
+      containers:
+        - args:
+            - bash
+            - start.sh
+          env:
+            - name: NODE_ENV
+              value: production
+            - name: NODE_OPTIONS
+              value: --max_old_space_size=1024
+          image: tryretool/code-executor-service:X.Y.Z
+          name: code-executor
+          ports:
+            - containerPort: 3004
+              name: retool
+              protocol: TCP
+            - containerPort: 9090
+              name: metrics
+              protocol: TCP
+          resources:
+            limits:
+              cpu: 2000m
+              memory: 2048Mi
+            requests:
+              cpu: 1000m
+              memory: 1024Mi
