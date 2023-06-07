@@ -16,7 +16,6 @@ services:
       - WORKFLOW_BACKEND_HOST=http://api:3000
       - WORKFLOW_TEMPORAL_CLUSTER_FRONTEND_HOST=temporal
       - WORKFLOW_TEMPORAL_CLUSTER_FRONTEND_PORT=7233
-      - WORKFLOW_BACKEND_HOST=http://api:3000
       - CODE_EXECUTOR_INGRESS_DOMAIN=http://code-executor:3004
     networks:
       - frontend-network
@@ -106,7 +105,6 @@ services:
       - WORKFLOW_BACKEND_HOST=http://api:3000
       - WORKFLOW_TEMPORAL_CLUSTER_FRONTEND_HOST=temporal
       - WORKFLOW_TEMPORAL_CLUSTER_FRONTEND_PORT=7233
-      - WORKFLOW_BACKEND_HOST=http://api:3000
       - CODE_EXECUTOR_INGRESS_DOMAIN=http://code-executor:3004
     networks:
       - backend-network
@@ -119,7 +117,7 @@ services:
   code-executor:
     build:
       context: ./
-      dockerfile: DockerfileCodeExecutor
+      dockerfile: CodeExecutor.Dockerfile
     command: bash -c "./start.sh"
     env_file: ./docker.env
     environment:
