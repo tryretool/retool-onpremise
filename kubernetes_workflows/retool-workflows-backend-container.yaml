@@ -72,7 +72,7 @@ spec:
         - name: WORKFLOW_BACKEND_HOST
           value: http://workflows-api
         - name: CODE_EXECUTOR_INGRESS_DOMAIN
-          value: http://code-executor
+          value: http://code-executor:3004
         image: tryretool/backend:X.Y.Z
         name: workflows-api
         ports:
