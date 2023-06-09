@@ -1,4 +1,4 @@
-piVersion: apps/v1
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   labels:
@@ -30,9 +30,6 @@ spec:
             - containerPort: 3004
               name: retool
               protocol: TCP
-            - containerPort: 9090
-              name: metrics
-              protocol: TCP
           resources:
             limits:
               cpu: 2000m
@@ -40,3 +37,5 @@ spec:
             requests:
               cpu: 1000m
               memory: 1024Mi
+          securityContext:
+            privileged: true
