@@ -50,6 +50,9 @@ spec:
         app.kubernetes.io/instance: retool
         app.kubernetes.io/component: worker
     spec:
+      securityContext:
+        fsGroup: 1000 #temporal group
+        runAsUser: 1000 #temporal user
       containers:
         - name: retool-temporal-worker
           image: "tryretool/one-offs:retool-temporal-1.1.2"
