@@ -55,7 +55,6 @@ services:
     build:
       context: ./
       dockerfile: Dockerfile
-    command: bash -c "./retool_backend"
     env_file: ./docker.env
     environment:
       - SERVICE_TYPE=DB_CONNECTOR_SERVICE
@@ -67,7 +66,7 @@ services:
     build:
       context: ./
       dockerfile: Dockerfile
-    command: bash -c "./docker_scripts/generate_key_pair.sh; ./retool_backend"
+    command: bash -c "./docker_scripts/generate_key_pair.sh; ./docker_scripts/start_api.sh"
     env_file: ./docker.env
     environment:
       - SERVICE_TYPE=DB_SSH_CONNECTOR_SERVICE
