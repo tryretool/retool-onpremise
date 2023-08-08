@@ -206,9 +206,9 @@ Resources:
     Type: AWS::RDS::DBInstance
     Properties:
       AllocatedStorage: "80"
-      DBInstanceClass: "db.m4.large"
+      DBInstanceClass: "db.m5.large"
       Engine: postgres
-      EngineVersion: "11.12"
+      EngineVersion: "13.11"
       DBName: "hammerhead_production"
       MasterUsername: !Join ['', ['{{resolve:secretsmanager:', !Ref RetoolRDSSecret, ':SecretString:username}}' ]]
       MasterUserPassword: !Join ['', ['{{resolve:secretsmanager:', !Ref RetoolRDSSecret, ':SecretString:password}}' ]]
