@@ -1,6 +1,5 @@
-# Use as is if using Retool-managed Temporal cluster
-# Use with updated ENV vars if using self-managed cluster (Temporal Cloud or self-hosted) external to your Retool deployment
-# Compare deployment options here: https://docs.retool/self-hosted/concepts/temporal#compare-options
+# Use as is if using self-managed Temporal cluster deployed alongside Retool
+# Compare other deployment options here: https://docs.retool/self-hosted/concepts/temporal#compare-options
 version: '2'
 services:
   api:
@@ -14,14 +13,9 @@ services:
       - DB_CONNECTOR_PORT=3002
       - DB_SSH_CONNECTOR_HOST=http://db-ssh-connector
       - DB_SSH_CONNECTOR_PORT=3002
-      - WORKFLOW_BACKEND_HOST=http://api:3000
-      # update these if using self-managed Temporal Cloud or self-managed Temporal cluster
       - WORKFLOW_TEMPORAL_CLUSTER_FRONTEND_HOST=temporal
       - WORKFLOW_TEMPORAL_CLUSTER_FRONTEND_PORT=7233
-      # set these if using self-managed Temporal Cloud or require TLS for your self-managed Temporal cluster
-      # - WORKFLOW_TEMPORAL_TLS_ENABLED
-      # - WORKFLOW_TEMPORAL_TLS_CRT
-      # - WORKFLOW_TEMPORAL_TLS_KEY
+      - WORKFLOW_BACKEND_HOST=http://api:3000
     networks:
       - frontend-network
       - backend-network
@@ -100,18 +94,15 @@ services:
       dockerfile: Dockerfile
     command: bash -c "./docker_scripts/wait-for-it.sh postgres:5432; ./docker_scripts/start_api.sh"
     env_file: ./docker.env
+    depends_on:
+      - temporal
     environment:
       - SERVICE_TYPE=WORKFLOW_TEMPORAL_WORKER
       - NODE_OPTIONS=--max_old_space_size=1024
       - DISABLE_DATABASE_MIGRATIONS=true
-      - WORKFLOW_BACKEND_HOST=http://api:3000
-      # update these if using self-managed Temporal Cloud or self-managed Temporal cluster
       - WORKFLOW_TEMPORAL_CLUSTER_FRONTEND_HOST=temporal
       - WORKFLOW_TEMPORAL_CLUSTER_FRONTEND_PORT=7233
-      # set these if using self-managed Temporal Cloud or require TLS for your self-managed Temporal cluster
-      # - WORKFLOW_TEMPORAL_TLS_ENABLED
-      # - WORKFLOW_TEMPORAL_TLS_CRT
-      # - WORKFLOW_TEMPORAL_TLS_KEY
+      - WORKFLOW_BACKEND_HOST=http://api:3000
     networks:
       - backend-network
       - db-connector-network
@@ -125,6 +116,7 @@ services:
     networks:
       - backend-network
       - db-connector-network
+      - temporal-network
     volumes:
       - data:/var/lib/postgresql/data
 
@@ -157,12 +149,51 @@ services:
     networks:
       - frontend-network
 
+  temporal:
+    container_name: temporal
+    env_file: ./docker.env
+    environment:
+      - DB=postgresql
+      - DYNAMIC_CONFIG_FILE_PATH=config/dynamicconfig/development-sql.yaml
+    image: tryretool/one-offs:retool-temporal-1.1.2
+    networks:
+      - temporal-network
+      - workflows-network
+    ports:
+      - '127.0.0.1:7233:7233'
+    volumes:
+      - ./dynamicconfig:/etc/temporal/config/dynamicconfig
+  temporal-admin-tools:
+    container_name: temporal-admin-tools
+    depends_on:
+      - temporal
+    environment:
+      - TEMPORAL_CLI_ADDRESS=temporal:7233
+    image: temporalio/admin-tools:1.18.5
+    networks:
+      - temporal-network
+    stdin_open: true
+    tty: true
+  temporal-ui:
+    container_name: temporal-ui
+    depends_on:
+      - temporal
+    environment:
+      - TEMPORAL_ADDRESS=temporal:7233
+      - TEMPORAL_CORS_ORIGINS=http://localhost:3000
+    image: temporalio/ui:2.9.1
+    networks:
+      - temporal-network
+    ports:
+      - '8080:8080'
+
 networks:
   frontend-network:
   backend-network:
   workflows-network:
   db-connector-network:
   db-ssh-connector-network:
+  temporal-network:
 
 volumes:
   ssh:
