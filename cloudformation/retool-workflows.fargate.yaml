@@ -601,17 +601,6 @@ Resources:
 
 
 # Temporal
-  RetoolTemporalTaskRole:
-    Type: AWS::IAM::Role
-    Properties:
-      AssumeRolePolicyDocument:
-        Statement:
-        - Effect: Allow
-          Principal:
-            Service: ['ecs-tasks.amazonaws.com']
-          Action: ['sts:AssumeRole']
-      Path: /
-      Policies: []
   RetoolTemporalRDSSecret:
     Type: AWS::SecretsManager::Secret
     Properties:
