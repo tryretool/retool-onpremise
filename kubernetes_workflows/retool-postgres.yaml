@@ -6,11 +6,11 @@ metadata:
     name: postgres-pvc
 spec:
   accessModes:
-  - ReadWriteOnce
+    - ReadWriteOnce
   resources:
     requests:
       storage: 60Gi
-  
+
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -31,32 +31,32 @@ spec:
         app: postgres
     spec:
       containers:
-      - env:
-        - name: POSTGRES_DB
-          value: hammerhead_production
-        - name: POSTGRES_HOST
-          value: postgres
-        - name: POSTGRES_PORT
-          value: "5432"
-        - name: POSTGRES_USER
-          value: retool_internal_user
-        - name: POSTGRES_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: retoolsecrets
-              key: postgres_password
-        name: postgres
-        image: postgres:11.13
-        resources: {}
-        volumeMounts:
-        - mountPath: /var/lib/postgresql/data
-          subPath: postgres
-          name: postgres-pv
+        - env:
+            - name: POSTGRES_DB
+              value: hammerhead_production
+            - name: POSTGRES_HOST
+              value: postgres
+            - name: POSTGRES_PORT
+              value: '5432'
+            - name: POSTGRES_USER
+              value: retool_internal_user
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: retoolsecrets
+                  key: postgres_password
+          name: postgres
+          image: postgres:13.7
+          resources: {}
+          volumeMounts:
+            - mountPath: /var/lib/postgresql/data
+              subPath: postgres
+              name: postgres-pv
       restartPolicy: Always
       volumes:
-      - name: postgres-pv
-        persistentVolumeClaim:
-          claimName: postgres-pvc
+        - name: postgres-pv
+          persistentVolumeClaim:
+            claimName: postgres-pvc
 ---
 apiVersion: v1
 kind: Service
@@ -67,8 +67,8 @@ metadata:
 spec:
   clusterIP: None
   ports:
-  - name: headless
-    port: 55555
-    targetPort: 0
+    - name: headless
+      port: 55555
+      targetPort: 0
   selector:
     app: postgres
