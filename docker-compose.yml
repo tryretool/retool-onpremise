@@ -66,6 +66,7 @@ services:
     build:
       context: ./
       dockerfile: Dockerfile
+    command: bash -c "./docker_scripts/start_api.sh"
     env_file: ./docker.env
     environment:
       - SERVICE_TYPE=DB_CONNECTOR_SERVICE
