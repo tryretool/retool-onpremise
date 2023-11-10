@@ -155,6 +155,10 @@ services:
     environment:
       - DB=postgresql
       - DYNAMIC_CONFIG_FILE_PATH=config/dynamicconfig/development-sql.yaml
+      # To enable TLS between temporal and external postgres, set both below variables to true
+      - SQL_TLS_ENABLED=false
+      - SQL_TLS=false
+      - SQL_TLS_DISABLE_HOST_VERIFICATION=true
     image: tryretool/one-offs:retool-temporal-1.1.2
     networks:
       - temporal-network
