@@ -11,6 +11,7 @@ services:
       - DB_CONNECTOR_PORT=3002
       - DB_SSH_CONNECTOR_HOST=http://db-ssh-connector
       - DB_SSH_CONNECTOR_PORT=3002
+      - WORKFLOW_BACKEND_HOST=http://api:3000
       # If using Retool-managed Temporal cluster, leave workflow-related ENV vars commented
       # If using self-managed cluster (Temporal Cloud or self-hosted) external to your Retool deployment, uncomment and update workflow-related ENV vars
       # Compare deployment options here: https://docs.retool/self-hosted/concepts/temporal#compare-options

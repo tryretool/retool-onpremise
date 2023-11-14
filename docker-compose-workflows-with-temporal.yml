@@ -13,9 +13,9 @@ services:
       - DB_CONNECTOR_PORT=3002
       - DB_SSH_CONNECTOR_HOST=http://db-ssh-connector
       - DB_SSH_CONNECTOR_PORT=3002
+      - WORKFLOW_BACKEND_HOST=http://api:3000
       - WORKFLOW_TEMPORAL_CLUSTER_FRONTEND_HOST=temporal
       - WORKFLOW_TEMPORAL_CLUSTER_FRONTEND_PORT=7233
-      - WORKFLOW_BACKEND_HOST=http://api:3000
     networks:
       - frontend-network
       - backend-network
@@ -100,9 +100,9 @@ services:
       - SERVICE_TYPE=WORKFLOW_TEMPORAL_WORKER
       - NODE_OPTIONS=--max_old_space_size=1024
       - DISABLE_DATABASE_MIGRATIONS=true
+      - WORKFLOW_BACKEND_HOST=http://api:3000
       - WORKFLOW_TEMPORAL_CLUSTER_FRONTEND_HOST=temporal
       - WORKFLOW_TEMPORAL_CLUSTER_FRONTEND_PORT=7233
-      - WORKFLOW_BACKEND_HOST=http://api:3000
     networks:
       - backend-network
       - db-connector-network
