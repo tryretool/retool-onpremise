@@ -127,8 +127,8 @@ services:
     # code-executor uses nsjail to sandbox code execution. nsjail requires
     # privileged container access.
     # If your deployment does not support privileged access, you can set this
-    # to false to not use nsjail. This sacrifices security sandboxing within
-    # your deployment.
+    # to false to not use nsjail. Without nsjail, all code is run without
+    # sandboxing within your deployment.
     privileged: true
     restart: on-failure
 
