@@ -1,6 +1,6 @@
 if command -v docker &> /dev/null ; then
     echo "docker is already installed..."
-    echo "skipping installing docker..."
+    echo "skipping docker installation..."
     exit 0
 fi
 

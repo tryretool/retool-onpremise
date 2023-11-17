@@ -1,6 +1,6 @@
 if command -v docker-compose &> /dev/null ; then
     echo "docker-compose is already installed..."
-    echo "skipping installing docker-compose..."
+    echo "skipping docker-compose installation..."
     exit 0
 fi
 
