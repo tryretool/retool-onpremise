@@ -22,12 +22,16 @@ if [ -z "$hostname" ]; then
 fi
 
 if [ -f ./docker.env ]; then
-  mv docker.env docker.env.$(date +"%Y-%m-%d_%H-%M-%S")
+  echo "Found existing docker.env file..."
+  echo "exiting to avoid overwriting existing the configuration file..."
+  exit 0
 fi
 touch docker.env
 
 if [ -f ./retooldb.env ]; then
-  mv retooldb.env retooldb.env.$(date +"%Y-%m-%d_%H-%M-%S")
+  echo "Found existing retooldb.env file..."
+  echo "exiting to avoid overwriting existing the configuration file..."
+  exit 0
 fi
 touch retooldb.env
 
