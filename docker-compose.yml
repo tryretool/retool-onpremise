@@ -53,8 +53,18 @@ services:
     env_file: ./docker.env
     environment:
       - SERVICE_TYPE=JOBS_RUNNER
+      # If using Retool-managed Temporal cluster, leave workflow-related ENV vars commented
+      # If using self-managed cluster (Temporal Cloud or self-hosted) external to your Retool deployment, uncomment and update workflow-related ENV vars
+      # Compare deployment options here: https://docs.retool/self-hosted/concepts/temporal#compare-options
+      # - WORKFLOW_TEMPORAL_CLUSTER_FRONTEND_HOST=temporal
+      # - WORKFLOW_TEMPORAL_CLUSTER_FRONTEND_PORT=7233
+      # set these if using self-managed Temporal Cloud or require TLS for your self-managed Temporal cluster
+      # - WORKFLOW_TEMPORAL_TLS_ENABLED
+      # - WORKFLOW_TEMPORAL_TLS_CRT
+      # - WORKFLOW_TEMPORAL_TLS_KEY
     networks:
       - backend-network
+      - workflows-network
     depends_on:
       - postgres
     command: bash -c "chmod -R +x ./docker_scripts; sync; ./docker_scripts/wait-for-it.sh postgres:5432; ./docker_scripts/start_api.sh"

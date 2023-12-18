@@ -63,6 +63,14 @@ spec:
             secretKeyRef:
               name: retoolsecrets
               key: google_client_secret
+        - name: WORKFLOW_TEMPORAL_CLUSTER_FRONTEND_HOST
+          value: "retool-temporal-frontend"
+        - name: WORKFLOW_TEMPORAL_CLUSTER_FRONTEND_PORT
+          value: "7233"
+        - name: WORKFLOW_TEMPORAL_CLUSTER_NAMESPACE
+          value: "workflows"
+        - name: WORKFLOW_BACKEND_HOST
+          value: http://workflows-api
         image: tryretool/backend:X.Y.Z
         name: jobs-runner
         ports:

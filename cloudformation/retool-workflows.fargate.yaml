@@ -229,6 +229,12 @@ Resources:
             Value: !Join ['', ['{{resolve:secretsmanager:', !Ref RetoolEncryptionKeySecret, ':SecretString:password}}' ]]
           - Name: LICENSE_KEY
             Value: "EXPIRED-LICENSE-KEY-TRIAL"
+          - Name: WORKFLOW_TEMPORAL_CLUSTER_FRONTEND_HOST
+            Value: temporal.retoolsvc
+          - Name: WORKFLOW_TEMPORAL_CLUSTER_FRONTEND_PORT
+            Value: "7233"
+          - Name: WORKFLOW_BACKEND_HOST
+            Value: http://workflows-backend.retoolsvc:3000
         Command: ["./docker_scripts/start_api.sh"]
 
   RetoolWorkkflowsBackendTask:
