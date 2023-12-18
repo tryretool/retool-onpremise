@@ -79,6 +79,7 @@ echo '# BASE_DOMAIN=https://retool.yourwebsite.com' >> docker.env
 echo '' >> docker.env
 
 echo '## Set key to encrypt and decrypt database passwords, etc.' >> docker.env
+echo '## This random string value should be stored privately, and should not be changed over the liftetime of the deployment' >> docker.env
 echo "ENCRYPTION_KEY=${encryptionKey}" >> docker.env
 echo '' >> docker.env
 
