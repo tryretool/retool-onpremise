@@ -63,24 +63,27 @@ spec:
             secretKeyRef:
               name: retoolsecrets
               key: google_client_secret
+        - name: WORKFLOW_TEMPORAL_CLUSTER_FRONTEND_HOST
+          value: "retool-temporal-frontend"
+        - name: WORKFLOW_TEMPORAL_CLUSTER_FRONTEND_PORT
+          value: "7233"
+        - name: WORKFLOW_TEMPORAL_CLUSTER_NAMESPACE
+          value: "workflows"
+        - name: WORKFLOW_BACKEND_HOST
+          value: http://workflows-api
+        - name: CODE_EXECUTOR_INGRESS_DOMAIN
+          value: http://code-executor:3004
         image: tryretool/backend:X.Y.Z
         name: api
         ports:
         - containerPort: 3000
         resources:
           limits:
-            memory: 4096M
+            memory: 2048M
           requests:
             cpu: "1"
-            memory: 2048M
-        volumeMounts:
-        - name: retool-pv
-          mountPath: /retool_backend/pv-data
+            memory: 1024M
       restartPolicy: Always
-      volumes:
-      - name: retool-pv
-        persistentVolumeClaim:
-          claimName: retool-pvc
 ---
 apiVersion: v1
 kind: Service
@@ -96,14 +99,3 @@ spec:
     targetPort: 3000
   selector:
     app: api
----
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: retool-pvc
-spec:
-  accessModes:
-    - ReadWriteOnce
-  resources:
-    requests:
-      storage: 1Gi
