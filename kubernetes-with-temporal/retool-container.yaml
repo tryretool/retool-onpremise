@@ -85,6 +85,13 @@ spec:
               cpu: 1
               memory: 1Gi
       restartPolicy: Always
+      volumeMounts:
+        - name: retool-pv
+          mountPath: /retool_backend/pv-data
+      volumes:
+        - name: retool-pv
+          persistentVolumeClaim:
+            claimName: retool-pvc
 ---
 apiVersion: v1
 kind: Service
