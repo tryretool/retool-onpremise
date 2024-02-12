@@ -1,0 +1,120 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: api
+  name: api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: api
+  template:
+    metadata:
+      labels:
+        app: api
+    spec:
+      containers:
+        - args:
+            - bash
+            - -c
+            - ./docker_scripts/wait-for-it.sh -t 0 $POSTGRES_HOST:$POSTGRES_PORT;
+              ./docker_scripts/start_api.sh
+          env:
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: retoolsecrets
+                  key: jwt_secret
+            - name: SERVICE_TYPE
+              value: MAIN_BACKEND,DB_CONNECTOR,DB_SSH_CONNECTOR
+            - name: NODE_ENV
+              value: production
+            - name: POSTGRES_DB
+              value: hammerhead_production
+            - name: POSTGRES_HOST
+              value: postgres
+            - name: POSTGRES_PORT
+              value: "5432"
+            - name: POSTGRES_USER
+              value: retool_internal_user
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: retoolsecrets
+                  key: postgres_password
+            - name: ENCRYPTION_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: retoolsecrets
+                  key: encryption_key
+            - name: LICENSE_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: retoolsecrets
+                  key: license_key
+            - name: CLIENT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: retoolsecrets
+                  key: google_client_id
+            - name: CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: retoolsecrets
+                  key: google_client_secret
+            - name: WORKFLOW_TEMPORAL_CLUSTER_FRONTEND_HOST
+              value: "retool-temporal-frontend"
+            - name: WORKFLOW_TEMPORAL_CLUSTER_FRONTEND_PORT
+              value: "7233"
+            - name: WORKFLOW_TEMPORAL_CLUSTER_NAMESPACE
+              value: "workflows"
+            - name: WORKFLOW_BACKEND_HOST
+              value: http://workflows-api
+            - name: CODE_EXECUTOR_INGRESS_DOMAIN
+              value: http://code-executor:3004
+          image: tryretool/backend:X.Y.Z
+          name: api
+          ports:
+            - containerPort: 3000
+          resources:
+            limits:
+              memory: 4Gi
+              cpu: 2
+            requests:
+              cpu: 1
+              memory: 1Gi
+          volumeMounts:
+            - name: retool-pv
+              mountPath: /retool_backend/pv-data
+      restartPolicy: Always
+      volumes:
+        - name: retool-pv
+          persistentVolumeClaim:
+            claimName: retool-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: api
+  name: api
+spec:
+  type: LoadBalancer
+  ports:
+    - name: "3000"
+      port: 3000
+      targetPort: 3000
+  selector:
+    app: api
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: retool-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi

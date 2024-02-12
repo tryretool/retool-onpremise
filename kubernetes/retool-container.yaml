@@ -1,4 +1,4 @@
-apiVersion: apps/v1 
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   labels:
@@ -63,19 +63,26 @@ spec:
             secretKeyRef:
               name: retoolsecrets
               key: google_client_secret
+        - name: WORKFLOW_TEMPORAL_CLUSTER_NAMESPACE
+          value: "workflows"
+        - name: WORKFLOW_BACKEND_HOST
+          value: http://workflows-api
+        - name: CODE_EXECUTOR_INGRESS_DOMAIN
+          value: http://code-executor:3004
         image: tryretool/backend:X.Y.Z
         name: api
         ports:
         - containerPort: 3000
         resources:
           limits:
-            memory: 4096M
+            memory: 4Gi
+            cpu: 2
           requests:
-            cpu: "1"
-            memory: 2048M
+            cpu: 1
+            memory: 1Gi
         volumeMounts:
-        - name: retool-pv
-          mountPath: /retool_backend/pv-data
+          - name: retool-pv
+            mountPath: /retool_backend/pv-data
       restartPolicy: Always
       volumes:
       - name: retool-pv
@@ -91,9 +98,9 @@ metadata:
 spec:
   type: LoadBalancer
   ports:
-  - name: "3000"
-    port: 3000
-    targetPort: 3000
+    - name: "3000"
+      port: 3000
+      targetPort: 3000
   selector:
     app: api
 ---

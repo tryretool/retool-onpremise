@@ -1,4 +1,4 @@
-version: '2'
+version: "2"
 services:
   api:
     build:
@@ -6,12 +6,15 @@ services:
       dockerfile: Dockerfile
     env_file: ./docker.env
     environment:
+      - DEPLOYMENT_TEMPLATE_TYPE=docker-compose
+      - DEPLOYMENT_TEMPLATE_VERSION=1.0.0
       - SERVICE_TYPE=MAIN_BACKEND
       - DB_CONNECTOR_HOST=http://db-connector
       - DB_CONNECTOR_PORT=3002
       - DB_SSH_CONNECTOR_HOST=http://db-ssh-connector
       - DB_SSH_CONNECTOR_PORT=3002
-      - WORKFLOW_BACKEND_HOST=http://api:3000
+      - WORKFLOW_BACKEND_HOST=http://workflows-backend:3000
+      - CODE_EXECUTOR_INGRESS_DOMAIN=http://code-executor:3004
       # If using Retool-managed Temporal cluster, leave workflow-related ENV vars commented
       # If using self-managed cluster (Temporal Cloud or self-hosted) external to your Retool deployment, uncomment and update workflow-related ENV vars
       # Compare deployment options here: https://docs.retool/self-hosted/concepts/temporal#compare-options
@@ -26,7 +29,7 @@ services:
       - backend-network
       - db-connector-network
       - db-ssh-connector-network
-      - workflows-network
+      - code-executor-network
     depends_on:
       - postgres
       - retooldb-postgres
@@ -34,11 +37,12 @@ services:
       - db-ssh-connector
       - jobs-runner
       - workflows-worker
+      - code-executor
     command: bash -c "./docker_scripts/wait-for-it.sh postgres:5432; ./docker_scripts/start_api.sh"
     links:
       - postgres
     ports:
-      - '3000:3000'
+      - "3000:3000"
     restart: on-failure
     volumes:
       - ./keys:/root/.ssh
@@ -62,13 +66,15 @@ services:
       - postgres
     volumes:
       - ./keys:/root/.ssh
-      
+
   db-connector:
     build:
       context: ./
       dockerfile: Dockerfile
     env_file: ./docker.env
     environment:
+      - DEPLOYMENT_TEMPLATE_TYPE=docker-compose
+      - DEPLOYMENT_TEMPLATE_VERSION=1.0.0
       - SERVICE_TYPE=DB_CONNECTOR_SERVICE
       - DBCONNECTOR_POSTGRES_POOL_MAX_SIZE=100
       - DBCONNECTOR_QUERY_TIMEOUT_MS=120000
@@ -103,7 +109,8 @@ services:
       - SERVICE_TYPE=WORKFLOW_TEMPORAL_WORKER
       - NODE_OPTIONS=--max_old_space_size=1024
       - DISABLE_DATABASE_MIGRATIONS=true
-      - WORKFLOW_BACKEND_HOST=http://api:3000
+      - WORKFLOW_BACKEND_HOST=http://workflows-backend:3000
+      - CODE_EXECUTOR_INGRESS_DOMAIN=http://code-executor:3004
       # If using Retool-managed Temporal cluster, leave workflow-related ENV vars commented
       # If using self-managed cluster (Temporal Cloud or self-hosted) external to your Retool deployment, uncomment and update workflow-related ENV vars
       # Compare deployment options here: https://docs.retool/self-hosted/concepts/temporal#compare-options
@@ -116,12 +123,57 @@ services:
     networks:
       - backend-network
       - db-connector-network
-      - workflows-network
+      - code-executor-network
+    restart: on-failure
+
+  workflows-backend:
+    build:
+      context: ./
+      dockerfile: Dockerfile
+    env_file: ./docker.env
+    environment:
+      - SERVICE_TYPE=WORKFLOW_BACKEND,DB_CONNECTOR,DB_SSH_CONNECTOR
+      - WORKFLOW_BACKEND_HOST=http://workflows-backend:3000
+      - CODE_EXECUTOR_INGRESS_DOMAIN=http://code-executor:3004
+    networks:
+      - backend-network
+      - code-executor-network
+    depends_on:
+      - postgres
+      - retooldb-postgres
+      - workflows-worker
+      - code-executor
+    command: bash -c "./docker_scripts/wait-for-it.sh postgres:5432; ./docker_scripts/start_api.sh"
+    links:
+      - postgres
+    restart: on-failure
+    volumes:
+      - ./keys:/root/.ssh
+      - ssh:/retool_backend/autogen_ssh_keys
+      - ./retool:/usr/local/retool-git-repo
+      - ${BOOTSTRAP_SOURCE:-./retool}:/usr/local/retool-repo
+
+  code-executor:
+    build:
+      context: ./
+      dockerfile: CodeExecutor.Dockerfile
+    command: bash -c "./start.sh"
+    env_file: ./docker.env
+    environment:
+      - NODE_OPTIONS=--max_old_space_size=1024
+    networks:
+      - code-executor-network
+    # code-executor uses nsjail to sandbox code execution. nsjail requires
+    # privileged container access.
+    # If your deployment does not support privileged access, you can set this
+    # to false to not use nsjail. Without nsjail, all code is run without
+    # sandboxing within your deployment.
+    privileged: true
     restart: on-failure
 
   # Retool's storage database. See these docs to migrate to an externally hosted database: https://docs.retool.com/docs/configuring-retools-storage-database
   postgres:
-    image: 'postgres:11.13'
+    image: "postgres:11.13"
     env_file: docker.env
     networks:
       - backend-network
@@ -142,14 +194,14 @@ services:
   https-portal:
     image: tryretool/https-portal:latest
     ports:
-      - '80:80'
-      - '443:443'
+      - "80:80"
+      - "443:443"
     links:
       - api
     restart: always
     env_file: ./docker.env
     environment:
-      STAGE: 'local' # <- Change 'local' to 'production' to use a LetsEncrypt signed SSL cert
+      STAGE: "local" # <- Change 'local' to 'production' to use a LetsEncrypt signed SSL cert
       CLIENT_MAX_BODY_SIZE: 40M
       KEEPALIVE_TIMEOUT: 605
       PROXY_CONNECT_TIMEOUT: 600
@@ -163,7 +215,7 @@ networks:
   backend-network:
   db-connector-network:
   db-ssh-connector-network:
-  workflows-network:
+  code-executor-network:
 
 volumes:
   ssh:
