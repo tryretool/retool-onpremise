@@ -6,6 +6,8 @@ services:
       dockerfile: Dockerfile
     env_file: ./docker.env
     environment:
+      - DEPLOYMENT_TEMPLATE_TYPE=docker-compose
+      - DEPLOYMENT_TEMPLATE_VERSION=1.0.0
       - SERVICE_TYPE=MAIN_BACKEND
       - DB_CONNECTOR_HOST=http://db-connector
       - DB_CONNECTOR_PORT=3002
@@ -71,6 +73,8 @@ services:
       dockerfile: Dockerfile
     env_file: ./docker.env
     environment:
+      - DEPLOYMENT_TEMPLATE_TYPE=docker-compose
+      - DEPLOYMENT_TEMPLATE_VERSION=1.0.0
       - SERVICE_TYPE=DB_CONNECTOR_SERVICE
       - DBCONNECTOR_POSTGRES_POOL_MAX_SIZE=100
       - DBCONNECTOR_QUERY_TIMEOUT_MS=120000
