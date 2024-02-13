@@ -145,6 +145,8 @@ Resources:
             awslogs-region: !Ref 'AWS::Region'
             awslogs-stream-prefix: "SERVICE_RETOOL"
         Environment:
+          - Name: DEPLOYMENT_TEMPLATE_TYPE
+            Value: "aws-ecs-fargate"
           - Name: NODE_ENV
             Value: production
           - Name: SERVICE_TYPE
@@ -205,6 +207,8 @@ Resources:
             awslogs-region: !Ref 'AWS::Region'
             awslogs-stream-prefix: "SERVICE_RETOOL"
         Environment:
+          - Name: DEPLOYMENT_TEMPLATE_TYPE
+            Value: "aws-ecs-fargate"
           - Name: NODE_ENV
             Value: production
           - Name: SERVICE_TYPE
@@ -253,6 +257,8 @@ Resources:
             awslogs-region: !Ref 'AWS::Region'
             awslogs-stream-prefix: "SERVICE_RETOOL"
         Environment:
+          - Name: DEPLOYMENT_TEMPLATE_TYPE
+            Value: "aws-ecs-fargate"
           - Name: NODE_ENV
             Value: production
           - Name: SERVICE_TYPE
@@ -310,6 +316,8 @@ Resources:
             awslogs-region: !Ref 'AWS::Region'
             awslogs-stream-prefix: "SERVICE_RETOOL"
         Environment:
+          - Name: DEPLOYMENT_TEMPLATE_TYPE
+            Value: "aws-ecs-fargate"
           - Name: NODE_ENV
             Value: production
           - Name: SERVICE_TYPE

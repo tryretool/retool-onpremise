@@ -26,6 +26,8 @@ spec:
             secretKeyRef:
               name: retoolsecrets
               key: jwt_secret
+        - name: DEPLOYMENT_TEMPLATE_TYPE
+          value: k8s-manifests
         - name: SERVICE_TYPE
           value: MAIN_BACKEND,DB_CONNECTOR,DB_SSH_CONNECTOR
         - name: NODE_ENV

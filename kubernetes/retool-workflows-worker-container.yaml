@@ -27,6 +27,8 @@ spec:
             secretKeyRef:
               name: retoolsecrets
               key: jwt_secret
+        - name: DEPLOYMENT_TEMPLATE_TYPE
+          value: k8s-manifests
         - name: SERVICE_TYPE
           value: WORKFLOW_TEMPORAL_WORKER
         - name: NODE_ENV

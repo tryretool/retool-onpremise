@@ -22,6 +22,8 @@ spec:
             - ./docker_scripts/wait-for-it.sh -t 0 $POSTGRES_HOST:$POSTGRES_PORT;
               ./docker_scripts/start_api.sh
           env:
+            - name: DEPLOYMENT_TEMPLATE_TYPE
+              value: k8s-manifests
             - name: JWT_SECRET
               valueFrom:
                 secretKeyRef:
