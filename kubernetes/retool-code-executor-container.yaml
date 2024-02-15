@@ -20,6 +20,8 @@ spec:
             - bash
             - start.sh
           env:
+            - name: DEPLOYMENT_TEMPLATE_TYPE
+              value: k8s-manifests
             - name: NODE_ENV
               value: production
             - name: NODE_OPTIONS

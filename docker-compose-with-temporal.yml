@@ -8,6 +8,7 @@ services:
       dockerfile: Dockerfile
     env_file: ./docker.env
     environment:
+      - DEPLOYMENT_TEMPLATE_TYPE=docker-compose
       - SERVICE_TYPE=MAIN_BACKEND
       - DB_CONNECTOR_HOST=http://db-connector
       - DB_CONNECTOR_PORT=3002
@@ -50,6 +51,7 @@ services:
       dockerfile: Dockerfile
     env_file: ./docker.env
     environment:
+      - DEPLOYMENT_TEMPLATE_TYPE=docker-compose
       - SERVICE_TYPE=JOBS_RUNNER
     networks:
       - backend-network
@@ -67,6 +69,7 @@ services:
       dockerfile: Dockerfile
     env_file: ./docker.env
     environment:
+      - DEPLOYMENT_TEMPLATE_TYPE=docker-compose
       - SERVICE_TYPE=DB_CONNECTOR_SERVICE
       - DBCONNECTOR_POSTGRES_POOL_MAX_SIZE=100
       - DBCONNECTOR_QUERY_TIMEOUT_MS=120000
@@ -81,6 +84,7 @@ services:
     command: bash -c "./docker_scripts/generate_key_pair.sh; ./docker_scripts/start_api.sh"
     env_file: ./docker.env
     environment:
+      - DEPLOYMENT_TEMPLATE_TYPE=docker-compose
       - SERVICE_TYPE=DB_SSH_CONNECTOR_SERVICE
       - DBCONNECTOR_POSTGRES_POOL_MAX_SIZE=100
       - DBCONNECTOR_QUERY_TIMEOUT_MS=120000
@@ -100,6 +104,7 @@ services:
     depends_on:
       - temporal
     environment:
+      - DEPLOYMENT_TEMPLATE_TYPE=docker-compose
       - SERVICE_TYPE=WORKFLOW_TEMPORAL_WORKER
       - DISABLE_DATABASE_MIGRATIONS=true
       - WORKFLOW_BACKEND_HOST=http://workflows-backend:3000
@@ -119,6 +124,7 @@ services:
       dockerfile: Dockerfile
     env_file: ./docker.env
     environment:
+      - DEPLOYMENT_TEMPLATE_TYPE=docker-compose
       - SERVICE_TYPE=WORKFLOW_BACKEND,DB_CONNECTOR,DB_SSH_CONNECTOR
       - WORKFLOW_BACKEND_HOST=http://workflows-backend:3000
       - WORKFLOW_TEMPORAL_CLUSTER_FRONTEND_HOST=temporal
@@ -150,6 +156,7 @@ services:
     command: bash -c "./start.sh"
     env_file: ./docker.env
     environment:
+      - DEPLOYMENT_TEMPLATE_TYPE=docker-compose
       - NODE_OPTIONS=--max_old_space_size=1024
     networks:
       - code-executor-network
