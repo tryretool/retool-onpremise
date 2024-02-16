@@ -39,5 +39,8 @@ spec:
             requests:
               cpu: 1000m
               memory: 1024Mi
+          # code executor uses nsjail to sandbox code execution. nsjail requires privileged container access.
+          # If your deployment does not support privileged access, you can set this to false to not use nsjail.
+          # Without nsjail, all code is run without sandboxing within your deployment.
           securityContext:
             privileged: true
