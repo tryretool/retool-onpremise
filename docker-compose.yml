@@ -71,6 +71,7 @@ services:
     build:
       context: ./
       dockerfile: Dockerfile
+    command: bash -c "./docker_scripts/start_api.sh"
     env_file: ./docker.env
     environment:
       - DEPLOYMENT_TEMPLATE_TYPE=docker-compose
