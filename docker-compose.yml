@@ -7,11 +7,9 @@ services:
     env_file: ./docker.env
     environment:
       - DEPLOYMENT_TEMPLATE_TYPE=docker-compose
-      - SERVICE_TYPE=MAIN_BACKEND
-      - DB_CONNECTOR_HOST=http://db-connector
-      - DB_CONNECTOR_PORT=3002
-      - DB_SSH_CONNECTOR_HOST=http://db-ssh-connector
-      - DB_SSH_CONNECTOR_PORT=3002
+      - SERVICE_TYPE=MAIN_BACKEND,DB_CONNECTOR_SERVICE,DB_SSH_CONNECTOR_SERVICE
+      - DBCONNECTOR_POSTGRES_POOL_MAX_SIZE=100
+      - DBCONNECTOR_QUERY_TIMEOUT_MS=120000
       - WORKFLOW_BACKEND_HOST=http://workflows-backend:3000
       - CODE_EXECUTOR_INGRESS_DOMAIN=http://code-executor:3004
       # If using Retool-managed Temporal cluster, leave workflow-related ENV vars commented
@@ -26,14 +24,10 @@ services:
     networks:
       - frontend-network
       - backend-network
-      - db-connector-network
-      - db-ssh-connector-network
       - code-executor-network
     depends_on:
       - postgres
       - retooldb-postgres
-      - db-connector
-      - db-ssh-connector
       - jobs-runner
       - workflows-worker
       - code-executor
@@ -45,6 +39,7 @@ services:
     restart: on-failure
     volumes:
       - ./keys:/root/.ssh
+      - ./keys:/retool_backend/keys
       - ssh:/retool_backend/autogen_ssh_keys
       - ./retool:/usr/local/retool-git-repo
       - ${BOOTSTRAP_SOURCE:-./retool}:/usr/local/retool-repo
@@ -66,38 +61,6 @@ services:
       - postgres
     volumes:
       - ./keys:/root/.ssh
-
-  db-connector:
-    build:
-      context: ./
-      dockerfile: Dockerfile
-    env_file: ./docker.env
-    environment:
-      - DEPLOYMENT_TEMPLATE_TYPE=docker-compose
-      - SERVICE_TYPE=DB_CONNECTOR_SERVICE
-      - DBCONNECTOR_POSTGRES_POOL_MAX_SIZE=100
-      - DBCONNECTOR_QUERY_TIMEOUT_MS=120000
-    networks:
-      - db-connector-network
-    restart: on-failure
-
-  db-ssh-connector:
-    build:
-      context: ./
-      dockerfile: Dockerfile
-    command: bash -c "./docker_scripts/generate_key_pair.sh; ./docker_scripts/start_api.sh"
-    env_file: ./docker.env
-    environment:
-      - DEPLOYMENT_TEMPLATE_TYPE=docker-compose
-      - SERVICE_TYPE=DB_SSH_CONNECTOR_SERVICE
-      - DBCONNECTOR_POSTGRES_POOL_MAX_SIZE=100
-      - DBCONNECTOR_QUERY_TIMEOUT_MS=120000
-    networks:
-      - db-ssh-connector-network
-    volumes:
-      - ssh:/retool_backend/autogen_ssh_keys
-      - ./keys:/retool_backend/keys
-    restart: on-failure
 
   workflows-worker:
     build:
@@ -123,7 +86,6 @@ services:
       # - WORKFLOW_TEMPORAL_TLS_KEY
     networks:
       - backend-network
-      - db-connector-network
       - code-executor-network
     restart: on-failure
 
@@ -137,6 +99,8 @@ services:
       - SERVICE_TYPE=WORKFLOW_BACKEND,DB_CONNECTOR,DB_SSH_CONNECTOR
       - WORKFLOW_BACKEND_HOST=http://workflows-backend:3000
       - CODE_EXECUTOR_INGRESS_DOMAIN=http://code-executor:3004
+      - DBCONNECTOR_POSTGRES_POOL_MAX_SIZE=100
+      - DBCONNECTOR_QUERY_TIMEOUT_MS=120000
     networks:
       - backend-network
       - code-executor-network
@@ -151,6 +115,7 @@ services:
     restart: on-failure
     volumes:
       - ./keys:/root/.ssh
+      - ./keys:/retool_backend/keys
       - ssh:/retool_backend/autogen_ssh_keys
       - ./retool:/usr/local/retool-git-repo
       - ${BOOTSTRAP_SOURCE:-./retool}:/usr/local/retool-repo
@@ -180,7 +145,6 @@ services:
     env_file: docker.env
     networks:
       - backend-network
-      - db-connector-network
     volumes:
       - data:/var/lib/postgresql/data
 
@@ -189,7 +153,6 @@ services:
     env_file: retooldb.env
     networks:
       - backend-network
-      - db-connector-network
     volumes:
       - retooldb-data:/var/lib/postgresql/data
 
@@ -216,8 +179,6 @@ services:
 networks:
   frontend-network:
   backend-network:
-  db-connector-network:
-  db-ssh-connector-network:
   code-executor-network:
 
 volumes:
