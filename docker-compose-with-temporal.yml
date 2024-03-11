@@ -24,7 +24,6 @@ services:
     depends_on:
       - postgres
       - retooldb-postgres
-      - db-ssh-connector
       - jobs-runner
       - workflows-worker
       - code-executor
