@@ -9,11 +9,9 @@ services:
     env_file: ./docker.env
     environment:
       - DEPLOYMENT_TEMPLATE_TYPE=docker-compose
-      - SERVICE_TYPE=MAIN_BACKEND
-      - DB_CONNECTOR_HOST=http://db-connector
-      - DB_CONNECTOR_PORT=3002
-      - DB_SSH_CONNECTOR_HOST=http://db-ssh-connector
-      - DB_SSH_CONNECTOR_PORT=3002
+      - SERVICE_TYPE=MAIN_BACKEND,DB_CONNECTOR,DB_SSH_CONNECTOR
+      - DBCONNECTOR_POSTGRES_POOL_MAX_SIZE=100
+      - DBCONNECTOR_QUERY_TIMEOUT_MS=120000
       - WORKFLOW_BACKEND_HOST=http://workflows-backend:3000
       - WORKFLOW_TEMPORAL_CLUSTER_FRONTEND_HOST=temporal
       - WORKFLOW_TEMPORAL_CLUSTER_FRONTEND_PORT=7233
@@ -21,15 +19,11 @@ services:
     networks:
       - frontend-network
       - backend-network
-      - db-connector-network
-      - db-ssh-connector-network
-      - workflows-network
+      - temporal-network
       - code-executor-network
     depends_on:
       - postgres
       - retooldb-postgres
-      - db-connector
-      - db-ssh-connector
       - jobs-runner
       - workflows-worker
       - code-executor
@@ -41,6 +35,7 @@ services:
     restart: on-failure
     volumes:
       - ./keys:/root/.ssh
+      - ./keys:/retool_backend/keys
       - ssh:/retool_backend/autogen_ssh_keys
       - ./retool:/usr/local/retool-git-repo
       - ${BOOTSTRAP_SOURCE:-./retool}:/usr/local/retool-repo
@@ -63,38 +58,6 @@ services:
     volumes:
       - ./keys:/root/.ssh
 
-  db-connector:
-    build:
-      context: ./
-      dockerfile: Dockerfile
-    env_file: ./docker.env
-    environment:
-      - DEPLOYMENT_TEMPLATE_TYPE=docker-compose
-      - SERVICE_TYPE=DB_CONNECTOR_SERVICE
-      - DBCONNECTOR_POSTGRES_POOL_MAX_SIZE=100
-      - DBCONNECTOR_QUERY_TIMEOUT_MS=120000
-    networks:
-      - db-connector-network
-    restart: on-failure
-
-  db-ssh-connector:
-    build:
-      context: ./
-      dockerfile: Dockerfile
-    command: bash -c "./docker_scripts/generate_key_pair.sh; ./docker_scripts/start_api.sh"
-    env_file: ./docker.env
-    environment:
-      - DEPLOYMENT_TEMPLATE_TYPE=docker-compose
-      - SERVICE_TYPE=DB_SSH_CONNECTOR_SERVICE
-      - DBCONNECTOR_POSTGRES_POOL_MAX_SIZE=100
-      - DBCONNECTOR_QUERY_TIMEOUT_MS=120000
-    networks:
-      - db-ssh-connector-network
-    volumes:
-      - ssh:/retool_backend/autogen_ssh_keys
-      - ./keys:/retool_backend/keys
-    restart: on-failure
-
   workflows-worker:
     build:
       context: ./
@@ -113,8 +76,7 @@ services:
       - CODE_EXECUTOR_INGRESS_DOMAIN=http://code-executor:3004
     networks:
       - backend-network
-      - db-connector-network
-      - workflows-network
+      - temporal-network
       - code-executor-network
     restart: on-failure
 
@@ -132,7 +94,7 @@ services:
       - CODE_EXECUTOR_INGRESS_DOMAIN=http://code-executor:3004
     networks:
       - backend-network
-      - workflows-network
+      - temporal-network
       - code-executor-network
     depends_on:
       - postgres
@@ -144,11 +106,11 @@ services:
     restart: on-failure
     volumes:
       - ./keys:/root/.ssh
+      - ./keys:/retool_backend/keys
       - ssh:/retool_backend/autogen_ssh_keys
       - ./retool:/usr/local/retool-git-repo
       - ${BOOTSTRAP_SOURCE:-./retool}:/usr/local/retool-repo
 
-  # Remove this if you are not using the code executor service
   code-executor:
     build:
       context: ./
@@ -174,8 +136,7 @@ services:
     env_file: docker.env
     networks:
       - backend-network
-      - db-connector-network
-      - temporal-network
+      - intra-temporal-network
     volumes:
       - data:/var/lib/postgresql/data
 
@@ -184,7 +145,6 @@ services:
     env_file: retooldb.env
     networks:
       - backend-network
-      - db-connector-network
     volumes:
       - retooldb-data:/var/lib/postgresql/data
 
@@ -222,8 +182,8 @@ services:
       - SQL_HOST_VERIFICATION=false
     image: tryretool/one-offs:retool-temporal-1.1.2
     networks:
+      - intra-temporal-network
       - temporal-network
-      - workflows-network
     ports:
       - "127.0.0.1:7233:7233"
     volumes:
@@ -236,7 +196,7 @@ services:
       - TEMPORAL_CLI_ADDRESS=temporal:7233
     image: temporalio/admin-tools:1.18.5
     networks:
-      - temporal-network
+      - intra-temporal-network
     stdin_open: true
     tty: true
   temporal-ui:
@@ -248,18 +208,16 @@ services:
       - TEMPORAL_CORS_ORIGINS=http://localhost:3000
     image: temporalio/ui:2.9.1
     networks:
-      - temporal-network
+      - intra-temporal-network
     ports:
       - "8080:8080"
 
 networks:
   frontend-network:
-  backend-network:
-  db-connector-network:
-  db-ssh-connector-network:
+  backend-network::
   code-executor-network:
-  workflows-network:
   temporal-network:
+  intra-temporal-network:
 
 volumes:
   ssh:
