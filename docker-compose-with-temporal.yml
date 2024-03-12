@@ -214,7 +214,7 @@ services:
 
 networks:
   frontend-network:
-  backend-network::
+  backend-network:
   code-executor-network:
   temporal-network:
   intra-temporal-network:
