@@ -1,5 +1,19 @@
 #!/bin/bash
 
+if [ -f ./docker.env ]; then
+  echo "Found existing docker.env file..."
+  echo "exiting to avoid overwriting existing the configuration file..."
+  exit 0
+fi
+touch docker.env
+
+if [ -f ./retooldb.env ]; then
+  echo "Found existing retooldb.env file..."
+  echo "exiting to avoid overwriting existing the configuration file..."
+  exit 0
+fi
+touch retooldb.env
+
 postgresPassword=$(cat /dev/urandom | base64 | head -c 64)
 retooldbPostgresPassword=$(cat /dev/urandom | base64 | head -c 64)
 jwtSecret=$(cat /dev/urandom | base64 | head -c 256)
@@ -21,20 +35,6 @@ if [ -z "$hostname" ]; then
   hostname=$publicIpAddress
 fi
 
-if [ -f ./docker.env ]; then
-  echo "Found existing docker.env file..."
-  echo "exiting to avoid overwriting existing the configuration file..."
-  exit 0
-fi
-touch docker.env
-
-if [ -f ./retooldb.env ]; then
-  echo "Found existing retooldb.env file..."
-  echo "exiting to avoid overwriting existing the configuration file..."
-  exit 0
-fi
-touch retooldb.env
-
 echo '## For a complete list of all environment variables, see docs.retool.com/docs/environment-variables' >> docker.env
 echo '' >> docker.env
 
@@ -42,7 +42,7 @@ echo '## Set node environment to production' >> docker.env
 echo 'NODE_ENV=production' >> docker.env
 echo '' >> docker.env
 echo '## Set the JWT secret for the API server' >> docker.env
-echo "JWT_SECRET=${jwtSecret}" >> docker.env
+echo "JWT_SECRET=\"${jwtSecret}\"" >> docker.env
 echo '' >> docker.env
 
 echo '## Set and generate postgres credentials' >> docker.env
@@ -50,7 +50,7 @@ echo 'POSTGRES_DB=hammerhead_production' >> docker.env
 echo 'POSTGRES_USER=retool_internal_user' >> docker.env
 echo 'POSTGRES_HOST=postgres' >> docker.env
 echo 'POSTGRES_PORT=5432' >> docker.env
-echo "POSTGRES_PASSWORD=${postgresPassword}" >> docker.env
+echo "POSTGRES_PASSWORD=\"${postgresPassword}\"" >> docker.env
 echo '' >> docker.env
 
 echo '## Set and generate retooldb postgres credentials' >> docker.env
@@ -58,14 +58,14 @@ echo 'RETOOLDB_POSTGRES_DB=postgres' >> docker.env
 echo 'RETOOLDB_POSTGRES_USER=root' >> docker.env
 echo 'RETOOLDB_POSTGRES_HOST=retooldb-postgres' >> docker.env
 echo 'RETOOLDB_POSTGRES_PORT=5432' >> docker.env
-echo "RETOOLDB_POSTGRES_PASSWORD=${retooldbPostgresPassword}" >> docker.env
+echo "RETOOLDB_POSTGRES_PASSWORD=\"${retooldbPostgresPassword}\"" >> docker.env
 echo '' >> docker.env
 
 echo '## Set and generate retooldb postgres credentials' >> retooldb.env
 echo 'POSTGRES_HOST=retooldb-postgres' >> retooldb.env
 echo 'POSTGRES_DB=postgres' >> retooldb.env
 echo 'POSTGRES_USER=root' >> retooldb.env
-echo "POSTGRES_PASSWORD=${retooldbPostgresPassword}" >> retooldb.env
+echo "POSTGRES_PASSWORD=\"${retooldbPostgresPassword}\"" >> retooldb.env
 echo 'POSTGRES_PORT=5432' >> retooldb.env
 echo '' >> retooldb.env
 
@@ -80,7 +80,7 @@ echo '' >> docker.env
 
 echo '## Set key to encrypt and decrypt database passwords, etc.' >> docker.env
 echo '## This random string value should be stored privately, and should not be changed over the liftetime of the deployment' >> docker.env
-echo "ENCRYPTION_KEY=${encryptionKey}" >> docker.env
+echo "ENCRYPTION_KEY=\"${encryptionKey}\"" >> docker.env
 echo '' >> docker.env
 
 echo "## Google SSO configuration" >> docker.env

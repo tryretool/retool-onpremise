@@ -6,6 +6,7 @@ services:
       dockerfile: Dockerfile
     env_file: ./docker.env
     environment:
+      - RTEL_SERVICE_NAME=main-backend
       - DEPLOYMENT_TEMPLATE_TYPE=docker-compose
       - SERVICE_TYPE=MAIN_BACKEND,DB_CONNECTOR_SERVICE,DB_SSH_CONNECTOR_SERVICE
       - DBCONNECTOR_POSTGRES_POOL_MAX_SIZE=100
@@ -52,6 +53,7 @@ services:
     environment:
       - DEPLOYMENT_TEMPLATE_TYPE=docker-compose
       - SERVICE_TYPE=JOBS_RUNNER
+      - RTEL_SERVICE_NAME=jobs-runner
     networks:
       - backend-network
     depends_on:
@@ -71,6 +73,7 @@ services:
     environment:
       - DEPLOYMENT_TEMPLATE_TYPE=docker-compose
       - SERVICE_TYPE=WORKFLOW_TEMPORAL_WORKER
+      - RTEL_SERVICE_NAME=workflow-worker
       - NODE_OPTIONS=--max_old_space_size=1024
       - DISABLE_DATABASE_MIGRATIONS=true
       - WORKFLOW_BACKEND_HOST=http://workflows-backend:3000
@@ -97,6 +100,7 @@ services:
     environment:
       - DEPLOYMENT_TEMPLATE_TYPE=docker-compose
       - SERVICE_TYPE=WORKFLOW_BACKEND,DB_CONNECTOR,DB_SSH_CONNECTOR
+      - RTEL_SERVICE_NAME=workflow-backend
       - WORKFLOW_BACKEND_HOST=http://workflows-backend:3000
       - CODE_EXECUTOR_INGRESS_DOMAIN=http://code-executor:3004
       - DBCONNECTOR_POSTGRES_POOL_MAX_SIZE=100
@@ -120,6 +124,48 @@ services:
       - ./retool:/usr/local/retool-git-repo
       - ${BOOTSTRAP_SOURCE:-./retool}:/usr/local/retool-repo
 
+  telemetry:
+    # TODO: update to `latest` when released as stable
+    image: "tryretool/telemetry:3.39.0-edge"
+    restart: on-failure
+    env_file: docker.env
+    ports:
+      - '9125:9125/udp'
+    command:
+      - bash
+      - -c
+      - |
+        if [[ "$${RTEL_ENABLED:-false}" == "false" ]]; then
+          echo 1>&2 "RTEL_ENABLED is not true, going to sleep."
+          sleep inf
+        else
+          exec retool-telemetry
+        fi
+    environment:
+      RTEL_DEPLOYMENT_MODE: 'docker-compose'
+      DEPLOYMENT_TEMPLATE_TYPE: 'docker-compose'
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /var/lib/docker/:/var/lib/docker:ro
+      - /:/rootfs:ro
+      - /sys:/sys:ro
+
+      # Uncomment this to use custom [vector](https://vector.dev) config, i.e.
+      # to add extra telemetry sinks to your own destination.
+      - ${PWD}/vector-custom.yaml:/etc/vector-custom/vector-custom.yaml:ro
+
+      # Uncomment this to use custom
+      # [grafana-agent](https://grafana.com/docs/agent/latest/flow/) river
+      # config, i.e. to add extra telemetry sources to your own destination.
+      # - ${PWD}/grafana-agent-custom.river:/etc/grafana-agent-custom/grafana-agent-custom.river:ro
+    devices:
+      - /dev/kmsg:/dev/kmsg
+    cap_add:
+      - SYS_ADMIN
+    networks:
+      - backend-network
+      - code-executor-network
+
   code-executor:
     build:
       context: ./
@@ -129,6 +175,7 @@ services:
     environment:
       - DEPLOYMENT_TEMPLATE_TYPE=docker-compose
       - NODE_OPTIONS=--max_old_space_size=1024
+      - RTEL_SERVICE_NAME=code-executor
     networks:
       - code-executor-network
     # code-executor uses nsjail to sandbox code execution. nsjail requires
