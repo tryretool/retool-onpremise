@@ -10,6 +10,7 @@ services:
     environment:
       - DEPLOYMENT_TEMPLATE_TYPE=docker-compose
       - SERVICE_TYPE=MAIN_BACKEND,DB_CONNECTOR,DB_SSH_CONNECTOR
+      - RTEL_SERVICE_NAME=main-backend
       - DBCONNECTOR_POSTGRES_POOL_MAX_SIZE=100
       - DBCONNECTOR_QUERY_TIMEOUT_MS=120000
       - WORKFLOW_BACKEND_HOST=http://workflows-backend:3000
@@ -48,6 +49,7 @@ services:
     environment:
       - DEPLOYMENT_TEMPLATE_TYPE=docker-compose
       - SERVICE_TYPE=JOBS_RUNNER
+      - RTEL_SERVICE_NAME=jobs-runner
     networks:
       - backend-network
     depends_on:
@@ -69,6 +71,7 @@ services:
     environment:
       - DEPLOYMENT_TEMPLATE_TYPE=docker-compose
       - SERVICE_TYPE=WORKFLOW_TEMPORAL_WORKER
+      - RTEL_SERVICE_NAME=workflow-worker
       - DISABLE_DATABASE_MIGRATIONS=true
       - WORKFLOW_BACKEND_HOST=http://workflows-backend:3000
       - WORKFLOW_TEMPORAL_CLUSTER_FRONTEND_HOST=temporal
@@ -88,6 +91,7 @@ services:
     environment:
       - DEPLOYMENT_TEMPLATE_TYPE=docker-compose
       - SERVICE_TYPE=WORKFLOW_BACKEND,DB_CONNECTOR,DB_SSH_CONNECTOR
+      - RTEL_SERVICE_NAME=workflow-backend
       - WORKFLOW_BACKEND_HOST=http://workflows-backend:3000
       - WORKFLOW_TEMPORAL_CLUSTER_FRONTEND_HOST=temporal
       - WORKFLOW_TEMPORAL_CLUSTER_FRONTEND_PORT=7233
@@ -119,6 +123,7 @@ services:
     env_file: ./docker.env
     environment:
       - DEPLOYMENT_TEMPLATE_TYPE=docker-compose
+      - RTEL_SERVICE_NAME=code-executor
       - NODE_OPTIONS=--max_old_space_size=1024
     networks:
       - code-executor-network
@@ -129,6 +134,47 @@ services:
     # sandboxing within your deployment.
     privileged: true
     restart: on-failure
+
+  telemetry:
+    image: "telemetry:ra-dev-0" # TODO: change to public image
+    restart: on-failure
+    env_file: docker.env
+    ports:
+      - '9125:9125/udp'
+    command:
+      - bash
+      - -c
+      - |
+        if [[ "$${RTEL_ENABLED:-false}" == "false" ]]; then
+          echo 1>&2 "RTEL_ENABLED is not true, going to sleep."
+          sleep inf
+        else
+          exec retool-telemetry
+        fi
+    environment:
+      RTEL_DEPLOYMENT_MODE: 'docker-compose'
+      DEPLOYMENT_TEMPLATE_TYPE: 'docker-compose'
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /var/lib/docker/:/var/lib/docker:ro
+      - /:/rootfs:ro
+      - /sys:/sys:ro
+
+      # Uncomment this to use custom [vector](https://vector.dev) config, i.e.
+      # to add extra telemetry sinks to your own destination.
+      - ${PWD}/vector-custom.yaml:/etc/vector-custom/vector-custom.yaml:ro
+
+      # Uncomment this to use custom
+      # [grafana-agent](https://grafana.com/docs/agent/latest/flow/) river
+      # config, i.e. to add extra telemetry sources to your own destination.
+      # - ${PWD}/grafana-agent-custom.river:/etc/grafana-agent-custom/grafana-agent-custom.river:ro
+    devices:
+      - /dev/kmsg:/dev/kmsg
+    cap_add:
+      - SYS_ADMIN
+    networks:
+      - backend-network
+      - code-executor-network
 
   # Retool's storage database. See these docs to migrate to an externally hosted database: https://docs.retool.com/docs/configuring-retools-storage-database
   postgres:
