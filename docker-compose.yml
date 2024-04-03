@@ -126,21 +126,11 @@ services:
 
   telemetry:
     # TODO: update to `latest` when released as stable
-    image: "tryretool/telemetry:3.39.0-edge"
+    image: "tryretool/telemetry:3.40.0-edge"
     restart: on-failure
     env_file: docker.env
     ports:
       - '9125:9125/udp'
-    command:
-      - bash
-      - -c
-      - |
-        if [[ "$${RTEL_ENABLED:-false}" == "false" ]]; then
-          echo 1>&2 "RTEL_ENABLED is not true, going to sleep."
-          sleep inf
-        else
-          exec retool-telemetry
-        fi
     environment:
       RTEL_DEPLOYMENT_MODE: 'docker-compose'
       DEPLOYMENT_TEMPLATE_TYPE: 'docker-compose'

@@ -93,5 +93,12 @@ echo '' >> docker.env
 
 echo '## Uncomment this line if HTTPS is not set up' >> docker.env
 echo '# COOKIE_INSECURE=true' >> docker.env 
+echo '' >> docker.env
+
+echo '## If you wish to enable telemetry collection and forwarding to Retool for help troubleshooting, uncomment these.' >> docker.env
+echo '# RTEL_ENABLED=true' >> docker.env
+echo '# RTEL_SEND_TO_RETOOL=true' >> docker.env
+echo '# STATSD_HOST=telemetry' >> docker.env
+echo '# STATSD_PORT="9125"' >> docker.env
 
 echo "Cool! Now add your license key in docker.env then run docker-compose up to launch Retool."
