@@ -77,10 +77,11 @@ spec:
         - containerPort: 3000
         resources:
           limits:
-            memory: 2048M
+            memory: 4Gi
+            cpu: 2
           requests:
-            cpu: "1"
-            memory: 1024M
+            cpu: 1
+            memory: 1Gi
       restartPolicy: Always
 ---
 apiVersion: v1

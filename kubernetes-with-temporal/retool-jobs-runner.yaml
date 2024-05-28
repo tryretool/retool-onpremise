@@ -71,9 +71,9 @@ spec:
             - containerPort: 3000
           resources:
             limits:
-              cpu: "4"
-              memory: 8192M
+              cpu: 4
+              memory: 8Gi
             requests:
-              cpu: "2"
-              memory: 4096M
+              cpu: 2
+              memory: 4Gi
       restartPolicy: Always
