@@ -34,11 +34,11 @@ spec:
               protocol: TCP
           resources:
             limits:
-              cpu: 2000m
-              memory: 2048Mi
+              cpu: 2
+              memory: 4Gi
             requests:
-              cpu: 1000m
-              memory: 1024Mi
+              cpu: 1
+              memory: 1Gi
           # code executor uses nsjail to sandbox code execution. nsjail requires privileged container access.
           # If your deployment does not support privileged access, you can set this to false to not use nsjail.
           # Without nsjail, all code is run without sandboxing within your deployment.
