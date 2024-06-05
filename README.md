@@ -3,7 +3,7 @@
     <b>Build internal tools, remarkably fast.</b>
 </p> <br>
 
-# Deploying Retool on-premise
+# Deploying Retool on-premises
 
 Find deployment instructions in the [official deployment guides](https://docs.retool.com/docs/deploy-guide-overview) hosted on docs.retool.com. Retool officially supports the following deployment methods:
 
@@ -18,7 +18,7 @@ Find deployment instructions in the [official deployment guides](https://docs.re
   - [ECS + Fargate](https://docs.retool.com/docs/deploy-with-ecs-fargate)
 
 
-Some previously supported deployment methods, such as Heroku and Render, are no longer a good fit for production use. You can still access these instructions in [deprecated-onpremise](https://github.com/tryretool/deprecated-onpremise) repository.
+Some previously supported deployment methods, such as Heroku and Render, are no longer a good fit for production use. You can still access these instructions in [deprecated-onpremises](https://github.com/tryretool/deprecated-onpremise) repository.
 
 
 For any inquiries regarding deploying Retool, please feel free to reach out to us at support@retool.com or search our [Community Forums](https://community.retool.com/) and post your question there.
