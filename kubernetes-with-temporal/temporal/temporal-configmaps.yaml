@@ -33,7 +33,7 @@ data:
             databaseName: "temporal"
             connectAddr: "postgres:5432"
             connectProtocol: "tcp"
-            user: "postgres"
+            user: "retool_internal_user"
             password: "{{ .Env.TEMPORAL_STORE_PASSWORD }}"
             maxConnLifetime: 1h
             maxConns: 20
@@ -44,7 +44,7 @@ data:
             databaseName: "temporal_visibility"
             connectAddr: "postgres:5432"
             connectProtocol: "tcp"
-            user: "postgres"
+            user: "retool_internal_user"
             password: "{{ .Env.TEMPORAL_VISIBILITY_STORE_PASSWORD }}"
             maxConnLifetime: 1h
             maxConns: 20
