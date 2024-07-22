@@ -26,6 +26,8 @@ spec:
               value: production
             - name: NODE_OPTIONS
               value: --max_old_space_size=1024
+            - name: PORT
+              value: "3004"
           image: tryretool/code-executor-service:X.Y.Z
           name: code-executor
           ports:
@@ -44,3 +46,19 @@ spec:
           # Without nsjail, all code is run without sandboxing within your deployment.
           securityContext:
             privileged: true
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    retoolService: code-executor
+  name: code-executor
+  namespace: retool
+spec:
+  selector:
+    retoolService: code-executor
+  ports:
+  - protocol: TCP
+    port: 3004
+    targetPort: 3004
+    name: retool
