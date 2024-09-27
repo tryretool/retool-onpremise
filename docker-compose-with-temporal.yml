@@ -1,5 +1,5 @@
 # Use as is if using self-managed Temporal cluster deployed alongside Retool
-# Compare other deployment options here: https://docs.retool/self-hosted/concepts/temporal#compare-options
+# Compare other deployment options here: https://docs.retool.com/self-hosted/concepts/temporal#compare-options
 version: "2"
 services:
   api:
