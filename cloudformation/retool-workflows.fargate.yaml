@@ -898,6 +898,8 @@ Resources:
               Value: temporal.retoolsvc:7233
             - Name: ECS_DEPLOYED
               Value: "true"
+            - Name: WORKFLOW_BACKEND_HOST
+              Value: http://workflows-backend.retoolsvc:3000
           PortMappings:
             - ContainerPort: 7239
               HostPort: 7239
