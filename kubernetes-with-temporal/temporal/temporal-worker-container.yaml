@@ -97,6 +97,8 @@ spec:
                 secretKeyRef:
                   name: retooltemporalsecrets
                   key: postgres_password
+            - name: WORKFLOW_BACKEND_HOST
+              value: http://workflows-api
           ports:
             - name: rpc
               containerPort: 7239
