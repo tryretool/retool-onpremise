@@ -1,0 +1,5 @@
+// Use this file for custom
+// [grafana-agent](https://grafana.com/docs/agent/latest/flow/) river config, 
+// i.e. to add extra telemetry sources.
+//
+// Note: must enable the corresponding telemetry volume mount in your compose file.
