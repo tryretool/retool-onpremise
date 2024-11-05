@@ -2,7 +2,7 @@
 
 postgresPassword=$(cat /dev/urandom | base64 | head -c 64)
 retooldbPostgresPassword=$(cat /dev/urandom | base64 | head -c 64)
-jwtSecret=$(cat /dev/urandom | base64 | head -c 256)
+jwtSecret=$(cat /dev/urandom | base64 | head -c 256 | tr -d '\n')
 encryptionKey=$(cat /dev/urandom | base64 | head -c 64)
 publicIpAddress=$(dig +short myip.opendns.com @resolver1.opendns.com)
 
