@@ -78,7 +78,7 @@ Resources:
         Cpu: '1024'
         Essential: 'true'
         Image: !Ref 'Image'
-        Memory: '2048'
+        Memory: '4096'
         LogConfiguration:
           LogDriver: awslogs
           Options:
