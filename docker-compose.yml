@@ -14,7 +14,7 @@ services:
       - CODE_EXECUTOR_INGRESS_DOMAIN=http://code-executor:3004
       # If using Retool-managed Temporal cluster, leave workflow-related ENV vars commented
       # If using self-managed cluster (Temporal Cloud or self-hosted) external to your Retool deployment, uncomment and update workflow-related ENV vars
-      # Compare deployment options here: https://docs.retool/self-hosted/concepts/temporal#compare-options
+      # Compare deployment options here: https://docs.retool.com/self-hosted/concepts/temporal#compare-options
       # - WORKFLOW_TEMPORAL_CLUSTER_FRONTEND_HOST=temporal
       # - WORKFLOW_TEMPORAL_CLUSTER_FRONTEND_PORT=7233
       # set these if using self-managed Temporal Cloud or require TLS for your self-managed Temporal cluster
@@ -77,7 +77,7 @@ services:
       - CODE_EXECUTOR_INGRESS_DOMAIN=http://code-executor:3004
       # If using Retool-managed Temporal cluster, leave workflow-related ENV vars commented
       # If using self-managed cluster (Temporal Cloud or self-hosted) external to your Retool deployment, uncomment and update workflow-related ENV vars
-      # Compare deployment options here: https://docs.retool/self-hosted/concepts/temporal#compare-options
+      # Compare deployment options here: https://docs.retool.com/self-hosted/concepts/temporal#compare-options
       # - WORKFLOW_TEMPORAL_CLUSTER_FRONTEND_HOST=temporal
       # - WORKFLOW_TEMPORAL_CLUSTER_FRONTEND_PORT=7233
       # set these if using self-managed Temporal Cloud or require TLS for your self-managed Temporal cluster
