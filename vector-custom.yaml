@@ -1,0 +1,5 @@
+# Use this file for custom [vector](https://vector.dev) config, i.e. to add
+# extra telemetry sinks to your own destination.
+#
+# Note: must enable the corresponding telemetry volume mount in your compose
+# file.
