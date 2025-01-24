@@ -15,12 +15,23 @@ Parameters:
   Image:
     Type: String
     Description: Image to use in the service.
+    Default: tryretool/backend:3.114.7-stable
+  ImageCodeExecutor:
+    Type: String
+    Description: Image to use in the Code Executor Service
+    Default: tryretool/code-executor-service:3.114.7-stable
   DesiredCount:
     Type: Number
-    Description: Default number of tasks to run for Retool api container
+    Description: Default number of API container tasks to run
+    Default: 1
   DesiredWorkflowsCount:
     Type: Number
-    Description: Default number of tasks to run for Retool Workflows containers
+    Description: Default number of tasks to run for Workflows Backend and Workflows Worker containers to run
+    Default: 1
+  DesiredCodeExecutorCount:
+    Type: Number
+    Description: Default number of tasks to run for Retool Code Executor containers
+    Default: 1
   MaximumPercent:
     Type: Number
     Description: Maximum percentage of tasks to run during a deployment
@@ -172,6 +183,8 @@ Resources:
             Value: "7233"
           - Name: WORKFLOW_BACKEND_HOST
             Value: http://workflows-backend.retoolsvc:3000
+          - Name: CODE_EXECUTOR_INGRESS_DOMAIN
+            Value: http://code-executor.retoolsvc:3004
           - Name: LICENSE_KEY
             Value: "EXPIRED-LICENSE-KEY-TRIAL"
           # Remove below when serving Retool over https
@@ -278,6 +291,8 @@ Resources:
             Value: "7233"
           - Name: WORKFLOW_BACKEND_HOST
             Value: http://workflows-backend.retoolsvc:3000
+          - Name: CODE_EXECUTOR_INGRESS_DOMAIN
+            Value: http://code-executor.retoolsvc:3004
           - Name: LICENSE_KEY
             Value: "EXPIRED-LICENSE-KEY-TRIAL"
           # Remove below when serving Retool over https
@@ -336,9 +351,47 @@ Resources:
             Value: "7233"
           - Name: WORKFLOW_BACKEND_HOST
             Value: http://workflows-backend.retoolsvc:3000
+          - Name: CODE_EXECUTOR_INGRESS_DOMAIN
+            Value: http://code-executor.retoolsvc:3004
           - Name: LICENSE_KEY
             Value: "EXPIRED-LICENSE-KEY-TRIAL"
         Command: ["./docker_scripts/start_api.sh"]
+
+  RetoolCodeExecutorTask:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: 'retool-code-executor'
+      TaskRoleArn: !Ref 'RetoolTaskRole'
+      NetworkMode: awsvpc
+      ContainerDefinitions:
+        - Name: "retool-code-executor"
+          Cpu: '2048'
+          Memory: '4096'
+          Essential: true
+          Image: !Ref ImageCodeExecutor
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Ref CloudwatchLogsGroup
+              awslogs-region: !Ref AWS::Region
+              awslogs-stream-prefix: SERVICE_RETOOL
+          # required to use nsjail sandboxing, which is required for custom libraries for JS and Python
+          # Learn more here: https://docs.retool.com/self-hosted/concepts/architecture#code-executor
+          Privileged: true
+          # If not using nsjail sandboxing, remove the above line and instead use:
+          # Privileged: false
+          # User: "1001:1001"
+          Environment:
+            - Name: NODE_OPTIONS
+              Value: "--max_old_space_size=1024"
+            - Name: NODE_ENV
+              Value: "production"
+          PortMappings:
+            - ContainerPort: 3004
+              HostPort: 3004
+              Protocol: "tcp"
+          Command:
+            - ./start.sh
 
   RetoolJWTSecret:
     Type: AWS::SecretsManager::Secret
@@ -377,7 +430,7 @@ Resources:
       AllocatedStorage: "80"
       DBInstanceClass: "db.m5.large"
       Engine: postgres
-      EngineVersion: "13.11"
+      EngineVersion: "15.10"
       DBName: "hammerhead_production"
       MasterUsername: !Join ['', ['{{resolve:secretsmanager:', !Ref RetoolRDSSecret, ':SecretString:username}}' ]]
       MasterUserPassword: !Join ['', ['{{resolve:secretsmanager:', !Ref RetoolRDSSecret, ':SecretString:password}}' ]]
@@ -492,7 +545,7 @@ Resources:
         MinimumHealthyPercent: !Ref 'MinimumHealthyPercent'
       TaskDefinition: !Ref 'RetoolWorkflowsWorkerTask'
 
-  RetoolWorkkflowsBackendECSService:
+  RetoolWorkflowsBackendECSService:
     DependsOn: RetoolWorkflowBackendServiceCloudmapService
     Type: AWS::ECS::Service
     Properties:
@@ -509,6 +562,24 @@ Resources:
         MaximumPercent: !Ref 'MaximumPercent'
         MinimumHealthyPercent: !Ref 'MinimumHealthyPercent'
       TaskDefinition: !Ref 'RetoolWorkkflowsBackendTask'
+
+  RetoolCodeExecutorECSService:
+    DependsOn: RetoolCodeExecutorServiceCloudmapService
+    Type: AWS::ECS::Service
+    Properties:
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: DISABLED # must be run in private subnet with NAT gateway
+          SecurityGroups: [!GetAtt [RetoolSecurityGroup, GroupId]]
+          Subnets: !Ref 'SubnetId'
+      ServiceRegistries:
+        - RegistryArn: !GetAtt [RetoolCodeExecutorServiceCloudmapService, Arn]
+      Cluster: !Ref 'Cluster'
+      DesiredCount: !Ref 'DesiredCodeExecutorCount'
+      DeploymentConfiguration:
+        MaximumPercent: !Ref 'MaximumPercent'
+        MinimumHealthyPercent: !Ref 'MinimumHealthyPercent'
+      TaskDefinition: !Ref 'RetoolCodeExecutorTask'
 
   RetoolServiceRole:
     Type: AWS::IAM::Role
@@ -553,6 +624,7 @@ Resources:
     Properties:
       Name: retoolsvc
       Vpc: !Ref 'VpcId'
+
   RetoolWorkflowBackendServiceCloudmapService:
     Type: AWS::ServiceDiscovery::Service
     Properties:
@@ -567,6 +639,19 @@ Resources:
       Name: workflows-backend
       NamespaceId: !GetAtt [WorkflowsCloudMapNamespace, Id]
 
+  RetoolCodeExecutorServiceCloudmapService:
+    Type: AWS::ServiceDiscovery::Service
+    Properties:
+      DnsConfig:
+        DnsRecords:
+          - TTL: 60
+            Type: A
+        NamespaceId: !GetAtt [WorkflowsCloudMapNamespace, Id]
+        RoutingPolicy: MULTIVALUE
+      HealthCheckCustomConfig:
+        FailureThreshold: 1
+      Name: code-executor
+      NamespaceId: !GetAtt [WorkflowsCloudMapNamespace, Id]
 
 # Temporal
   RetoolTemporalRDSSecret:
@@ -846,8 +931,6 @@ Resources:
               Value: temporal.retoolsvc:7233
             - Name: ECS_DEPLOYED
               Value: "true"
-            - Name: WORKFLOW_BACKEND_HOST
-              Value: http://workflows-backend.retoolsvc:3000
           PortMappings:
             - ContainerPort: 7239
               HostPort: 7239
