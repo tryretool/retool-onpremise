@@ -12,15 +12,22 @@ Parameters:
   Cluster:
     Type: String
     Description: Cluster to put service in.
-  Image:
+  RetoolVersion:
     Type: String
-    Description: Image to use in the service.
+    Description: Retool version tag (e.g. 3.114.7-stable)
+    Default: 3.114.7-stable
   DesiredCount:
     Type: Number
-    Description: Default number of tasks to run
+    Description: Default number of API container tasks to run
+    Default: 1
   DesiredWorkflowsCount:
     Type: Number
-    Description: Default number of tasks to run for Retool Workflows containers
+    Description: Default number of tasks to run for Workflows Backend and Workflows Worker containers to run
+    Default: 1
+  DesiredCodeExecutorCount:
+    Type: Number
+    Description: Default number of tasks to run for Retool Code Executor containers
+    Default: 1
   MaximumPercent:
     Type: Number
     Description: Maximum percentage of tasks to run during a deployment
@@ -137,7 +144,7 @@ Resources:
       ContainerDefinitions:
       - Name: 'retool'
         Essential: 'true'
-        Image: !Ref 'Image'
+        Image: !Sub tryretool/backend:${RetoolVersion}
         LogConfiguration:
           LogDriver: awslogs
           Options:
@@ -175,6 +182,8 @@ Resources:
             Value: "7233"
           - Name: WORKFLOW_BACKEND_HOST
             Value: http://workflows-backend.retoolsvc:3000
+          - Name: CODE_EXECUTOR_INGRESS_DOMAIN
+            Value: http://code-executor.retoolsvc:3004
           - Name: LICENSE_KEY
             Value: "EXPIRED-LICENSE-KEY-TRIAL"
           # Remove below when serving Retool over https
@@ -199,7 +208,7 @@ Resources:
       ContainerDefinitions:
       - Name: 'retool-jobs-runner'
         Essential: 'true'
-        Image: !Ref 'Image'
+        Image: !Sub tryretool/backend:${RetoolVersion}
         LogConfiguration:
           LogDriver: awslogs
           Options:
@@ -249,7 +258,7 @@ Resources:
       ContainerDefinitions:
       - Name: 'retool-workflows-backend'
         Essential: 'true'
-        Image: !Ref 'Image'
+        Image: !Sub tryretool/backend:${RetoolVersion}
         LogConfiguration:
           LogDriver: awslogs
           Options:
@@ -287,6 +296,8 @@ Resources:
             Value: "7233"
           - Name: WORKFLOW_BACKEND_HOST
             Value: http://workflows-backend.retoolsvc:3000
+          - Name: CODE_EXECUTOR_INGRESS_DOMAIN
+            Value: http://code-executor.retoolsvc:3004
           - Name: LICENSE_KEY
             Value: "EXPIRED-LICENSE-KEY-TRIAL"
           # Remove below when serving Retool over https
@@ -308,7 +319,7 @@ Resources:
       ContainerDefinitions:
       - Name: 'retool-workflows-worker'
         Essential: 'true'
-        Image: !Ref 'Image'
+        Image: !Sub tryretool/backend:${RetoolVersion}
         LogConfiguration:
           LogDriver: awslogs
           Options:
@@ -346,9 +357,48 @@ Resources:
             Value: "7233"
           - Name: WORKFLOW_BACKEND_HOST
             Value: http://workflows-backend.retoolsvc:3000
+          - Name: CODE_EXECUTOR_INGRESS_DOMAIN
+            Value: http://code-executor.retoolsvc:3004
           - Name: LICENSE_KEY
             Value: "EXPIRED-LICENSE-KEY-TRIAL"
         Command: ["./docker_scripts/start_api.sh"]
+
+  RetoolCodeExecutorTask:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: 'retool-code-executor'
+      TaskRoleArn: !Ref 'RetoolTaskRole'
+      ExecutionRoleArn: !Ref 'RetoolExecutionRole'
+      RequiresCompatibilities:
+        - FARGATE
+      NetworkMode: awsvpc
+      Cpu: '2048'
+      Memory: '4096'
+      ContainerDefinitions:
+        - Name: "retool-code-executor"
+          Essential: true
+          Image: !Sub tryretool/code-executor-service:${RetoolVersion}
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Ref CloudwatchLogsGroup
+              awslogs-region: !Ref AWS::Region
+              awslogs-stream-prefix: SERVICE_RETOOL
+          User: "1001:1001"
+          Environment:
+            - Name: CONTAINER_UNPRIVILEGED_MODE
+              Value: true
+            - Name: NODE_OPTIONS
+              Value: "--max_old_space_size=1024"
+            - Name: NODE_ENV
+              Value: "production"
+          PortMappings:
+            - ContainerPort: 3004
+              HostPort: 3004
+              Protocol: "tcp"
+          Command:
+            - ./start.sh
+
 
   RetoolJWTSecret:
     Type: AWS::SecretsManager::Secret
@@ -387,7 +437,7 @@ Resources:
       AllocatedStorage: "80"
       DBInstanceClass: "db.m5.large"
       Engine: postgres
-      EngineVersion: "13.11"
+      EngineVersion: "15.10"
       DBName: "hammerhead_production"
       MasterUsername: !Join ['', ['{{resolve:secretsmanager:', !Ref RetoolRDSSecret, ':SecretString:username}}' ]]
       MasterUserPassword: !Join ['', ['{{resolve:secretsmanager:', !Ref RetoolRDSSecret, ':SecretString:password}}' ]]
@@ -524,6 +574,24 @@ Resources:
       LaunchType: FARGATE
       TaskDefinition: !Ref 'RetoolWorkkflowsBackendTask'
 
+  RetoolCodeExecutorECSService:
+    DependsOn: RetoolCodeExecutorFargateServiceCloudmapService
+    Type: AWS::ECS::Service
+    Properties:
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: ENABLED
+          SecurityGroups: [!GetAtt [RetoolSecurityGroup, GroupId]]
+          Subnets: !Ref 'SubnetId'
+      ServiceRegistries:
+        - RegistryArn: !GetAtt [RetoolCodeExecutorFargateServiceCloudmapService, Arn]
+      Cluster: !Ref 'Cluster'
+      DesiredCount: !Ref 'DesiredCodeExecutorCount'
+      DeploymentConfiguration:
+        MaximumPercent: !Ref 'MaximumPercent'
+        MinimumHealthyPercent: !Ref 'MinimumHealthyPercent'
+      LaunchType: FARGATE
+      TaskDefinition: !Ref 'RetoolCodeExecutorTask'
 
   RetoolServiceRole:
     Type: AWS::IAM::Role
@@ -593,6 +661,7 @@ Resources:
     Properties:
       Name: retoolsvc
       Vpc: !Ref 'VpcId'
+
   RetoolWorkflowBackendFargateServiceCloudmapService:
     Type: AWS::ServiceDiscovery::Service
     Properties:
@@ -607,6 +676,19 @@ Resources:
       Name: workflows-backend
       NamespaceId: !GetAtt [WorkflowsCloudMapNamespace, Id]
 
+  RetoolCodeExecutorFargateServiceCloudmapService:
+    Type: AWS::ServiceDiscovery::Service
+    Properties:
+      DnsConfig:
+        DnsRecords:
+          - TTL: 60
+            Type: A
+        NamespaceId: !GetAtt [WorkflowsCloudMapNamespace, Id]
+        RoutingPolicy: MULTIVALUE
+      HealthCheckCustomConfig:
+        FailureThreshold: 1
+      Name: code-executor
+      NamespaceId: !GetAtt [WorkflowsCloudMapNamespace, Id]
 
 # Temporal
   RetoolTemporalRDSSecret:
@@ -898,8 +980,6 @@ Resources:
               Value: temporal.retoolsvc:7233
             - Name: ECS_DEPLOYED
               Value: "true"
-            - Name: WORKFLOW_BACKEND_HOST
-              Value: http://workflows-backend.retoolsvc:3000
           PortMappings:
             - ContainerPort: 7239
               HostPort: 7239
