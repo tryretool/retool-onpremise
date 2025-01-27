@@ -555,7 +555,7 @@ Resources:
       LaunchType: FARGATE
       TaskDefinition: !Ref 'RetoolWorkflowsWorkerTask'
 
-  RetoolWorkflowsBackendECSService:
+  RetoolWorkkflowsBackendECSService:
     DependsOn: RetoolWorkflowBackendFargateServiceCloudmapService
     Type: AWS::ECS::Service
     Properties:
