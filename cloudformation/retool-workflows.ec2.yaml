@@ -12,14 +12,10 @@ Parameters:
   Cluster:
     Type: String
     Description: Cluster to put service in.
-  Image:
+  RetoolVersion:
     Type: String
-    Description: Image to use in the service.
-    Default: tryretool/backend:3.114.7-stable
-  ImageCodeExecutor:
-    Type: String
-    Description: Image to use in the Code Executor Service
-    Default: tryretool/code-executor-service:3.114.7-stable
+    Description: Retool version tag (e.g. 3.114.7-stable)
+    Default: 3.114.7-stable
   DesiredCount:
     Type: Number
     Description: Default number of API container tasks to run
@@ -145,7 +141,7 @@ Resources:
         Cpu: '2048'
         Memory: '4096'
         Essential: 'true'
-        Image: !Ref 'Image'
+        Image: !Sub tryretool/backend:${RetoolVersion}
         LogConfiguration:
           LogDriver: awslogs
           Options:
@@ -206,7 +202,7 @@ Resources:
         Cpu: '1024'
         Memory: '2048'
         Essential: 'true'
-        Image: !Ref 'Image'
+        Image: !Sub tryretool/backend:${RetoolVersion}
         LogConfiguration:
           LogDriver: awslogs
           Options:
@@ -253,7 +249,7 @@ Resources:
         Cpu: '2048'
         Memory: '4096'
         Essential: 'true'
-        Image: !Ref 'Image'
+        Image: !Sub tryretool/backend:${RetoolVersion}
         LogConfiguration:
           LogDriver: awslogs
           Options:
@@ -313,7 +309,7 @@ Resources:
         Cpu: '2048'
         Memory: '4096'
         Essential: 'true'
-        Image: !Ref 'Image'
+        Image: !Sub tryretool/backend:${RetoolVersion}
         LogConfiguration:
           LogDriver: awslogs
           Options:
@@ -368,7 +364,7 @@ Resources:
           Cpu: '2048'
           Memory: '4096'
           Essential: true
-          Image: !Ref ImageCodeExecutor
+          Image: !Sub tryretool/code-executor-service:${RetoolVersion}
           LogConfiguration:
             LogDriver: awslogs
             Options:
