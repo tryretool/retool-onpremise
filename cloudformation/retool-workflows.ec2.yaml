@@ -626,7 +626,7 @@ Resources:
           Cpu: '256'
           Memory: '512'
           Essential: 'true'
-          Image: tryretool/one-offs:retool-temporal-1.1.2
+          Image: tryretool/one-offs:retool-temporal-1.1.6
           LogConfiguration:
             LogDriver: awslogs
             Options:
@@ -684,7 +684,7 @@ Resources:
           Cpu: '512'
           Memory: '1024'
           Essential: 'true'
-          Image: tryretool/one-offs:retool-temporal-1.1.2
+          Image: tryretool/one-offs:retool-temporal-1.1.6
           LogConfiguration:
             LogDriver: awslogs
             Options:
@@ -744,7 +744,7 @@ Resources:
           Cpu: '512'
           Memory: '1024'
           Essential: 'true'
-          Image: tryretool/one-offs:retool-temporal-1.1.2
+          Image: tryretool/one-offs:retool-temporal-1.1.6
           LogConfiguration:
             LogDriver: awslogs
             Options:
@@ -804,7 +804,7 @@ Resources:
           Cpu: '256'
           Memory: '512'
           Essential: 'true'
-          Image: tryretool/one-offs:retool-temporal-1.1.2
+          Image: tryretool/one-offs:retool-temporal-1.1.6
           LogConfiguration:
             LogDriver: awslogs
             Options:

@@ -180,7 +180,7 @@ services:
       # Defined twice because temporal-server and temporal-sql-tool use different envvars
       - SQL_TLS_DISABLE_HOST_VERIFICATION=true
       - SQL_HOST_VERIFICATION=false
-    image: tryretool/one-offs:retool-temporal-1.1.2
+    image: tryretool/one-offs:retool-temporal-1.1.6
     networks:
       - intra-temporal-network
       - temporal-network

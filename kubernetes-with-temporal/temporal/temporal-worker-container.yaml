@@ -55,7 +55,7 @@ spec:
         runAsUser: 1000 #temporal user
       containers:
         - name: retool-temporal-worker
-          image: "tryretool/one-offs:retool-temporal-1.1.2"
+          image: "tryretool/one-offs:retool-temporal-1.1.6"
           imagePullPolicy: IfNotPresent
           env:
             - name: POD_IP
