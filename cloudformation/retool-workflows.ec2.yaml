@@ -541,7 +541,7 @@ Resources:
         MinimumHealthyPercent: !Ref 'MinimumHealthyPercent'
       TaskDefinition: !Ref 'RetoolWorkflowsWorkerTask'
 
-  RetoolWorkflowsBackendECSService:
+  RetoolWorkkflowsBackendECSService:
     DependsOn: RetoolWorkflowBackendServiceCloudmapService
     Type: AWS::ECS::Service
     Properties:
