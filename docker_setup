@@ -42,7 +42,9 @@ echo '## Set node environment to production' >> docker.env
 echo 'NODE_ENV=production' >> docker.env
 echo '' >> docker.env
 echo '## Set the JWT secret for the API server' >> docker.env
-echo "JWT_SECRET=${jwtSecret}" >> docker.env
+# wrap JWT_SECRET in double-quotes to avoid docker compose syntax issues 
+# with multiline string value set on an Environment Variable.
+echo "JWT_SECRET=\"${jwtSecret}\"" >> docker.env
 echo '' >> docker.env
 
 echo '## Set and generate postgres credentials' >> docker.env
@@ -94,4 +96,4 @@ echo '' >> docker.env
 echo '## Uncomment this line if HTTPS is not set up' >> docker.env
 echo '# COOKIE_INSECURE=true' >> docker.env 
 
-echo "Cool! Now add your license key in docker.env then run docker-compose up to launch Retool."
+echo "Cool! Now add your license key in docker.env then run docker compose up -d to launch Retool."
