@@ -1,6 +1,5 @@
 # Use as is if using self-managed Temporal cluster deployed alongside Retool
 # Compare other deployment options here: https://docs.retool.com/self-hosted/concepts/temporal#compare-options
-version: "2"
 services:
   api:
     build:
@@ -33,12 +32,6 @@ services:
     ports:
       - "3000:3000"
     restart: on-failure
-    volumes:
-      - ./keys:/root/.ssh
-      - ./keys:/retool_backend/keys
-      - ssh:/retool_backend/autogen_ssh_keys
-      - ./retool:/usr/local/retool-git-repo
-      - ${BOOTSTRAP_SOURCE:-./retool}:/usr/local/retool-repo
 
   jobs-runner:
     build:
@@ -55,8 +48,6 @@ services:
     command: bash -c "chmod -R +x ./docker_scripts; sync; ./docker_scripts/wait-for-it.sh postgres:5432; ./docker_scripts/start_api.sh"
     links:
       - postgres
-    volumes:
-      - ./keys:/root/.ssh
 
   workflows-worker:
     build:
@@ -104,12 +95,6 @@ services:
     links:
       - postgres
     restart: on-failure
-    volumes:
-      - ./keys:/root/.ssh
-      - ./keys:/retool_backend/keys
-      - ssh:/retool_backend/autogen_ssh_keys
-      - ./retool:/usr/local/retool-git-repo
-      - ${BOOTSTRAP_SOURCE:-./retool}:/usr/local/retool-repo
 
   code-executor:
     build:
@@ -172,8 +157,6 @@ services:
     container_name: temporal
     env_file: ./docker.env
     environment:
-      - DB=postgresql
-      - DYNAMIC_CONFIG_FILE_PATH=config/dynamicconfig/development-sql.yaml
       # To enable TLS between temporal and external postgres, set both below variables to true
       - SQL_TLS_ENABLED=false
       - SQL_TLS=false
@@ -186,8 +169,6 @@ services:
       - temporal-network
     ports:
       - "127.0.0.1:7233:7233"
-    volumes:
-      - ./dynamicconfig:/etc/temporal/config/dynamicconfig
   temporal-admin-tools:
     container_name: temporal-admin-tools
     depends_on:
@@ -220,6 +201,5 @@ networks:
   intra-temporal-network:
 
 volumes:
-  ssh:
   data:
   retooldb-data:
