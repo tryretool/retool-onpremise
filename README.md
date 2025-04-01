@@ -1,9 +1,13 @@
 <p align="center">
-    <a href="https://retool.com/"><img src="https://raw.githubusercontent.com/tryretool/brand-assets/master/Logos/logo-full-black.png" alt="Retool logo" height="100"></a> <br>
-    <b>Build internal tools, remarkably fast.</b>
-</p> <br>
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="https://docs.retool.com/brand/icons/logo-light.svg">
+      <img alt="Retool Logo" height="100" src="https://docs.retool.com/brand/icons/logo-dark.svg">
+    </picture>
+</p>
 
-# Deploying Retool on-premise
+<h3 align="center">The best way to build internal software</h3>
+
+## Deploy Self-Hosted Retool
 
 Find deployment instructions in the [official deployment guides](https://docs.retool.com/docs/deploy-guide-overview) hosted on docs.retool.com. Retool officially supports the following deployment methods:
 
@@ -21,4 +25,4 @@ Find deployment instructions in the [official deployment guides](https://docs.re
 Some previously supported deployment methods, such as Heroku and Render, are no longer a good fit for production use. You can still access these instructions in [deprecated-onpremise](https://github.com/tryretool/deprecated-onpremise) repository.
 
 
-For any inquiries regarding deploying Retool, please feel free to reach out to us at support@retool.com or search our [Community Forums](https://community.retool.com/) and post your question there.
+For any inquiries regarding deploying Retool, check out our [Community Forums](https://community.retool.com/).
