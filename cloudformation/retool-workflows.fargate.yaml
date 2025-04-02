@@ -244,7 +244,7 @@ Resources:
             Value: "EXPIRED-LICENSE-KEY-TRIAL"
         Command: ["./docker_scripts/start_api.sh"]
 
-  RetoolWorkkflowsBackendTask:
+  RetoolWorkflowsBackendTask:
     Type: AWS::ECS::TaskDefinition
     Properties:
       Family: 'retool-workflows-backend'
@@ -555,7 +555,7 @@ Resources:
       LaunchType: FARGATE
       TaskDefinition: !Ref 'RetoolWorkflowsWorkerTask'
 
-  RetoolWorkkflowsBackendECSService:
+  RetoolWorkflowsBackendECSService:
     DependsOn: RetoolWorkflowBackendFargateServiceCloudmapService
     Type: AWS::ECS::Service
     Properties:
@@ -572,7 +572,7 @@ Resources:
         MaximumPercent: !Ref 'MaximumPercent'
         MinimumHealthyPercent: !Ref 'MinimumHealthyPercent'
       LaunchType: FARGATE
-      TaskDefinition: !Ref 'RetoolWorkkflowsBackendTask'
+      TaskDefinition: !Ref 'RetoolWorkflowsBackendTask'
 
   RetoolCodeExecutorECSService:
     DependsOn: RetoolCodeExecutorFargateServiceCloudmapService
