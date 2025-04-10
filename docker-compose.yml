@@ -2,7 +2,6 @@ services:
   api:
     build:
       context: ./
-      dockerfile: Dockerfile
     env_file: ./docker.env
     environment:
       - DEPLOYMENT_TEMPLATE_TYPE=docker-compose
@@ -40,7 +39,6 @@ services:
   jobs-runner:
     build:
       context: ./
-      dockerfile: Dockerfile
     env_file: ./docker.env
     environment:
       - DEPLOYMENT_TEMPLATE_TYPE=docker-compose
@@ -56,7 +54,6 @@ services:
   workflows-worker:
     build:
       context: ./
-      dockerfile: Dockerfile
     command: bash -c "./docker_scripts/wait-for-it.sh postgres:5432; ./docker_scripts/start_api.sh"
     env_file: ./docker.env
     environment:
@@ -83,7 +80,6 @@ services:
   workflows-backend:
     build:
       context: ./
-      dockerfile: Dockerfile
     env_file: ./docker.env
     environment:
       - DEPLOYMENT_TEMPLATE_TYPE=docker-compose
@@ -108,7 +104,7 @@ services:
   code-executor:
     build:
       context: ./
-      dockerfile: CodeExecutor.Dockerfile
+      target: code-executor
     command: bash -c "./start.sh"
     env_file: ./docker.env
     environment:
