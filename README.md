@@ -1,7 +1,7 @@
 <p align="center">
     <picture>
       <source media="(prefers-color-scheme: dark)" srcset="https://docs.retool.com/brand/icons/logo-light.svg">
-          <img alt="Retool Logo" height="100" src="https://docs.retool.com/brand/icons/logo-dark.svg">
+      <img alt="Retool Logo" height="100" src="https://docs.retool.com/brand/icons/logo-dark.svg">
     </picture>
 </p>
 <h3 align="center">The best way to build internal software</h3>
@@ -18,7 +18,6 @@ Deploy with Docker Compose
 [Install](#install) &#8594; [Configure](#configure) &#8594; [Run](#run) &#8594; [Upgrade](#upgrade)
 
 <br>
-
 
 Install
 ------
@@ -81,8 +80,8 @@ docker compose logs
 ```
 
 4. Go to your domain or IP in a browser and click `Sign up` to initialize and log into the new instance
-<br>
 
+<br>
 
 Upgrade
 ------
