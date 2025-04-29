@@ -51,7 +51,9 @@ Configure
 
 2. Save off the `ENCRYPTION_KEY` value, since this is needed to encrypt/decrypt values saved into the Postgres database the Retool instance runs on. 
 
-3. To set up HTTPS, you'll need your domain pointing to your server's IP address. If that's in place, make sure `DOMAINS` is correct in `docker.env`, and then set `STAGE=production` in `docker-compose.yml` for the `https-portal` container to attempt to get and use a free `Let's Encrypt` cert for your domain on startup.
+3. Replace `X.Y.Z-stable` in `Dockerfile` with the desired Retool version listed in our [Dockerhub repo](https://hub.docker.com/r/tryretool/backend/tags), we recommend the latest patch of the most recent [stable version](https://hub.docker.com/r/tryretool/backend/tags?name=stable).
+
+4. To set up HTTPS, you'll need your domain pointing to your server's IP address. If that's in place, make sure `DOMAINS` is correct in `docker.env`, and then set `STAGE=production` in `docker-compose.yml` for the `https-portal` container to attempt to get and use a free `Let's Encrypt` cert for your domain on startup.
 
 > [!WARNING]  
 > You must set `COOKIE_INSECURE=true` in `docker.env` to allow logging into Retool without HTTPS configured (not recommended)
