@@ -58,6 +58,7 @@ random() { cat /dev/urandom | base64 | head -c "$1" | tr -d +/ ; }
 
 cat << EOF > docker.env
 # Environment variables reference: docs.retool.com/docs/environment-variables
+DEPLOYMENT_TEMPLATE_TYPE=docker-compose
 
 # Retool's internal Postgres credentials
 POSTGRES_HOST=postgres
@@ -72,6 +73,14 @@ RETOOLDB_POSTGRES_DB=postgres
 RETOOLDB_POSTGRES_PORT=5432
 RETOOLDB_POSTGRES_USER=root
 RETOOLDB_POSTGRES_PASSWORD=$(random 64)
+
+# Workflows configuration
+WORKFLOW_BACKEND_HOST=http://workflows-backend:3000
+CODE_EXECUTOR_INGRESS_DOMAIN=http://code-executor:3004
+
+# See Temporal options: https://docs.retool.com/self-hosted/concepts/temporal#compare-options
+WORKFLOW_TEMPORAL_CLUSTER_FRONTEND_HOST=temporal
+WORKFLOW_TEMPORAL_CLUSTER_FRONTEND_PORT=7233
 
 # Key to encrypt/decrypt sensitive values stored in the Postgres database
 ENCRYPTION_KEY=$(random 64)
