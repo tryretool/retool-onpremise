@@ -88,21 +88,21 @@ docker compose logs
 Upgrade
 ------
 
-1. Set the new version in `Dockerfile`
+Set the new version in `Dockerfile`, and either run `./upgrade.sh` or follow the below steps:
 
-2. Download and build the new images
+1. Download and build the new images
 
 ```
 docker compose build
 ```
 
-3. Bring up the new containers to replace the old ones
+2. Bring up the new containers to replace the old ones
 
 ```
 docker compose up -d
 ```
 
-4. Remove the old images from the system
+3. Remove the old images from the system
 ```
 docker image prune -a -f
 ```
