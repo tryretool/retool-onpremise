@@ -1,4 +1,5 @@
-# We recommend Retool-managed Temporal for Workflows, uncomment below if you need to self-host your own cluster
+# We recommend using Retool-managed Temporal for Workflows: https://docs.retool.com/self-hosted/concepts/temporal
+# If you need to self-host, uncomment below and the WORKFLOW_TEMPORAL_* environment variables in docker.env
 # include:
 #   - temporal.yaml
 

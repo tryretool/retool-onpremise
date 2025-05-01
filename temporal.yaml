@@ -1,4 +1,4 @@
-# Self-hosted Temporal, see options at https://docs.retool.com/self-hosted/concepts/temporal#compare-options
+# Self-hosted Temporal, more info at https://docs.retool.com/self-hosted/concepts/temporal
 services:
   temporal:
     image: tryretool/one-offs:retool-temporal-1.1.6
@@ -13,6 +13,7 @@ services:
     ports:
       - 7233:7233
     networks:
+      - backend
       - temporal
   
   # Optional Temporal tools

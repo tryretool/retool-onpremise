@@ -78,9 +78,9 @@ RETOOLDB_POSTGRES_PASSWORD=$(random 64)
 WORKFLOW_BACKEND_HOST=http://workflows-backend:3000
 CODE_EXECUTOR_INGRESS_DOMAIN=http://code-executor:3004
 
-# See Temporal options: https://docs.retool.com/self-hosted/concepts/temporal#compare-options
-WORKFLOW_TEMPORAL_CLUSTER_FRONTEND_HOST=temporal
-WORKFLOW_TEMPORAL_CLUSTER_FRONTEND_PORT=7233
+# Uncomment below only if self-hosting Temporal
+# WORKFLOW_TEMPORAL_CLUSTER_FRONTEND_HOST=temporal
+# WORKFLOW_TEMPORAL_CLUSTER_FRONTEND_PORT=7233
 
 # Key to encrypt/decrypt sensitive values stored in the Postgres database
 ENCRYPTION_KEY=$(random 64)
@@ -100,6 +100,7 @@ DOMAINS=$hostname -> http://api:3000
 
 # If your domain/HTTPS isn't in place yet
 # COOKIE_INSECURE=true
+
 EOF
 
 echo "✅ Created docker.env"
