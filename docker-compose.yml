@@ -73,7 +73,7 @@ services:
 
   # Retool's internal DB, we recommend using an externally hosted database: https://docs.retool.com/docs/configuring-retools-storage-database
   postgres:
-    image: postgres:15.12
+    image: postgres:16.8
     env_file: docker.env
     networks:
       - backend
@@ -82,7 +82,7 @@ services:
     restart: always
   
   retooldb-postgres:
-    image: postgres:15.12
+    image: postgres:16.8
     env_file: retooldb.env
     networks:
       - backend
