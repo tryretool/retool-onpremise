@@ -1,4 +1,3 @@
-# Self-hosted Temporal, more info at https://docs.retool.com/self-hosted/concepts/temporal
 services:
   temporal:
     image: tryretool/one-offs:retool-temporal-1.1.6

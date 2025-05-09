@@ -1,7 +1,6 @@
-# We recommend using Retool-managed Temporal for Workflows: https://docs.retool.com/self-hosted/concepts/temporal
-# If you need to self-host, uncomment below and the WORKFLOW_TEMPORAL_* environment variables in docker.env
-# include:
-#   - temporal.yaml
+# Comment out the below 'include' block to use Retool-managed Temporal (Enterprise license)
+include:
+  - temporal.yaml
 
 services:
   api:

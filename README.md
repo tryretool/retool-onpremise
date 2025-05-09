@@ -58,6 +58,8 @@ Configure
 > [!WARNING]  
 > You must set `COOKIE_INSECURE=true` in `docker.env` to allow logging into Retool without HTTPS configured (not recommended)
 
+5. By default, the deployment will include a Temporal container for Workflows. If you have an Enterprise license and would like to instead use Retool's managed Temporal cluster, comment out the `include` block in `docker-compose.yml` and the `WORKFLOW_TEMPORAL_...` environment variables in `docker.env`. Check out [our docs](https://docs.retool.com/self-hosted/concepts/temporal) for more information on Temporal deployment options.
+
 <br>
 
 Run

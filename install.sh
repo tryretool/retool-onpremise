@@ -78,9 +78,9 @@ RETOOLDB_POSTGRES_PASSWORD=$(random 64)
 WORKFLOW_BACKEND_HOST=http://workflows-backend:3000
 CODE_EXECUTOR_INGRESS_DOMAIN=http://code-executor:3004
 
-# Uncomment below only if self-hosting Temporal
-# WORKFLOW_TEMPORAL_CLUSTER_FRONTEND_HOST=temporal
-# WORKFLOW_TEMPORAL_CLUSTER_FRONTEND_PORT=7233
+# Comment out below to use Retool-managed Temporal (Enterprise license)
+WORKFLOW_TEMPORAL_CLUSTER_FRONTEND_HOST=temporal
+WORKFLOW_TEMPORAL_CLUSTER_FRONTEND_PORT=7233
 
 # Key to encrypt/decrypt sensitive values stored in the Postgres database
 ENCRYPTION_KEY=$(random 64)
