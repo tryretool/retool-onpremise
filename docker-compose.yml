@@ -1,24 +1,14 @@
+# Comment out the below 'include' block to use Retool-managed Temporal (Enterprise license)
+include:
+  - temporal.yaml
+
 services:
   api:
     build:
       context: .
     env_file: docker.env
     environment:
-      - DEPLOYMENT_TEMPLATE_TYPE=docker-compose
       - SERVICE_TYPE=MAIN_BACKEND,DB_CONNECTOR,DB_SSH_CONNECTOR
-      - DBCONNECTOR_POSTGRES_POOL_MAX_SIZE=100
-      - DBCONNECTOR_QUERY_TIMEOUT_MS=120000
-      - WORKFLOW_BACKEND_HOST=http://workflows-backend:3000
-      - CODE_EXECUTOR_INGRESS_DOMAIN=http://code-executor:3004
-      # If using Retool-managed Temporal cluster, leave workflow-related ENV vars commented
-      # If using self-managed cluster (Temporal Cloud or self-hosted) external to your Retool deployment, uncomment and update workflow-related ENV vars
-      # Compare deployment options here: https://docs.retool.com/self-hosted/concepts/temporal#compare-options
-      # - WORKFLOW_TEMPORAL_CLUSTER_FRONTEND_HOST=temporal
-      # - WORKFLOW_TEMPORAL_CLUSTER_FRONTEND_PORT=7233
-      # set these if using self-managed Temporal Cloud or require TLS for your self-managed Temporal cluster
-      # - WORKFLOW_TEMPORAL_TLS_ENABLED
-      # - WORKFLOW_TEMPORAL_TLS_CRT
-      # - WORKFLOW_TEMPORAL_TLS_KEY
     ports:
       - 3000:3000
     networks:
@@ -27,83 +17,61 @@ services:
       - code-executor
     depends_on:
       - postgres
-    restart: on-failure
+    restart: always
 
   jobs-runner:
     build:
       context: .
     env_file: docker.env
     environment:
-      - DEPLOYMENT_TEMPLATE_TYPE=docker-compose
       - SERVICE_TYPE=JOBS_RUNNER
     networks:
       - backend
     depends_on:
       - postgres
+    restart: always
 
   workflows-worker:
     build:
       context: .
     env_file: docker.env
     environment:
-      - DEPLOYMENT_TEMPLATE_TYPE=docker-compose
       - SERVICE_TYPE=WORKFLOW_TEMPORAL_WORKER
       - NODE_OPTIONS=--max_old_space_size=1024
-      - DISABLE_DATABASE_MIGRATIONS=true
-      - WORKFLOW_BACKEND_HOST=http://workflows-backend:3000
-      - CODE_EXECUTOR_INGRESS_DOMAIN=http://code-executor:3004
-      # If using Retool-managed Temporal cluster, leave workflow-related ENV vars commented
-      # If using self-managed cluster (Temporal Cloud or self-hosted) external to your Retool deployment, uncomment and update workflow-related ENV vars
-      # Compare deployment options here: https://docs.retool.com/self-hosted/concepts/temporal#compare-options
-      # - WORKFLOW_TEMPORAL_CLUSTER_FRONTEND_HOST=temporal
-      # - WORKFLOW_TEMPORAL_CLUSTER_FRONTEND_PORT=7233
-      # set these if using self-managed Temporal Cloud or require TLS for your self-managed Temporal cluster
-      # - WORKFLOW_TEMPORAL_TLS_ENABLED
-      # - WORKFLOW_TEMPORAL_TLS_CRT
-      # - WORKFLOW_TEMPORAL_TLS_KEY
     networks:
       - backend
       - code-executor
     depends_on:
       - postgres
-    restart: on-failure
+    restart: always
 
   workflows-backend:
     build:
       context: .
     env_file: docker.env
     environment:
-      - DEPLOYMENT_TEMPLATE_TYPE=docker-compose
       - SERVICE_TYPE=WORKFLOW_BACKEND,DB_CONNECTOR,DB_SSH_CONNECTOR
-      - WORKFLOW_BACKEND_HOST=http://workflows-backend:3000
-      - CODE_EXECUTOR_INGRESS_DOMAIN=http://code-executor:3004
-      - DBCONNECTOR_POSTGRES_POOL_MAX_SIZE=100
-      - DBCONNECTOR_QUERY_TIMEOUT_MS=120000
     networks:
       - backend
       - code-executor
     depends_on:
       - postgres
-    restart: on-failure
+    restart: always
 
   code-executor:
     build:
       context: .
       target: code-executor
     environment:
-      - DEPLOYMENT_TEMPLATE_TYPE=docker-compose
       - NODE_OPTIONS=--max_old_space_size=1024
     networks:
       - code-executor
-    # code-executor uses nsjail to sandbox code execution. nsjail requires
-    # privileged container access.
-    # If your deployment does not support privileged access, you can set this
-    # to false to not use nsjail. Without nsjail, all code is run without
-    # sandboxing within your deployment.
+    # Privileged is required to sandbox user code execution and to use custom libraries
+    # Set to false if your deployment method does not allow this
     privileged: true
-    restart: on-failure
+    restart: always
 
-  # Retool's storage database. See these docs to migrate to an externally hosted database: https://docs.retool.com/docs/configuring-retools-storage-database
+  # Retool's internal DB, we recommend using an externally hosted database: https://docs.retool.com/docs/configuring-retools-storage-database
   postgres:
     image: postgres:16.8
     env_file: docker.env
@@ -111,7 +79,8 @@ services:
       - backend
     volumes:
       - data:/var/lib/postgresql/data
-
+    restart: always
+  
   retooldb-postgres:
     image: postgres:16.8
     env_file: retooldb.env
@@ -119,13 +88,15 @@ services:
       - backend
     volumes:
       - retooldb-data:/var/lib/postgresql/data
+    restart: always
 
   # Optional Nginx container for handling TLS for your domain (requires setting DOMAINS and STAGE)
   https-portal:
     image: tryretool/https-portal:latest
     env_file: docker.env
     environment:
-      STAGE: local # <- Change 'local' to 'production' to get a cert for your domain
+      # Change 'local' -> 'production' below once your domain is pointing to this server
+      STAGE: local 
       CLIENT_MAX_BODY_SIZE: 40M
       KEEPALIVE_TIMEOUT: 605
       PROXY_CONNECT_TIMEOUT: 600

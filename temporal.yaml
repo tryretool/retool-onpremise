@@ -1,0 +1,44 @@
+services:
+  temporal:
+    image: tryretool/one-offs:retool-temporal-1.1.6
+    env_file: docker.env
+    environment:
+      # To enable TLS between temporal and external postgres, set both below variables to true
+      - SQL_TLS_ENABLED=false
+      - SQL_TLS=false
+      # Defined twice because temporal-server and temporal-sql-tool use different envvars
+      - SQL_TLS_DISABLE_HOST_VERIFICATION=true
+      - SQL_HOST_VERIFICATION=false
+    ports:
+      - 7233:7233
+    networks:
+      - backend
+      - temporal
+  
+  # Optional Temporal tools
+
+  # temporal-admin-tools:
+  #   image: temporalio/admin-tools:1.18.5
+  #   environment:
+  #     - TEMPORAL_CLI_ADDRESS=temporal:7233
+  #   networks:
+  #     - temporal
+  #   depends_on:
+  #     - temporal
+  #   stdin_open: true
+  #   tty: true
+  
+  # temporal-ui:
+  #   image: temporalio/ui:2.9.1
+  #   environment:
+  #     - TEMPORAL_ADDRESS=temporal:7233
+  #     - TEMPORAL_CORS_ORIGINS=http://localhost:3000
+  #   networks:
+  #     - temporal
+  #   depends_on:
+  #     - temporal
+  #   ports:
+  #     - 8080:8080
+
+networks:
+  temporal:
