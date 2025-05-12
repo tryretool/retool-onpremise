@@ -96,7 +96,7 @@ DOMAINS=$hostname -> http://api:3000
 
 # Used to create links like user invitations and password resets
 # Retool tries to guess this, but it can be incorrect if using a proxy in front of the instance
-# BASE_DOMAIN=https://retool.company.com
+BASE_DOMAIN=https://$hostname
 
 # If your domain/HTTPS isn't in place yet
 # COOKIE_INSECURE=true
