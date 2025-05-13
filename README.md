@@ -53,12 +53,12 @@ Configure
 
 3. Replace `X.Y.Z-stable` in `Dockerfile` with the desired Retool version listed in our [Dockerhub repo](https://hub.docker.com/r/tryretool/backend/tags), we recommend the latest patch of the most recent [stable version](https://hub.docker.com/r/tryretool/backend/tags?name=stable).
 
-4. To set up HTTPS, you'll need your domain pointing to your server's IP address. If that's in place, make sure `DOMAINS` is correct in `docker.env`, and then set `STAGE=production` in `docker-compose.yml` for the `https-portal` container to attempt to get and use a free `Let's Encrypt` cert for your domain on startup.
+4. To set up HTTPS, you'll need your domain pointing to your server's IP address. If that's in place, make sure `DOMAINS` is correct in `docker.env`, and then set `STAGE=production` in `compose.yaml` for the `https-portal` container to attempt to get and use a free `Let's Encrypt` cert for your domain on startup.
 
 > [!WARNING]  
 > You must set `COOKIE_INSECURE=true` in `docker.env` to allow logging into Retool without HTTPS configured (not recommended)
 
-5. By default, the deployment will include a Temporal container for Workflows. If you have an Enterprise license and would like to instead use Retool's managed Temporal cluster, comment out the `include` block in `docker-compose.yml` and the `WORKFLOW_TEMPORAL_...` environment variables in `docker.env`. Check out [our docs](https://docs.retool.com/self-hosted/concepts/temporal) for more information on Temporal deployment options.
+5. By default, the deployment will include a Temporal container for Workflows. If you have an Enterprise license and would like to instead use Retool's managed Temporal cluster, comment out the `include` block in `compose.yaml` and the `WORKFLOW_TEMPORAL_...` environment variables in `docker.env`. Check out [our docs](https://docs.retool.com/self-hosted/concepts/temporal) for more information on Temporal deployment options.
 
 <br>
 
