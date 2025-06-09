@@ -1,0 +1,29 @@
+services:
+  # Temporal workers for Retool Agents
+  agent-worker:
+    build:
+      context: .
+    env_file: docker.env
+    environment:
+      - SERVICE_TYPE=WORKFLOW_TEMPORAL_WORKER
+      - WORKER_TEMPORAL_TASKQUEUE=agent
+    networks:
+      - backend
+      - code-executor
+    depends_on:
+      - postgres
+    restart: always
+
+  agent-eval-worker:
+    build:
+      context: .
+    env_file: docker.env
+    environment:
+      - SERVICE_TYPE=AGENT_EVAL_TEMPORAL_WORKER
+      - WORKER_TEMPORAL_TASKQUEUE=agent-eval
+    networks:
+      - backend
+      - code-executor
+    depends_on:
+      - postgres
+    restart: always

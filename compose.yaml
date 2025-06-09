@@ -1,6 +1,7 @@
 # Comment out the below 'include' block to use Retool-managed Temporal (Enterprise license)
 include:
   - temporal.yaml
+  - agents.yaml
 
 services:
   api:
