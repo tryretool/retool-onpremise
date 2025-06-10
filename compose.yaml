@@ -71,6 +71,8 @@ services:
     # Set to false if your deployment method does not allow this
     privileged: true
     restart: always
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
 
   # Retool's internal DB, we recommend using an externally hosted database: https://docs.retool.com/docs/configuring-retools-storage-database
   postgres:

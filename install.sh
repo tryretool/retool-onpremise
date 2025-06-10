@@ -88,6 +88,9 @@ ENCRYPTION_KEY=$(random 64)
 # Key to sign requests for authentication with Retool's backend API server
 JWT_SECRET=$(random 256)
 
+# Endpoints for monitoring services
+MONITORING_SERVICE_INGRESS_DOMAIN="https://monitoring-service.retool.com"
+
 # License you received from my.retool.com or your Retool contact
 LICENSE_KEY=$licenseKey
 
