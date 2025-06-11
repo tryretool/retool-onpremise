@@ -115,7 +115,5 @@ echo "✅ Created docker.env"
 # Next steps
 
 echo ""
-echo "Done! Check docker.env and retooldb.env files for expected values, and confirm"
-echo "the Retool version in Dockerfile. We suggest the most recent X.Y.Z-stable version,"
-echo "see Dockerhub for available tags: https://hub.docker.com/r/tryretool/backend/tags"
+echo "Done! Please ensure that the docker.env and retooldb.env files contain the expected values."
 echo ""
