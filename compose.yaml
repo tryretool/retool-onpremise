@@ -78,6 +78,7 @@ services:
   postgres:
     image: postgres:16.8
     env_file: docker.env
+    command: -c 'max_connections=200'
     networks:
       - backend
     volumes:
