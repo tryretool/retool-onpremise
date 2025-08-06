@@ -1,11 +1,11 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Simple apply script that checks versions before kubectl apply
 # Usage: ./apply.sh [kubernetes-file-or-directory]
 
 set -e
 
-INPUT_PATH=${1:-kubernetes}
+INPUT_PATH=${1:-.}
 
 echo "🚀 Retool Kubernetes Deployment"
 echo "================================"
@@ -26,7 +26,6 @@ if [ -d "$INPUT_PATH" ]; then
         yaml_files+=("$file")
     done < <(find "$INPUT_PATH" -name "*.yaml" -print0)
 elif [ -f "$INPUT_PATH" ]; then
-    # Single file
     yaml_files+=("$INPUT_PATH")
 else
     echo "❌ Error: $INPUT_PATH is not a file or directory"
@@ -50,7 +49,7 @@ if [ ${#unique_versions[@]} -eq 0 ]; then
     exit 1
 elif [ ${#unique_versions[@]} -eq 1 ]; then
     if [[ "${unique_versions[0]}" == "X.Y.Z" ]]; then
-        echo "❌ All versions are set to placeholder (X.Y.Z) - deployment may fail!"
+        echo "❌ All versions are set to placeholder (X.Y.Z) - please set a version!"
         issues=1
     else
         echo "✅ All services use version: ${unique_versions[0]}"

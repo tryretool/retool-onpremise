@@ -42,11 +42,6 @@ cd kubernetes/base-with-temporal
    - Replace placeholder values with actual base64-encoded secrets
    - Or create a proper secrets file
 
-## Available Versions
-
-Check available Retool versions at:
-- https://hub.docker.com/r/tryretool/backend/tags
-- https://hub.docker.com/r/tryretool/code-executor-service/tags
 
 ## What the apply.sh script does
 
