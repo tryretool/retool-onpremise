@@ -27,7 +27,7 @@ Install
 1. Download this repo
 
 ```
-git clone https://github.com/tryretool/retool-onpremise retool && cd retool
+git clone https://github.com/tryretool/retool-onpremise retool && cd retool/docker
 ```
 
 2. Run our install script to attempt to set up Docker and initialize the `.env` files
