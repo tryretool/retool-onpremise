@@ -20,14 +20,11 @@ spec:
             - bash
             - start.sh
           env:
-            - name: DEPLOYMENT_TEMPLATE_TYPE
-              value: k8s-manifests
-            - name: NODE_ENV
-              value: production
-            - name: NODE_OPTIONS
-              value: --max_old_space_size=1024
             - name: PORT
               value: "3004"
+          envFrom:
+            - configMapRef:
+                name: retool-config
           image: tryretool/code-executor-service:X.Y.Z
           name: code-executor
           ports:

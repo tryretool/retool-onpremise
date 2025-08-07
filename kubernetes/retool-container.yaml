@@ -21,25 +21,13 @@ spec:
         - ./docker_scripts/wait-for-it.sh -t 0 $POSTGRES_HOST:$POSTGRES_PORT;
           ./docker_scripts/start_api.sh
         env:
+        - name: SERVICE_TYPE
+          value: MAIN_BACKEND,DB_CONNECTOR,DB_SSH_CONNECTOR
         - name: JWT_SECRET
           valueFrom:
             secretKeyRef:
               name: retoolsecrets
               key: jwt_secret
-        - name: DEPLOYMENT_TEMPLATE_TYPE
-          value: k8s-manifests
-        - name: SERVICE_TYPE
-          value: MAIN_BACKEND,DB_CONNECTOR,DB_SSH_CONNECTOR
-        - name: NODE_ENV
-          value: production
-        - name: POSTGRES_DB
-          value: hammerhead_production
-        - name: POSTGRES_HOST
-          value: postgres
-        - name: POSTGRES_PORT
-          value: "5432"
-        - name: POSTGRES_USER
-          value: retool_internal_user
         - name: POSTGRES_PASSWORD
           valueFrom:
             secretKeyRef:
@@ -65,12 +53,9 @@ spec:
             secretKeyRef:
               name: retoolsecrets
               key: google_client_secret
-        - name: WORKFLOW_TEMPORAL_CLUSTER_NAMESPACE
-          value: "workflows"
-        - name: WORKFLOW_BACKEND_HOST
-          value: http://workflows-api
-        - name: CODE_EXECUTOR_INGRESS_DOMAIN
-          value: http://code-executor:3004
+        envFrom:
+        - configMapRef:
+            name: retool-config
         image: tryretool/backend:X.Y.Z
         name: api
         ports:
