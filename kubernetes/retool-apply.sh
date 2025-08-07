@@ -86,7 +86,7 @@ deploy() {
     # Deploy local Temporal cluster first if needed
     if $WITH_TEMPORAL && [[ -d "temporal" ]] && [[ "$target" != "temporal/"* ]]; then
         echo "Deploying local Temporal cluster dependencies..."
-        find temporal/ -name "*.yaml" -exec kubectl apply -f {} \;
+        find temporal/ -name "*.yaml" -not -name "*.template.yaml" -exec kubectl apply -f {} \;
     fi
     
     # Deploy main resources
@@ -105,7 +105,7 @@ deploy() {
             exclude_temporal="-not -path '*/temporal/*'"
         fi
         
-        eval "find '$target' -name '*.yaml' -not -name 'retool-config.yaml' -not -name '$VERSION_FILE' $exclude_temporal" | while read -r file; do
+        eval "find '$target' -name '*.yaml' -not -name 'retool-config.yaml' -not -name '$VERSION_FILE' -not -name '*.template.yaml' $exclude_temporal" | while read -r file; do
             if [[ "$file" == *temporal* ]]; then
                 # Temporal files don't need version replacement
                 kubectl apply -f "$file"
