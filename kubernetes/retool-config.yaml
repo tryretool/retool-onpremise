@@ -11,6 +11,8 @@ data:
   POSTGRES_HOST: "postgres"
   POSTGRES_PORT: "5432"
   POSTGRES_USER: "retool_internal_user"
+  WORKFLOW_TEMPORAL_CLUSTER_FRONTEND_HOST: "retool-temporal-frontend"
+  WORKFLOW_TEMPORAL_CLUSTER_FRONTEND_PORT: "7233"
   WORKFLOW_TEMPORAL_CLUSTER_NAMESPACE: "workflows"
   WORKFLOW_BACKEND_HOST: "http://workflows-api"
   CODE_EXECUTOR_INGRESS_DOMAIN: "http://code-executor:3004"
