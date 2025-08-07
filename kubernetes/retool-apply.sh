@@ -118,5 +118,4 @@ deploy() {
     echo "Deployment completed! 🚀"
 }
 
-# Run deployment
 deploy "$@"

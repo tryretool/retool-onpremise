@@ -1,6 +1,6 @@
 # Retool Kubernetes Deployment
 
-This directory contains Kubernetes manifests for deploying Retool in two configurations:
+This repository contains Kubernetes manifests for deploying Retool on-premise. See [our docs](https://docs.retool.com/self-hosted/tutorials/kubernetes/manifests) for more details.
 
 ## Quick Start
 
