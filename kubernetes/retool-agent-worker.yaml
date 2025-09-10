@@ -1,0 +1,82 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    retoolService: agent-worker
+  name: agent-worker
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      retoolService: agent-worker
+  revisionHistoryLimit: 3
+  template:
+    metadata:
+      labels:
+        retoolService: agent-worker
+    spec:
+      containers:
+      - args:
+        - bash
+        - -c
+        - ./docker_scripts/wait-for-it.sh -t 0 $POSTGRES_HOST:$POSTGRES_PORT;
+          ./docker_scripts/start_api.sh
+        env:
+        - name: JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: retoolsecrets
+              key: jwt_secret
+        - name: DEPLOYMENT_TEMPLATE_TYPE
+          value: k8s-manifests
+        - name: SERVICE_TYPE
+          value: WORKFLOW_TEMPORAL_WORKER
+        - name: WORKER_TEMPORAL_TASKQUEUE
+          value: agent
+        - name: POSTGRES_DB
+          value: hammerhead_production
+        - name: POSTGRES_HOST
+          value: postgres
+        - name: POSTGRES_PORT
+          value: "5432"
+        - name: POSTGRES_USER
+          value: retool_internal_user
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: retoolsecrets
+              key: postgres_password
+        - name: ENCRYPTION_KEY
+          valueFrom:
+            secretKeyRef:
+              name: retoolsecrets
+              key: encryption_key
+        - name: LICENSE_KEY
+          valueFrom:
+            secretKeyRef:
+              name: retoolsecrets
+              key: license_key
+        - name: NODE_OPTIONS
+          value: --max_old_space_size=1024
+        - name: DISABLE_DATABASE_MIGRATIONS
+          value: "true"
+        - name: WORKFLOW_BACKEND_HOST
+          value: http://workflows-api
+        - name: CODE_EXECUTOR_INGRESS_DOMAIN
+          value: http://code-executor:3004
+        image: tryretool/backend:X.Y.Z
+        name: agent-worker
+        ports:
+        - containerPort: 3005
+          name: retool
+          protocol: TCP
+        - containerPort: 9090
+          name: metrics
+          protocol: TCP
+        resources:
+          limits:
+            cpu: 2
+            memory: 2Gi
+          requests:
+            cpu: 1
+            memory: 1Gi
