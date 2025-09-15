@@ -30,7 +30,7 @@ spec:
         - name: DEPLOYMENT_TEMPLATE_TYPE
           value: k8s-manifests
         - name: SERVICE_TYPE
-          value: WORKFLOW_TEMPORAL_WORKER
+          value: AGENT_EVAL_TEMPORAL_WORKER
         - name: WORKER_TEMPORAL_TASKQUEUE
           value: agent-eval
         - name: POSTGRES_DB
