@@ -31,6 +31,19 @@ services:
       - postgres
     restart: always
 
+  workflows-backend:
+    build:
+      context: .
+    env_file: docker.env
+    environment:
+      - SERVICE_TYPE=WORKFLOW_BACKEND,DB_CONNECTOR,DB_SSH_CONNECTOR
+    networks:
+      - backend
+      - code-executor
+    depends_on:
+      - postgres
+    restart: always
+
   workflows-worker:
     build:
       context: .
@@ -45,12 +58,27 @@ services:
       - postgres
     restart: always
 
-  workflows-backend:
+  agent-worker:
     build:
       context: .
     env_file: docker.env
     environment:
-      - SERVICE_TYPE=WORKFLOW_BACKEND,DB_CONNECTOR,DB_SSH_CONNECTOR
+      - SERVICE_TYPE=WORKFLOW_TEMPORAL_WORKER
+      - WORKER_TEMPORAL_TASKQUEUE=agent
+    networks:
+      - backend
+      - code-executor
+    depends_on:
+      - postgres
+    restart: always
+
+  agent-eval-worker:
+    build:
+      context: .
+    env_file: docker.env
+    environment:
+      - SERVICE_TYPE=AGENT_EVAL_TEMPORAL_WORKER
+      - WORKER_TEMPORAL_TASKQUEUE=agent-eval
     networks:
       - backend
       - code-executor
@@ -76,6 +104,7 @@ services:
   postgres:
     image: postgres:16.8
     env_file: docker.env
+    command: -c 'max_connections=200'
     networks:
       - backend
     volumes:
