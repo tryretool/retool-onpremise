@@ -418,6 +418,9 @@ Resources:
     Properties:
       Family: 'retool-agents-worker'
       TaskRoleArn: !Ref 'RetoolTaskRole'
+      ExecutionRoleArn: !Ref 'RetoolExecutionRole'
+      RequiresCompatibilities:
+        - FARGATE
       NetworkMode: awsvpc
       ContainerDefinitions:
       - Name: 'retool-agents-worker'
@@ -480,6 +483,9 @@ Resources:
     Properties:
       Family: 'retool-agents-eval-worker'
       TaskRoleArn: !Ref 'RetoolTaskRole'
+      ExecutionRoleArn: !Ref 'RetoolExecutionRole'
+      RequiresCompatibilities:
+        - FARGATE
       NetworkMode: awsvpc
       ContainerDefinitions:
       - Name: 'retool-agents-eval-worker'
