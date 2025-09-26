@@ -43,10 +43,6 @@ Parameters:
   VpcId:
     Type: AWS::EC2::VPC::Id
     Description: Select a VPC that allows instances access to the Internet.
-  Force:
-    Type: String
-    Description: "Used to force the deployment even when the image and parameters are otherwised unchanged."
-    Default: "false"
 
 Resources:
   ALBSecurityGroup:
