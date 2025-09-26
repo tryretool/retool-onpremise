@@ -224,8 +224,6 @@ Resources:
             awslogs-region: !Ref 'AWS::Region'
             awslogs-stream-prefix: "SERVICE_RETOOL"
         Environment:
-          - Name: AGENTS_ENABLED
-            Value: "true"
           - Name: DEPLOYMENT_TEMPLATE_TYPE
             Value: "aws-ecs-fargate"
           - Name: NODE_ENV
@@ -341,8 +339,6 @@ Resources:
             awslogs-region: !Ref 'AWS::Region'
             awslogs-stream-prefix: "SERVICE_RETOOL"
         Environment:
-          - Name: AGENTS_ENABLED
-            Value: "true"
           - Name: DEPLOYMENT_TEMPLATE_TYPE
             Value: "aws-ecs-fargate"
           - Name: NODE_ENV
@@ -402,8 +398,6 @@ Resources:
               awslogs-stream-prefix: SERVICE_RETOOL
           User: "1001:1001"
           Environment:
-            - Name: AGENTS_ENABLED
-              Value: "true"
             - Name: CONTAINER_UNPRIVILEGED_MODE
               Value: true
             - Name: NODE_OPTIONS
@@ -439,8 +433,6 @@ Resources:
             awslogs-region: !Ref 'AWS::Region'
             awslogs-stream-prefix: "SERVICE_RETOOL"
         Environment:
-          - Name: AGENTS_ENABLED
-            Value: "true"
           - Name: DEPLOYMENT_TEMPLATE_TYPE
             Value: "aws-ecs-ec2"
           - Name: NODE_ENV
@@ -504,10 +496,6 @@ Resources:
             awslogs-region: !Ref 'AWS::Region'
             awslogs-stream-prefix: "SERVICE_RETOOL"
         Environment:
-          - Name: AGENTS_ENABLED
-            Value: "true"
-          - Name: BASE_DOMAIN
-            Value: "test"
           - Name: DEPLOYMENT_TEMPLATE_TYPE
             Value: "aws-ecs-ec2"
           - Name: NODE_ENV
