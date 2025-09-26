@@ -1,7 +1,6 @@
 # Comment out the below 'include' block to use Retool-managed Temporal (Enterprise license)
 include:
   - temporal.yaml
-  - agents.yaml
 
 services:
   api:
@@ -59,11 +58,40 @@ services:
       - postgres
     restart: always
 
+  agent-worker:
+    build:
+      context: .
+    env_file: docker.env
+    environment:
+      - SERVICE_TYPE=WORKFLOW_TEMPORAL_WORKER
+      - WORKER_TEMPORAL_TASKQUEUE=agent
+    networks:
+      - backend
+      - code-executor
+    depends_on:
+      - postgres
+    restart: always
+
+  agent-eval-worker:
+    build:
+      context: .
+    env_file: docker.env
+    environment:
+      - SERVICE_TYPE=AGENT_EVAL_TEMPORAL_WORKER
+      - WORKER_TEMPORAL_TASKQUEUE=agent-eval
+    networks:
+      - backend
+      - code-executor
+    depends_on:
+      - postgres
+    restart: always
+
   code-executor:
     build:
       context: .
       target: code-executor
     environment:
+      - NODE_ENV=production
       - NODE_OPTIONS=--max_old_space_size=1024
     networks:
       - code-executor

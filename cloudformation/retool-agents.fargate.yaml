@@ -14,8 +14,8 @@ Parameters:
     Description: Cluster to put service in.
   RetoolVersion:
     Type: String
-    Description: Retool version tag 
-    Default: agents-preview
+    Description: Retool version tag (e.g. 3.253.0-stable)
+    Default: 3.253.0-stable
   DesiredCount:
     Type: Number
     Description: Default number of API container tasks to run
