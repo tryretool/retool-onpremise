@@ -15,7 +15,7 @@ Parameters:
   RetoolVersion:
     Type: String
     Description: Retool version tag 
-    Default: agents-preview
+    Default: 3.253.2-stable
   DesiredCount:
     Type: Number
     Description: Default number of API container tasks to run
@@ -43,10 +43,6 @@ Parameters:
   VpcId:
     Type: AWS::EC2::VPC::Id
     Description: Select a VPC that allows instances access to the Internet.
-  Force:
-    Type: String
-    Description: "Used to force the deployment even when the image and parameters are otherwised unchanged."
-    Default: "false"
 
 Resources:
   ALBSecurityGroup:
@@ -162,12 +158,8 @@ Resources:
             Value: !GetAtt [ECSALB, DNSName]
           - Name: DEPLOYMENT_TEMPLATE_TYPE
             Value: "aws-ecs-fargate"
-          - Name: NODE_ENV
-            Value: production
           - Name: SERVICE_TYPE
             Value: MAIN_BACKEND,DB_CONNECTOR,DB_SSH_CONNECTOR
-          - Name: "FORCE_DEPLOYMENT"
-            Value: !Ref "Force"
           - Name: POSTGRES_DB
             Value: hammerhead_production
           - Name: POSTGRES_HOST
@@ -226,12 +218,8 @@ Resources:
         Environment:
           - Name: DEPLOYMENT_TEMPLATE_TYPE
             Value: "aws-ecs-fargate"
-          - Name: NODE_ENV
-            Value: production
           - Name: SERVICE_TYPE
             Value: JOBS_RUNNER
-          - Name: "FORCE_DEPLOYMENT"
-            Value: !Ref "Force"
           - Name: POSTGRES_DB
             Value: hammerhead_production
           - Name: POSTGRES_HOST
@@ -280,12 +268,8 @@ Resources:
             Value: !GetAtt [ECSALB, DNSName]
           - Name: DEPLOYMENT_TEMPLATE_TYPE
             Value: "aws-ecs-fargate"
-          - Name: NODE_ENV
-            Value: production
           - Name: SERVICE_TYPE
             Value: WORKFLOW_BACKEND,DB_CONNECTOR,DB_SSH_CONNECTOR
-          - Name: "FORCE_DEPLOYMENT"
-            Value: !Ref "Force"
           - Name: POSTGRES_DB
             Value: hammerhead_production
           - Name: POSTGRES_HOST
@@ -311,7 +295,7 @@ Resources:
           - Name: CODE_EXECUTOR_INGRESS_DOMAIN
             Value: http://code-executor.retoolsvc:3004
           - Name: LICENSE_KEY
-            Value: "0359c73c-8f23-4384-8faa-3dea3585e5bb"
+            Value: "EXPIRED-LICENSE-KEY-TRIAL"
           # Remove below when serving Retool over https
           - Name: COOKIE_INSECURE
             Value: "true"
@@ -341,12 +325,8 @@ Resources:
         Environment:
           - Name: DEPLOYMENT_TEMPLATE_TYPE
             Value: "aws-ecs-fargate"
-          - Name: NODE_ENV
-            Value: production
           - Name: SERVICE_TYPE
             Value: WORKFLOW_TEMPORAL_WORKER
-          - Name: "FORCE_DEPLOYMENT"
-            Value: !Ref "Force"
           - Name: POSTGRES_DB
             Value: hammerhead_production
           - Name: POSTGRES_HOST
@@ -402,8 +382,6 @@ Resources:
               Value: true
             - Name: NODE_OPTIONS
               Value: "--max_old_space_size=1024"
-            - Name: NODE_ENV
-              Value: "production"
           PortMappings:
             - ContainerPort: 3004
               HostPort: 3004
@@ -435,14 +413,10 @@ Resources:
         Environment:
           - Name: DEPLOYMENT_TEMPLATE_TYPE
             Value: "aws-ecs-ec2"
-          - Name: NODE_ENV
-            Value: production
           - Name: SERVICE_TYPE
             Value: WORKFLOW_TEMPORAL_WORKER
           - Name: WORKER_TEMPORAL_TASKQUEUE
             Value: agent
-          - Name: "FORCE_DEPLOYMENT"
-            Value: !Ref "Force"
           - Name: POSTGRES_DB
             Value: hammerhead_production
           - Name: POSTGRES_HOST
@@ -498,14 +472,10 @@ Resources:
         Environment:
           - Name: DEPLOYMENT_TEMPLATE_TYPE
             Value: "aws-ecs-ec2"
-          - Name: NODE_ENV
-            Value: production
           - Name: SERVICE_TYPE
             Value: AGENT_EVAL_TEMPORAL_WORKER
           - Name: WORKER_TEMPORAL_TASKQUEUE
             Value: agent-eval
-          - Name: "FORCE_DEPLOYMENT"
-            Value: !Ref "Force"
           - Name: POSTGRES_DB
             Value: hammerhead_production
           - Name: POSTGRES_HOST
