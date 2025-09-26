@@ -422,10 +422,10 @@ Resources:
       RequiresCompatibilities:
         - FARGATE
       NetworkMode: awsvpc
+      Cpu: '2048'
+      Memory: '4096'
       ContainerDefinitions:
       - Name: 'retool-agents-worker'
-        Cpu: '2048'
-        Memory: '4096'
         Essential: 'true'
         Image: !Sub tryretool/backend:${RetoolVersion}
         LogConfiguration:
@@ -487,10 +487,10 @@ Resources:
       RequiresCompatibilities:
         - FARGATE
       NetworkMode: awsvpc
+      Cpu: '2048'
+      Memory: '4096'
       ContainerDefinitions:
       - Name: 'retool-agents-eval-worker'
-        Cpu: '2048'
-        Memory: '4096'
         Essential: 'true'
         Image: !Sub tryretool/backend:${RetoolVersion}
         LogConfiguration:
