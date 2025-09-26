@@ -15,7 +15,7 @@ Parameters:
   RetoolVersion:
     Type: String
     Description: Retool version tag 
-    Default: agents-preview
+    Default: 3.253.2-stable
   DesiredCount:
     Type: Number
     Description: Default number of API container tasks to run
