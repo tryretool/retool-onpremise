@@ -78,6 +78,13 @@ echo ""
 
 random() { cat /dev/urandom | base64 | head -c "$1" | tr -d +/ ; }
 
+postgres_password=$(random 64)
+
+ae_private_pem=$(openssl genpkey -algorithm EC -pkeyopt ec_paramgen_curve:P-256 2>/dev/null)
+ae_public_pem=$(echo "$ae_private_pem" | openssl ec -pubout 2>/dev/null)
+ae_private_key=$(echo "$ae_private_pem" | awk '{if(NR>1)printf "\\n";printf "%s",$0}')
+ae_public_key=$(echo "$ae_public_pem" | awk '{if(NR>1)printf "\\n";printf "%s",$0}')
+
 cat << EOF > docker.env
 # Environment variables reference: docs.retool.com/docs/environment-variables
 DEPLOYMENT_TEMPLATE_TYPE=docker-compose
@@ -87,7 +94,7 @@ POSTGRES_HOST=postgres
 POSTGRES_DB=hammerhead_production
 POSTGRES_PORT=5432
 POSTGRES_USER=retool_internal_user
-POSTGRES_PASSWORD=$(random 64)
+POSTGRES_PASSWORD=$postgres_password
 
 # Retool DB credentials
 RETOOLDB_POSTGRES_HOST=retooldb-postgres
@@ -99,6 +106,31 @@ RETOOLDB_POSTGRES_PASSWORD=$(random 64)
 # Workflows configuration
 WORKFLOW_BACKEND_HOST=http://workflows-backend:3000
 CODE_EXECUTOR_INGRESS_DOMAIN=http://code-executor:3004
+
+# Agent sandbox configuration
+AGENT_EXECUTOR_ENABLED=true
+RR_AGENT_PUBSUB_BACKEND=postgres
+AGENT_EXECUTOR_CONTROLLER_INGRESS_DOMAIN=http://agent-sandbox-controller:3018
+AGENT_EXECUTOR_PROXY_INGRESS_DOMAIN=http://agent-sandbox-proxy:3019
+AGENT_EXECUTOR_FRONTEND_WS_PROXY_DOMAIN=http://$hostname:3019
+AGENT_EXECUTOR_JWT_PRIVATE_KEY="$ae_private_key"
+AGENT_EXECUTOR_JWT_PUBLIC_KEY="$ae_public_key"
+AGENT_EXECUTOR_ENCRYPTION_KEY=$(openssl rand -hex 32)
+STATE_BACKEND=postgres
+AGENT_EXECUTOR_POSTGRES_URL=postgres://retool_internal_user:$postgres_password@postgres:5432/hammerhead_production
+AGENT_EXECUTOR_POSTGRES_SCHEMA=agent_executor
+
+# S3-compatible storage (MinIO)
+AWS_ENDPOINT_URL=http://minio:9000
+RR_GIT_S3_BUCKET=retool-rr-git
+RR_GIT_S3_ACCESS_KEY_ID=retool
+RR_GIT_S3_SECRET_ACCESS_KEY=retoolminio
+RR_GIT_S3_REGION=us-east-1
+RR_SNAPSHOTS_S3_BUCKET=retool-rr-snapshots
+RR_SNAPSHOTS_S3_ACCESS_KEY_ID=retool
+RR_SNAPSHOTS_S3_SECRET_ACCESS_KEY=retoolminio
+RR_SNAPSHOTS_S3_REGION=us-east-1
+RR_SNAPSHOTS_S3_ENDPOINT=http://minio:9000
 
 # Comment out below to use Retool-managed Temporal (Enterprise license)
 WORKFLOW_TEMPORAL_CLUSTER_FRONTEND_HOST=temporal
@@ -121,7 +153,7 @@ DOMAINS=$hostname -> http://api:3000
 BASE_DOMAIN=https://$hostname
 
 # If your domain/HTTPS isn't in place yet
-# COOKIE_INSECURE=true
+COOKIE_INSECURE=true
 
 EOF
 
