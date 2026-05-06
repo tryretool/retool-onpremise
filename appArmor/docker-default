@@ -27,6 +27,11 @@ profile docker-default flags=(attach_disconnected,mediate_deleted) {
   # docker-default's hardening (proc, sys, sysrq, kcore, ptrace) is preserved.
   mount,
 
+  # pivot_root is a distinct AppArmor mediation class from mount. pasta and
+  # runsc both pivot_root when assembling their respective sandboxes, so we
+  # need an explicit allow.
+  pivot_root,
+
   deny @{PROC}/* w,   # deny write for all files directly in /proc
   deny @{PROC}/sys/[^k]*/** wklx,  # deny write to /proc/sys except /proc/sys/k*
   deny @{PROC}/sys/kernel/{?,??,[^s][^h][^m]**} wklx,  # deny /proc/sys/kernel/* except *shm*
