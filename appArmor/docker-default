@@ -10,14 +10,22 @@ profile docker-default flags=(attach_disconnected,mediate_deleted) {
   capability,
   file,
   umount,
-  # NOTE: upstream docker-default has `deny mount,` here. It is intentionally
-  # omitted so that — inside containers the agent-sandbox-controller spawns —
-  # pasta can remount `/` for its filesystem isolation AND runsc (gVisor) can
-  # mount proc / tmpfs / /dev when assembling its second-level sandbox. The
-  # bundled gvisor-seccomp.json already permits mount / umount2 / pivot_root,
-  # but AppArmor sits in front of seccomp so that allowance was being voided.
+  # NOTE: upstream docker-default has `deny mount,` here. It is replaced with an
+  # explicit broad `mount,` allow so that — inside containers the
+  # agent-sandbox-controller spawns — pasta can remount `/` for its filesystem
+  # isolation AND runsc (gVisor) can mount proc / tmpfs / /dev when assembling
+  # its second-level sandbox. The bundled gvisor-seccomp.json already permits
+  # mount / umount2 / pivot_root, but AppArmor sits in front of seccomp.
+  #
+  # An explicit `mount,` rule is required (rather than just dropping the deny):
+  # `#include <abstractions/base>` brings in some narrow mount rules on
+  # Ubuntu 24.04+, which puts the profile into "default-deny for unmatched
+  # mounts" mode. Without a broad allow, pasta's `mount / / -o rw,rslave`
+  # fails with `failed mntpnt match`.
+  #
   # The other denylists below are kept verbatim from upstream so the rest of
   # docker-default's hardening (proc, sys, sysrq, kcore, ptrace) is preserved.
+  mount,
 
   deny @{PROC}/* w,   # deny write for all files directly in /proc
   deny @{PROC}/sys/[^k]*/** wklx,  # deny write to /proc/sys except /proc/sys/k*
@@ -36,4 +44,11 @@ profile docker-default flags=(attach_disconnected,mediate_deleted) {
 
   # Suppress ptrace denials when running `ps` / `docker ps` inside a container.
   ptrace (trace,read,tracedby,readby) peer=docker-default,
+
+  # Signal mediation. AppArmor 4.x (Ubuntu 24.04+) defaults to deny when a
+  # profile has any rules but no signal rules; this allows signals between
+  # docker-default-confined processes (container peers) and from the
+  # unconfined Docker daemon (e.g. SIGKILL during teardown).
+  signal (send,receive) peer=docker-default,
+  signal (receive) peer=unconfined,
 }
