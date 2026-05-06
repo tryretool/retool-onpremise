@@ -113,15 +113,10 @@ services:
     build:
       context: .
       target: js-executor
-
-    # Option 1 (preferred): Run privileged to sandbox JS execution
-    privileged: true
-
-    # Option 2: Run unprivileged, potentially required with your host machine permissions
-    # user: retool_user
-    # environment:
-    #   - ALLOW_UNSAFE_CODE_EXECUTION=true
-
+    cap_add:
+      - NET_ADMIN
+    security_opt:
+      - seccomp=./nsjail-seccomp.json
     networks:
       - js-executor
     restart: always
