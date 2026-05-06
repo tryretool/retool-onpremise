@@ -113,10 +113,25 @@ services:
     build:
       context: .
       target: js-executor
-    cap_add:
-      - NET_ADMIN
+
+    # Custom seccomp profile is required for nsjail's syscalls to pass Docker's
+    # default seccomp filter. Applies under both options below.
     security_opt:
       - seccomp=./nsjail-seccomp.json
+
+    # Option 1 (preferred): Grant NET_ADMIN so the executor can install
+    # iptables egress rules. Requires the host kernel to expose the
+    # netfilter `filter` table.
+    cap_add:
+      - NET_ADMIN
+
+    # Option 2: Run unprivileged. Use this if the host kernel lacks netfilter
+    # support or NET_ADMIN is otherwise unavailable. nsjail still wraps user
+    # code; only the iptables egress filter is skipped.
+    # user: retool_user
+    # environment:
+    #   - DISABLE_IPTABLES_SECURITY_CONFIGURATION=true
+
     networks:
       - js-executor
     restart: always
