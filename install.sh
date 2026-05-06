@@ -106,6 +106,7 @@ RETOOLDB_POSTGRES_PASSWORD=$(random 64)
 # Workflows configuration
 WORKFLOW_BACKEND_HOST=http://workflows-backend:3000
 CODE_EXECUTOR_INGRESS_DOMAIN=http://code-executor:3004
+JS_EXECUTOR_INGRESS_DOMAIN=http://js-executor:3000
 
 # Agent sandbox configuration
 AGENT_EXECUTOR_ENABLED=true

@@ -15,6 +15,7 @@ services:
       - frontend
       - backend
       - code-executor
+      - js-executor
     depends_on:
       - postgres
       - minio
@@ -41,6 +42,7 @@ services:
     networks:
       - backend
       - code-executor
+      - js-executor
     depends_on:
       - postgres
     restart: always
@@ -55,6 +57,7 @@ services:
     networks:
       - backend
       - code-executor
+      - js-executor
     depends_on:
       - postgres
     restart: always
@@ -69,6 +72,7 @@ services:
     networks:
       - backend
       - code-executor
+      - js-executor
     depends_on:
       - postgres
     restart: always
@@ -83,6 +87,7 @@ services:
     networks:
       - backend
       - code-executor
+      - js-executor
     depends_on:
       - postgres
     restart: always
@@ -102,6 +107,23 @@ services:
 
     networks:
       - code-executor
+    restart: always
+
+  js-executor:
+    build:
+      context: .
+      target: js-executor
+
+    # Option 1 (preferred): Run privileged to sandbox JS execution
+    privileged: true
+
+    # Option 2: Run unprivileged, potentially required with your host machine permissions
+    # user: retool_user
+    # environment:
+    #   - ALLOW_UNSAFE_CODE_EXECUTION=true
+
+    networks:
+      - js-executor
     restart: always
   
   agent-sandbox-controller:
@@ -166,6 +188,8 @@ services:
       - WORKER_TEMPORAL_TASKQUEUE=r2-agent
     networks:
       - backend
+      - code-executor
+      - js-executor
       - agent-sandbox
     depends_on:
       - postgres
@@ -248,6 +272,7 @@ networks:
   frontend:
   backend:
   code-executor:
+  js-executor:
   agent-sandbox:
     name: agent-sandbox
 

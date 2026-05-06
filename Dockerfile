@@ -4,6 +4,8 @@ FROM --platform=linux/amd64 753800337063.dkr.ecr.us-west-2.amazonaws.com/agent-e
 
 FROM --platform=linux/amd64 753800337063.dkr.ecr.us-west-2.amazonaws.com/code-executor-service:${VERSION} AS code-executor
 
+FROM --platform=linux/amd64 753800337063.dkr.ecr.us-west-2.amazonaws.com/js-executor-service:${VERSION} AS js-executor
+
 FROM --platform=linux/amd64 753800337063.dkr.ecr.us-west-2.amazonaws.com/onprem:${VERSION}
 
 CMD ./docker_scripts/start_api.sh
