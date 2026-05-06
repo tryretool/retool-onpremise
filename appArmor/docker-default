@@ -1,0 +1,39 @@
+#include <tunables/global>
+
+
+profile docker-default flags=(attach_disconnected,mediate_deleted) {
+
+  #include <abstractions/base>
+
+
+  network,
+  capability,
+  file,
+  umount,
+  # NOTE: upstream docker-default has `deny mount,` here. It is intentionally
+  # omitted so that — inside containers the agent-sandbox-controller spawns —
+  # pasta can remount `/` for its filesystem isolation AND runsc (gVisor) can
+  # mount proc / tmpfs / /dev when assembling its second-level sandbox. The
+  # bundled gvisor-seccomp.json already permits mount / umount2 / pivot_root,
+  # but AppArmor sits in front of seccomp so that allowance was being voided.
+  # The other denylists below are kept verbatim from upstream so the rest of
+  # docker-default's hardening (proc, sys, sysrq, kcore, ptrace) is preserved.
+
+  deny @{PROC}/* w,   # deny write for all files directly in /proc
+  deny @{PROC}/sys/[^k]*/** wklx,  # deny write to /proc/sys except /proc/sys/k*
+  deny @{PROC}/sys/kernel/{?,??,[^s][^h][^m]**} wklx,  # deny /proc/sys/kernel/* except *shm*
+  deny @{PROC}/sysrq-trigger rwklx,
+  deny @{PROC}/kcore rwklx,
+
+  deny /sys/[^f]*/** wklx,
+  deny /sys/f[^s]*/** wklx,
+  deny /sys/fs/[^c]*/** wklx,
+  deny /sys/fs/c[^g]*/** wklx,
+  deny /sys/fs/cg[^r]*/** wklx,
+  deny /sys/firmware/** rwklx,
+  deny /sys/devices/virtual/powercap/** rwklx,
+  deny /sys/kernel/security/** rwklx,
+
+  # Suppress ptrace denials when running `ps` / `docker ps` inside a container.
+  ptrace (trace,read,tracedby,readby) peer=docker-default,
+}
