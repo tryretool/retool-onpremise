@@ -114,6 +114,10 @@ services:
       context: .
       target: js-executor
 
+    # js-executor reads its memory budget from the cgroup limit, so this
+    # must be set explicitly. Matches the helm chart default (2048Mi).
+    mem_limit: 2g
+
     # Custom seccomp profile is required for nsjail's syscalls to pass Docker's
     # default seccomp filter. Applies under both options below.
     security_opt:
@@ -125,10 +129,11 @@ services:
     cap_add:
       - NET_ADMIN
 
-    # Option 2: Run unprivileged. Use this if the host kernel lacks netfilter
-    # support or NET_ADMIN is otherwise unavailable. nsjail still wraps user
-    # code; only the iptables egress filter is skipped.
-    # user: retool_user
+    # Option 2: Skip iptables-based egress filtering. Use this if NET_ADMIN
+    # isn't available or the host kernel lacks netfilter support. nsjail still
+    # wraps user code; only the network-egress filter is skipped. Note: do
+    # not also drop to a non-root user here — the entrypoint uses `runuser`
+    # internally to drop privileges and that requires starting as root.
     # environment:
     #   - DISABLE_IPTABLES_SECURITY_CONFIGURATION=true
 
