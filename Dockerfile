@@ -1,6 +1,6 @@
 ARG VERSION=3.383.0-edge
 
-FROM tryretool/agent-executor-service:${VERSION} AS agent-sandbox
+FROM tryretool/agent-sandbox-service:${VERSION} AS agent-sandbox
 
 FROM tryretool/code-executor-service:${VERSION} AS code-executor
 
