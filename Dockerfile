@@ -6,6 +6,6 @@ FROM tryretool/code-executor-service:${VERSION} AS code-executor
 
 FROM tryretool/js-executor-service:${VERSION} AS js-executor
 
-FROM tryretool/onprem:${VERSION}
+FROM tryretool/backend:${VERSION}
 
 CMD ./docker_scripts/start_api.sh
