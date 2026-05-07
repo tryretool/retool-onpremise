@@ -151,7 +151,7 @@ services:
       - NODE_ENV=production
       - AGENT_EXECUTOR_ROLE=controller
       - ORCHESTRATOR=docker
-      - EXECUTOR_IMAGE=${EXECUTOR_IMAGE:-retool-onprem-agent-sandbox-controller}
+      - EXECUTOR_IMAGE=${EXECUTOR_IMAGE:-retool-onpremise-agent-sandbox-controller}
       - DOCKER_NETWORK=agent-sandbox
       - EXECUTOR_SERVICE_NAME=agent-sandbox
       - SANDBOX_BACKEND_URL=http://api:3000
