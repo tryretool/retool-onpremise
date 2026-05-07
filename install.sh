@@ -154,7 +154,7 @@ DOMAINS=$hostname -> http://api:3000
 BASE_DOMAIN=https://$hostname
 
 # If your domain/HTTPS isn't in place yet
-COOKIE_INSECURE=true
+# COOKIE_INSECURE=true
 
 EOF
 

@@ -1,4 +1,6 @@
-ARG VERSION=3.383.0-edge
+# Check Dockerhub for available tags: https://hub.docker.com/r/tryretool/backend/tags
+
+ARG VERSION=X.Y.Z-stable
 
 FROM tryretool/agent-sandbox-service:${VERSION} AS agent-sandbox
 
