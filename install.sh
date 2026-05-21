@@ -61,6 +61,41 @@ if [ -f /etc/os-release ]; then
     fi
 fi
 
+# Install the customized docker-default AppArmor profile + systemd drop-in
+# so it survives docker restarts. The script handles its own preflight
+# (skips silently on hosts without AppArmor); --check tells us whether any
+# persistent changes are needed so we only prompt the user when there's
+# actually work to do.
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+APPARMOR_SCRIPT="${SCRIPT_DIR}/scripts/setup-docker-apparmor.sh"
+if [ -x "$APPARMOR_SCRIPT" ]; then
+    if "$APPARMOR_SCRIPT" --check; then
+        echo "  ✅ docker-default AppArmor profile already configured (or not applicable on this host)."
+    else
+        echo ""
+        echo "  Agent-sandbox needs the bundled docker-default AppArmor profile installed."
+        echo "  The script will:"
+        echo "    - copy appArmor/docker-default to /etc/apparmor.d/docker-default"
+        echo "    - load it into the kernel via 'apparmor_parser -r'"
+        echo "    - install a systemd drop-in at"
+        echo "      /etc/systemd/system/docker.service.d/retool-apparmor.conf so the"
+        echo "      profile is re-applied on every docker.service start"
+        echo "  Requires sudo. See appArmor/README.md for details."
+        read -p "  Run it now? [Y/n]: " apparmor_confirm
+        case "${apparmor_confirm:-y}" in
+            [yY]|[yY][eE][sS])
+                "$APPARMOR_SCRIPT" || \
+                    echo "  ⚠️ docker-default AppArmor setup failed; agent-sandbox may not work. See appArmor/README.md for manual steps."
+                ;;
+            *)
+                echo "  ⏭️  Skipped docker-default AppArmor setup."
+                echo "  ⚠️ Agent-sandbox will fail with apparmor=\"DENIED\" errors until you run"
+                echo "     '${APPARMOR_SCRIPT}' manually."
+                ;;
+        esac
+    fi
+fi
+
 echo ""
 
 [[ -f docker.env ]] && echo "⚠️ docker.env file already exists, skipping initializing it!" && exit 1

@@ -47,17 +47,21 @@ All `/proc`, `/sys`, sysrq, kcore, powercap, security and ptrace deny rules are 
 
 ### Installation
 
-1) Copy the provided `docker-default` profile to `/etc/apparmor.d/docker-default`.
-
-2) Replace the loaded profile:
+Run the bundled script:
 
 ```
-sudo apparmor_parser -r /etc/apparmor.d/docker-default
+sudo ./scripts/setup-docker-apparmor.sh
 ```
 
-You do **not** need to restart Docker after this — already-running containers keep their existing profile, and any new container will use the replaced version.
+It is idempotent and skips cleanly on hosts without AppArmor (e.g. macOS Docker Desktop). What it does:
 
-Note: the Docker daemon re-loads its built-in `docker-default` every time it starts, so re-run the `apparmor_parser -r` command after any `systemctl restart docker` or host reboot.
+1. Copies the bundled `docker-default` profile to `/etc/apparmor.d/docker-default`.
+2. Loads it into the kernel with `apparmor_parser -r` so new containers pick it up.
+3. Installs a systemd drop-in at `/etc/systemd/system/docker.service.d/retool-apparmor.conf` containing `ExecStartPre=-/usr/sbin/apparmor_parser -r /etc/apparmor.d/docker-default`. This makes the docker daemon re-apply our profile on every start, so the override survives `systemctl restart docker` and host reboots without manual intervention.
+
+`./install.sh` invokes this script automatically; only run it directly if you're applying the AppArmor change to an existing install or to a host where `install.sh` was run on an older version of this repo.
+
+You do **not** need to restart Docker after a first-time install — already-running containers keep their existing profile, and any new container will use the replaced version.
 
 ### Verifying it's in effect
 
