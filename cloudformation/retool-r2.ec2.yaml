@@ -1,0 +1,2263 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: >-
+  Retool + Workflows + R2 (agent sandbox) on ECS-on-EC2. Self-contained: defines
+  its own ECS cluster, two EC2 capacity pools (awsvpc platform services + a
+  gVisor-ready bridge-networked sandbox pool), the agent-sandbox controller/proxy,
+  the pre-registered sandbox task definition the controller RunTasks, the
+  js-executor and r2-agent Temporal worker, S3 snapshot/git buckets, and an
+  optional EventBridge->SQS task-state watcher.
+Parameters:
+  Environment:
+    Type: String
+    Description: Environment string sent back to plogger with the logs
+  SubnetId:
+    Type: List<AWS::EC2::Subnet::Id>
+    Description: Select at two private subnets in your selected VPC (for ECS tasks and EC2 capacity).
+  ALBSubnetId:
+    Type: List<AWS::EC2::Subnet::Id>
+    Description: Select the subnets for your Application Load Balancer.
+  RetoolVersion:
+    Type: String
+    Description: Retool version tag (e.g. 3.114.7-stable). Used for backend, code-executor, js-executor, and agent-sandbox-service images.
+    Default: 3.114.7-stable
+  DesiredCount:
+    Type: Number
+    Description: Default number of API container tasks to run
+    Default: 1
+  DesiredWorkflowsCount:
+    Type: Number
+    Description: Default number of tasks to run for Workflows Backend and Workflows Worker containers to run
+    Default: 1
+  DesiredCodeExecutorCount:
+    Type: Number
+    Description: Default number of tasks to run for Retool Code Executor containers
+    Default: 1
+  EnableNsjail:
+    Type: String
+    AllowedValues: ["true", "false"]
+    Default: "false"
+    Description: >-
+      Run the code executor in privileged mode so it can use nsjail sandboxing,
+      which is required for custom JS/Python libraries. Defaults to false
+      (hardened: non-privileged, dropped capabilities, non-root user) to avoid
+      host-level blast radius. Set to true only if you need custom libraries.
+      See https://docs.retool.com/self-hosted/concepts/architecture#code-executor
+  MaximumPercent:
+    Type: Number
+    Description: Maximum percentage of tasks to run during a deployment
+    Default: 150
+  MinimumHealthyPercent:
+    Type: Number
+    Default: 50
+    Description: Minimum percentage of healthy tasks to keep running during a deployment
+  VpcId:
+    Type: AWS::EC2::VPC::Id
+    Description: Select a VPC that allows instances access to the Internet.
+  LicenseKey:
+    Type: String
+    NoEcho: true
+    Description: Retool license key. Without a valid key the backend will refuse to start.
+    Default: "EXPIRED-LICENSE-KEY-TRIAL"
+  CertificateArn:
+    Type: String
+    Description: >-
+      Optional ACM certificate ARN. When provided, the ALB serves HTTPS on 443
+      and redirects HTTP to HTTPS, and COOKIE_INSECURE is forced off. Leave blank
+      for plaintext HTTP (e.g. when terminating TLS on an upstream load balancer).
+    Default: ""
+  AlbScheme:
+    Type: String
+    AllowedValues: ["internal", "internet-facing"]
+    Default: "internal"
+    Description: >-
+      ALB scheme. Defaults to internal so the stack is not reachable from the
+      internet unless an operator explicitly opts in. For a public deployment,
+      set to internet-facing and supply a CertificateArn so authenticated
+      traffic is served over HTTPS rather than plaintext HTTP.
+  Force:
+    Type: String
+    Description: "Used to force the deployment even when the image and parameters are otherwised unchanged."
+    Default: "false"
+
+  # --- EC2 capacity ---------------------------------------------------------
+  EcsAmiId:
+    Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
+    Description: ECS-optimized AMI. Default resolves the latest Amazon Linux 2023 ECS AMI (no AppArmor, so the gVisor sandbox needs only tun + a seccomp profile on the host).
+    Default: /aws/service/ecs/optimized-ami/amazon-linux-2023/recommended/image_id
+  KeyName:
+    Type: String
+    Description: Optional EC2 key pair name for SSH access to capacity instances. Leave blank to disable SSH.
+    Default: ""
+  PlatformInstanceType:
+    Type: String
+    Description: Instance type for the platform capacity pool (awsvpc Retool/Workflows/Temporal services). Size for ENI count, not just CPU/RAM.
+    Default: m5.xlarge
+  PlatformAsgMinSize:
+    Type: Number
+    Default: 2
+  PlatformAsgMaxSize:
+    Type: Number
+    Default: 6
+  PlatformAsgDesiredCapacity:
+    Type: Number
+    Default: 3
+  SandboxInstanceType:
+    Type: String
+    Description: Instance type for the gVisor sandbox capacity pool. Sandboxes are 2 vCPU / 4 GB each and bridge-networked, so they binpack to the CPU/RAM limit.
+    Default: m5.2xlarge
+  SandboxAsgMinSize:
+    Type: Number
+    Default: 1
+  SandboxAsgMaxSize:
+    Type: Number
+    Default: 10
+  SandboxAsgDesiredCapacity:
+    Type: Number
+    Description: Provision enough instances to hold the prewarm pool plus headroom (each m5.2xlarge holds ~4 sandboxes).
+    Default: 2
+  SandboxInstanceVolumeSize:
+    Type: Number
+    Description: Root EBS volume (GiB) for sandbox hosts. Sandbox /tmp is large (build artifacts), so give headroom.
+    Default: 100
+
+  # --- Agent sandbox (R2) secrets -------------------------------------------
+  # CloudFormation cannot mint an EC P-256 keypair, so the JWT keys are passed in.
+  # Generate with:
+  #   openssl genpkey -algorithm EC -pkeyopt ec_paramgen_curve:P-256 -out ae.key
+  #   openssl ec -in ae.key -pubout -out ae.pub
+  AgentSandboxJwtPublicKey:
+    Type: String
+    NoEcho: true
+    Description: ES256 (P-256) public key PEM for sandbox token verification. Newlines may be literal or \n-escaped.
+  AgentSandboxJwtPrivateKey:
+    Type: String
+    NoEcho: true
+    Description: ES256 (P-256) private key PEM the backend uses to mint sandbox tokens.
+  AgentSandboxEncryptionKey:
+    Type: String
+    NoEcho: true
+    Description: Hex-encoded 256-bit key (openssl rand -hex 32) for encrypting credentials in the agent sandbox state store. Must match the backend.
+  AllowedDomains:
+    Type: String
+    Description: Optional comma-separated allowlist of external domains sandboxes may reach via the proxy (e.g. api.openai.com,api.anthropic.com). Empty allows all non-blocked egress.
+    Default: ""
+
+  # --- Watcher --------------------------------------------------------------
+  EnableTaskEventWatcher:
+    Type: String
+    AllowedValues: ["true", "false"]
+    Default: "false"
+    Description: Create an EventBridge->SQS pipeline for ECS task-state changes so the controller reconciles faster. When false, the controller falls back to its 5s reconcile poll.
+
+Rules:
+  RequireTlsForPublicAlb:
+    Assertions:
+      - Assert: !Or
+          - !Not [!Equals [!Ref AlbScheme, "internet-facing"]]
+          - !Not [!Equals [!Ref CertificateArn, ""]]
+        AssertDescription: >-
+          AlbScheme=internet-facing exposes the stack to the internet and must
+          be paired with a CertificateArn so authenticated traffic is served over
+          HTTPS. Use an internal ALB (the default) or supply an ACM certificate.
+
+Conditions:
+  HasKeyName: !Not [!Equals [!Ref KeyName, ""]]
+  HasAllowedDomains: !Not [!Equals [!Ref AllowedDomains, ""]]
+  HasCertificate: !Not [!Equals [!Ref CertificateArn, ""]]
+  EnableWatcher: !Equals [!Ref EnableTaskEventWatcher, "true"]
+  UseNsjail: !Equals [!Ref EnableNsjail, "true"]
+
+Resources:
+  # ===========================================================================
+  # ECS cluster + EC2 capacity
+  #
+  # Two capacity pools share the cluster:
+  #   - Platform: awsvpc services (Retool, Workflows, Temporal, code/js-executor,
+  #     agent-sandbox controller/proxy, r2-agent-worker). Each task gets an ENI,
+  #     so instances are sized for ENI count.
+  #   - Sandbox: gVisor-ready hosts for the bridge-networked, RunTask'd ephemeral
+  #     sandboxes. UserData loads /dev/net/tun and writes the gVisor seccomp
+  #     profile the sandbox task definition references. Tagged with the
+  #     `retool.sandbox` ECS attribute so only sandbox tasks land here.
+  # Capacity-provider binding keeps platform services off sandbox hosts; the
+  # sandbox task definition's memberOf placement constraint keeps sandboxes on
+  # sandbox hosts.
+  # ===========================================================================
+  RetoolCluster:
+    Type: AWS::ECS::Cluster
+    Properties:
+      ClusterName: !Ref 'AWS::StackName'
+      ClusterSettings:
+        - Name: containerInsights
+          Value: enabled
+
+  EcsInstanceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: [ec2.amazonaws.com]
+            Action: ['sts:AssumeRole']
+      Path: /
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AmazonEC2ContainerServiceforEC2Role
+        - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+
+  EcsInstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Path: /
+      Roles: [!Ref EcsInstanceRole]
+
+  PlatformInstanceSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: !Join [" ", [!Ref 'AWS::StackName', 'platform capacity instance security group']]
+      VpcId: !Ref 'VpcId'
+      SecurityGroupEgress:
+        - IpProtocol: "-1"
+          CidrIp: 0.0.0.0/0
+          Description: Allow all outbound (ECR/ECS/logs/RDS)
+
+  SandboxInstanceSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: !Join [" ", [!Ref 'AWS::StackName', 'sandbox capacity instance security group']]
+      VpcId: !Ref 'VpcId'
+      SecurityGroupEgress:
+        - IpProtocol: "-1"
+          CidrIp: 0.0.0.0/0
+          Description: Allow all outbound (S3 snapshots, sandbox egress via proxy, backend callbacks)
+
+  PlatformLaunchTemplate:
+    Type: AWS::EC2::LaunchTemplate
+    Properties:
+      LaunchTemplateName: !Join ['-', [!Ref 'AWS::StackName', 'platform']]
+      LaunchTemplateData:
+        ImageId: !Ref 'EcsAmiId'
+        InstanceType: !Ref 'PlatformInstanceType'
+        KeyName: !If [HasKeyName, !Ref 'KeyName', !Ref 'AWS::NoValue']
+        IamInstanceProfile:
+          Arn: !GetAtt [EcsInstanceProfile, Arn]
+        SecurityGroupIds:
+          - !GetAtt [PlatformInstanceSecurityGroup, GroupId]
+        # js-executor uses nsjail (NET_ADMIN + a host seccomp profile), so the
+        # profile must exist on platform hosts where js-executor runs.
+        UserData:
+          Fn::Base64: !Sub |
+            #!/bin/bash
+            set -euo pipefail
+            echo "ECS_CLUSTER=${RetoolCluster}" >> /etc/ecs/ecs.config
+            mkdir -p /etc/retool
+            echo "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" | base64 -d | gunzip > /etc/retool/nsjail-seccomp.json
+            chmod 0644 /etc/retool/nsjail-seccomp.json
+
+  SandboxLaunchTemplate:
+    Type: AWS::EC2::LaunchTemplate
+    Properties:
+      LaunchTemplateName: !Join ['-', [!Ref 'AWS::StackName', 'sandbox']]
+      LaunchTemplateData:
+        ImageId: !Ref 'EcsAmiId'
+        InstanceType: !Ref 'SandboxInstanceType'
+        KeyName: !If [HasKeyName, !Ref 'KeyName', !Ref 'AWS::NoValue']
+        IamInstanceProfile:
+          Arn: !GetAtt [EcsInstanceProfile, Arn]
+        SecurityGroupIds:
+          - !GetAtt [SandboxInstanceSecurityGroup, GroupId]
+        BlockDeviceMappings:
+          - DeviceName: /dev/xvda
+            Ebs:
+              VolumeSize: !Ref 'SandboxInstanceVolumeSize'
+              VolumeType: gp3
+              DeleteOnTermination: true
+        # gVisor (runsc --rootless) + pasta run inside the sandbox container and
+        # need /dev/net/tun on the host plus a seccomp profile that allows their
+        # mount/pivot_root syscalls. The sandbox task definition references
+        # /etc/retool/gvisor-seccomp.json via dockerSecurityOptions.
+        UserData:
+          Fn::Base64: !Sub |
+            #!/bin/bash
+            set -euo pipefail
+            echo "ECS_CLUSTER=${RetoolCluster}" >> /etc/ecs/ecs.config
+            echo 'ECS_INSTANCE_ATTRIBUTES={"retool.sandbox":"true"}' >> /etc/ecs/ecs.config
+            modprobe tun
+            echo tun > /etc/modules-load.d/retool-tun.conf
+            mkdir -p /etc/retool
+            echo "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" | base64 -d | gunzip > /etc/retool/gvisor-seccomp.json
+            chmod 0644 /etc/retool/gvisor-seccomp.json
+
+  PlatformAutoScalingGroup:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    Properties:
+      VPCZoneIdentifier: !Ref 'SubnetId'
+      LaunchTemplate:
+        LaunchTemplateId: !Ref 'PlatformLaunchTemplate'
+        Version: !GetAtt [PlatformLaunchTemplate, LatestVersionNumber]
+      MinSize: !Ref 'PlatformAsgMinSize'
+      MaxSize: !Ref 'PlatformAsgMaxSize'
+      DesiredCapacity: !Ref 'PlatformAsgDesiredCapacity'
+      NewInstancesProtectedFromScaleIn: true
+      Tags:
+        - Key: Name
+          Value: !Join ['-', [!Ref 'AWS::StackName', 'platform']]
+          PropagateAtLaunch: true
+
+  SandboxAutoScalingGroup:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    Properties:
+      VPCZoneIdentifier: !Ref 'SubnetId'
+      LaunchTemplate:
+        LaunchTemplateId: !Ref 'SandboxLaunchTemplate'
+        Version: !GetAtt [SandboxLaunchTemplate, LatestVersionNumber]
+      MinSize: !Ref 'SandboxAsgMinSize'
+      MaxSize: !Ref 'SandboxAsgMaxSize'
+      DesiredCapacity: !Ref 'SandboxAsgDesiredCapacity'
+      NewInstancesProtectedFromScaleIn: true
+      Tags:
+        - Key: Name
+          Value: !Join ['-', [!Ref 'AWS::StackName', 'sandbox']]
+          PropagateAtLaunch: true
+
+  PlatformCapacityProvider:
+    Type: AWS::ECS::CapacityProvider
+    Properties:
+      AutoScalingGroupProvider:
+        AutoScalingGroupArn: !Ref 'PlatformAutoScalingGroup'
+        ManagedTerminationProtection: ENABLED
+        ManagedScaling:
+          Status: ENABLED
+          TargetCapacity: 100
+
+  # Managed scaling reacts to tasks placed via this capacity provider's strategy.
+  # The controller currently RunTasks with launchType EC2, so for v1 size the
+  # sandbox ASG statically (DesiredCapacity for the prewarm pool + headroom).
+  SandboxCapacityProvider:
+    Type: AWS::ECS::CapacityProvider
+    Properties:
+      AutoScalingGroupProvider:
+        AutoScalingGroupArn: !Ref 'SandboxAutoScalingGroup'
+        ManagedTerminationProtection: ENABLED
+        ManagedScaling:
+          Status: ENABLED
+          TargetCapacity: 90
+
+  ClusterCapacityProviderAssociations:
+    Type: AWS::ECS::ClusterCapacityProviderAssociations
+    Properties:
+      Cluster: !Ref 'RetoolCluster'
+      CapacityProviders:
+        - !Ref 'PlatformCapacityProvider'
+        - !Ref 'SandboxCapacityProvider'
+      DefaultCapacityProviderStrategy:
+        - CapacityProvider: !Ref 'PlatformCapacityProvider'
+          Weight: 1
+          Base: 0
+
+  ALBSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: !Join [" ", [!Ref 'AWS::StackName', 'load balancer security group']]
+      VpcId: !Ref 'VpcId'
+
+  GlobalHttpInbound:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !GetAtt [ALBSecurityGroup, GroupId]
+      IpProtocol: tcp
+      FromPort: '80'
+      ToPort: '80'
+      CidrIp: '0.0.0.0/0'
+
+  GlobalHttpsInbound:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !GetAtt [ALBSecurityGroup, GroupId]
+      IpProtocol: tcp
+      FromPort: '443'
+      ToPort: '443'
+      CidrIp: '0.0.0.0/0'
+  
+  RetoolSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: !Join [" ", [!Ref 'AWS::StackName', 'retool container security group']]
+      VpcId: !Ref 'VpcId'
+
+  ALBInbound:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !GetAtt [RetoolSecurityGroup, GroupId]
+      IpProtocol: tcp
+      FromPort: '3000'
+      ToPort: '3000'
+      SourceSecurityGroupId: !GetAtt [ALBSecurityGroup, GroupId]
+
+  RetoolSelfIngress:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !GetAtt [RetoolSecurityGroup, GroupId]
+      IpProtocol: -1
+      SourceSecurityGroupId: !GetAtt [RetoolSecurityGroup, GroupId]
+
+  TemporalSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: !Join [" ", [!Ref 'AWS::StackName', 'temporal security group']]
+      SecurityGroupEgress:
+        - CidrIp: 0.0.0.0/0
+          Description: Allow all outbound traffic by default
+          IpProtocol: "-1"
+      VpcId: !Ref 'VpcId'
+
+  TemporalFrontendIngress:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !GetAtt [TemporalSecurityGroup, GroupId]
+      IpProtocol: tcp
+      FromPort: 7233
+      ToPort: 7233
+      SourceSecurityGroupId: !GetAtt [RetoolSecurityGroup, GroupId]
+
+  TemporalSelfIngress:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !GetAtt [TemporalSecurityGroup, GroupId]
+      IpProtocol: -1
+      SourceSecurityGroupId: !GetAtt [TemporalSecurityGroup, GroupId]
+
+
+  CloudwatchLogsGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Join ['-', [ECSLogGroup, !Ref 'AWS::StackName']]
+      RetentionInDays: 14
+
+  RDSSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: !Join [" ", [!Ref 'AWS::StackName', 'database security group']]
+      VpcId: !Ref 'VpcId'
+
+  # Dedicated security group for the Temporal Aurora cluster. Kept separate from
+  # RDSSecurityGroup (the Retool main database) so ingress rules on one database
+  # do not implicitly open the other. Temporal containers must only be able to
+  # reach the Temporal database, not the Retool production database.
+  TemporalRDSSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: !Join [" ", [!Ref 'AWS::StackName', 'temporal database security group']]
+      VpcId: !Ref 'VpcId'
+
+  RetoolECSPostgresInbound:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !GetAtt [RDSSecurityGroup, GroupId]
+      IpProtocol: tcp
+      FromPort: '5432'
+      ToPort: '5432'
+      SourceSecurityGroupId: !GetAtt [RetoolSecurityGroup, GroupId]
+
+  # The agent-sandbox controller and proxy are PostgreSQL-backed and run under
+  # their own security group, so they need their own ingress to the database.
+  AgentSandboxPostgresInbound:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !GetAtt [RDSSecurityGroup, GroupId]
+      IpProtocol: tcp
+      FromPort: '5432'
+      ToPort: '5432'
+      SourceSecurityGroupId: !GetAtt [AgentSandboxControllerProxySecurityGroup, GroupId]
+
+  # The Temporal services (frontend, history, matching, worker, web) run under
+  # their own security group and connect to the Temporal Aurora cluster, which
+  # uses TemporalRDSSecurityGroup (separate from the Retool database). This
+  # grants Temporal containers access only to the Temporal database.
+  TemporalPostgresInbound:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !GetAtt [TemporalRDSSecurityGroup, GroupId]
+      IpProtocol: tcp
+      FromPort: '5432'
+      ToPort: '5432'
+      SourceSecurityGroupId: !GetAtt [TemporalSecurityGroup, GroupId]
+
+  RetoolTask:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: 'retool'
+      TaskRoleArn: !Ref 'RetoolTaskRole'
+      ExecutionRoleArn: !Ref 'RetoolExecutionRole'
+      NetworkMode: awsvpc
+      ContainerDefinitions:
+      - Name: 'retool'
+        Cpu: '2048'
+        Memory: '4096'
+        Essential: 'true'
+        Image: !Sub tryretool/backend:${RetoolVersion}
+        LogConfiguration:
+          LogDriver: awslogs
+          Options:
+            awslogs-group: !Ref 'CloudwatchLogsGroup'
+            awslogs-region: !Ref 'AWS::Region'
+            awslogs-stream-prefix: "SERVICE_RETOOL"
+        Environment:
+          - Name: DEPLOYMENT_TEMPLATE_TYPE
+            Value: "aws-ecs-ec2"
+          - Name: NODE_ENV
+            Value: production
+          - Name: SERVICE_TYPE
+            Value: MAIN_BACKEND,DB_CONNECTOR,DB_SSH_CONNECTOR
+          - Name: "FORCE_DEPLOYMENT"
+            Value: !Ref "Force"
+          - Name: POSTGRES_DB
+            Value: hammerhead_production
+          - Name: POSTGRES_HOST
+            Value: !GetAtt [RetoolRDSInstance, Endpoint.Address]
+          - Name: POSTGRES_SSL_ENABLED
+            Value: "true"
+          - Name: POSTGRES_PORT
+            Value: "5432"
+          - Name: POSTGRES_USER
+            Value: !Join ['', ['{{resolve:secretsmanager:', !Ref RetoolRDSSecret, ':SecretString:username}}' ]]
+          - Name: POSTGRES_PASSWORD
+            Value: !Join ['', ['{{resolve:secretsmanager:', !Ref RetoolRDSSecret, ':SecretString:password}}' ]]
+          - Name: JWT_SECRET
+            Value: !Join ['', ['{{resolve:secretsmanager:', !Ref RetoolJWTSecret, ':SecretString:password}}' ]]
+          - Name: ENCRYPTION_KEY
+            Value: !Join ['', ['{{resolve:secretsmanager:', !Ref RetoolEncryptionKeySecret, ':SecretString:password}}' ]]
+          - Name: WORKFLOW_TEMPORAL_CLUSTER_FRONTEND_HOST
+            Value: temporal.retoolsvc
+          - Name: WORKFLOW_TEMPORAL_CLUSTER_FRONTEND_PORT
+            Value: "7233"
+          - Name: WORKFLOW_BACKEND_HOST
+            Value: http://workflows-backend.retoolsvc:3000
+          - Name: CODE_EXECUTOR_INGRESS_DOMAIN
+            Value: http://code-executor.retoolsvc:3004
+          - Name: JS_EXECUTOR_INGRESS_DOMAIN
+            Value: http://js-executor.retoolsvc:3000
+          - Name: LICENSE_KEY
+            Value: !Ref LicenseKey
+          # Set automatically from CertificateArn: insecure cookies are only
+          # served when no TLS certificate is attached to the ALB.
+          - Name: COOKIE_INSECURE
+            Value: !If [HasCertificate, "false", "true"]
+          # --- R2 / agent sandbox integration ---
+          - Name: AGENT_SANDBOX_ENABLED
+            Value: "true"
+          - Name: RR_AGENT_PUBSUB_BACKEND
+            Value: postgres
+          - Name: AGENT_SANDBOX_CONTROLLER_INGRESS_DOMAIN
+            Value: http://agent-sandbox-controller.retoolsvc:3018
+          # Browser sandbox traffic is served same-origin: the frontend hits the
+          # main ingress and the backend forwards /sandbox/* to the proxy below.
+          # AGENT_SANDBOX_FRONTEND_WS_PROXY_DOMAIN is intentionally unset so the
+          # backend falls back to the org's base URL.
+          - Name: AGENT_SANDBOX_PROXY_INGRESS_DOMAIN
+            Value: http://agent-sandbox-proxy.retoolsvc:3019
+          - Name: AGENT_SANDBOX_POSTGRES_URL
+            Value: !Sub
+              - "postgres://${U}:${P}@${H}:5432/hammerhead_production"
+              - U: !Sub '{{resolve:secretsmanager:${RetoolRDSSecret}:SecretString:username}}'
+                P: !Sub '{{resolve:secretsmanager:${RetoolRDSSecret}:SecretString:password}}'
+                H: !GetAtt [RetoolRDSInstance, Endpoint.Address]
+          - Name: AGENT_SANDBOX_POSTGRES_SCHEMA
+            Value: agent_executor
+          # --- R2 blob storage (snapshots + RR git) ---
+          - Name: RR_SNAPSHOTS_S3_BUCKET
+            Value: !Ref 'RrSnapshotsBucket'
+          - Name: RR_SNAPSHOTS_S3_REGION
+            Value: !Ref 'AWS::Region'
+          - Name: RR_GIT_S3_BUCKET
+            Value: !Ref 'RrGitBucket'
+          - Name: RR_GIT_S3_REGION
+            Value: !Ref 'AWS::Region'
+        Secrets:
+          - Name: AGENT_SANDBOX_JWT_PRIVATE_KEY
+            ValueFrom: !Ref AgentSandboxJwtPrivateKeySecret
+          - Name: AGENT_SANDBOX_JWT_PUBLIC_KEY
+            ValueFrom: !Ref AgentSandboxJwtPublicKeySecret
+          - Name: AGENT_SANDBOX_ENCRYPTION_KEY
+            ValueFrom: !Ref AgentSandboxEncryptionKeySecret
+        PortMappings:
+        - ContainerPort: '3000'
+          # HostPort: '80'
+        Command: ["./docker_scripts/start_api.sh"]
+
+  RetoolJobsRunnerTask:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: 'retool-jobs-runner'
+      TaskRoleArn: !Ref 'RetoolTaskRole'
+      NetworkMode: awsvpc
+      ContainerDefinitions:
+      - Name: 'retool-jobs-runner'
+        Cpu: '1024'
+        Memory: '2048'
+        Essential: 'true'
+        Image: !Sub tryretool/backend:${RetoolVersion}
+        LogConfiguration:
+          LogDriver: awslogs
+          Options:
+            awslogs-group: !Ref 'CloudwatchLogsGroup'
+            awslogs-region: !Ref 'AWS::Region'
+            awslogs-stream-prefix: "SERVICE_RETOOL"
+        Environment:
+          - Name: DEPLOYMENT_TEMPLATE_TYPE
+            Value: "aws-ecs-ec2"
+          - Name: NODE_ENV
+            Value: production
+          - Name: SERVICE_TYPE
+            Value: JOBS_RUNNER
+          - Name: "FORCE_DEPLOYMENT"
+            Value: !Ref "Force"
+          - Name: POSTGRES_DB
+            Value: hammerhead_production
+          - Name: POSTGRES_HOST
+            Value: !GetAtt [RetoolRDSInstance, Endpoint.Address]
+          - Name: POSTGRES_SSL_ENABLED
+            Value: "true"
+          - Name: POSTGRES_PORT
+            Value: "5432"
+          - Name: POSTGRES_USER
+            Value: !Join ['', ['{{resolve:secretsmanager:', !Ref RetoolRDSSecret, ':SecretString:username}}' ]]
+          - Name: POSTGRES_PASSWORD
+            Value: !Join ['', ['{{resolve:secretsmanager:', !Ref RetoolRDSSecret, ':SecretString:password}}' ]]
+          - Name: JWT_SECRET
+            Value: !Join ['', ['{{resolve:secretsmanager:', !Ref RetoolJWTSecret, ':SecretString:password}}' ]]
+          - Name: ENCRYPTION_KEY
+            Value: !Join ['', ['{{resolve:secretsmanager:', !Ref RetoolEncryptionKeySecret, ':SecretString:password}}' ]]
+          - Name: LICENSE_KEY
+            Value: !Ref LicenseKey
+        Command: ["./docker_scripts/start_api.sh"]
+
+  RetoolWorkflowsBackendTask:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: 'retool-workflows-backend'
+      TaskRoleArn: !Ref 'RetoolTaskRole'
+      NetworkMode: awsvpc
+      ContainerDefinitions:
+      - Name: 'retool-workflows-backend'
+        Cpu: '2048'
+        Memory: '4096'
+        Essential: 'true'
+        Image: !Sub tryretool/backend:${RetoolVersion}
+        LogConfiguration:
+          LogDriver: awslogs
+          Options:
+            awslogs-group: !Ref 'CloudwatchLogsGroup'
+            awslogs-region: !Ref 'AWS::Region'
+            awslogs-stream-prefix: "SERVICE_RETOOL"
+        Environment:
+          - Name: DEPLOYMENT_TEMPLATE_TYPE
+            Value: "aws-ecs-ec2"
+          - Name: NODE_ENV
+            Value: production
+          - Name: SERVICE_TYPE
+            Value: WORKFLOW_BACKEND,DB_CONNECTOR,DB_SSH_CONNECTOR
+          - Name: "FORCE_DEPLOYMENT"
+            Value: !Ref "Force"
+          - Name: POSTGRES_DB
+            Value: hammerhead_production
+          - Name: POSTGRES_HOST
+            Value: !GetAtt [RetoolRDSInstance, Endpoint.Address]
+          - Name: POSTGRES_SSL_ENABLED
+            Value: "true"
+          - Name: POSTGRES_PORT
+            Value: "5432"
+          - Name: POSTGRES_USER
+            Value: !Join ['', ['{{resolve:secretsmanager:', !Ref RetoolRDSSecret, ':SecretString:username}}' ]]
+          - Name: POSTGRES_PASSWORD
+            Value: !Join ['', ['{{resolve:secretsmanager:', !Ref RetoolRDSSecret, ':SecretString:password}}' ]]
+          - Name: JWT_SECRET
+            Value: !Join ['', ['{{resolve:secretsmanager:', !Ref RetoolJWTSecret, ':SecretString:password}}' ]]
+          - Name: ENCRYPTION_KEY
+            Value: !Join ['', ['{{resolve:secretsmanager:', !Ref RetoolEncryptionKeySecret, ':SecretString:password}}' ]]
+          - Name: WORKFLOW_TEMPORAL_CLUSTER_FRONTEND_HOST
+            Value: temporal.retoolsvc
+          - Name: WORKFLOW_TEMPORAL_CLUSTER_FRONTEND_PORT
+            Value: "7233"
+          - Name: WORKFLOW_BACKEND_HOST
+            Value: http://workflows-backend.retoolsvc:3000
+          - Name: CODE_EXECUTOR_INGRESS_DOMAIN
+            Value: http://code-executor.retoolsvc:3004
+          - Name: LICENSE_KEY
+            Value: !Ref LicenseKey
+          # Set automatically from CertificateArn: insecure cookies are only
+          # served when no TLS certificate is attached to the ALB.
+          - Name: COOKIE_INSECURE
+            Value: !If [HasCertificate, "false", "true"]
+        PortMappings:
+        - ContainerPort: '3000'
+        Command: ["./docker_scripts/start_api.sh"]
+
+  RetoolWorkflowsWorkerTask:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: 'retool-workflows-worker'
+      TaskRoleArn: !Ref 'RetoolTaskRole'
+      NetworkMode: awsvpc
+      ContainerDefinitions:
+      - Name: 'retool-workflows-worker'
+        Cpu: '2048'
+        Memory: '4096'
+        Essential: 'true'
+        Image: !Sub tryretool/backend:${RetoolVersion}
+        LogConfiguration:
+          LogDriver: awslogs
+          Options:
+            awslogs-group: !Ref 'CloudwatchLogsGroup'
+            awslogs-region: !Ref 'AWS::Region'
+            awslogs-stream-prefix: "SERVICE_RETOOL"
+        Environment:
+          - Name: DEPLOYMENT_TEMPLATE_TYPE
+            Value: "aws-ecs-ec2"
+          - Name: NODE_ENV
+            Value: production
+          - Name: SERVICE_TYPE
+            Value: WORKFLOW_TEMPORAL_WORKER
+          - Name: "FORCE_DEPLOYMENT"
+            Value: !Ref "Force"
+          - Name: POSTGRES_DB
+            Value: hammerhead_production
+          - Name: POSTGRES_HOST
+            Value: !GetAtt [RetoolRDSInstance, Endpoint.Address]
+          - Name: POSTGRES_SSL_ENABLED
+            Value: "true"
+          - Name: POSTGRES_PORT
+            Value: "5432"
+          - Name: POSTGRES_USER
+            Value: !Join ['', ['{{resolve:secretsmanager:', !Ref RetoolRDSSecret, ':SecretString:username}}' ]]
+          - Name: POSTGRES_PASSWORD
+            Value: !Join ['', ['{{resolve:secretsmanager:', !Ref RetoolRDSSecret, ':SecretString:password}}' ]]
+          - Name: JWT_SECRET
+            Value: !Join ['', ['{{resolve:secretsmanager:', !Ref RetoolJWTSecret, ':SecretString:password}}' ]]
+          - Name: ENCRYPTION_KEY
+            Value: !Join ['', ['{{resolve:secretsmanager:', !Ref RetoolEncryptionKeySecret, ':SecretString:password}}' ]]
+          - Name: WORKFLOW_TEMPORAL_CLUSTER_FRONTEND_HOST
+            Value: temporal.retoolsvc
+          - Name: WORKFLOW_TEMPORAL_CLUSTER_FRONTEND_PORT
+            Value: "7233"
+          - Name: WORKFLOW_BACKEND_HOST
+            Value: http://workflows-backend.retoolsvc:3000
+          - Name: CODE_EXECUTOR_INGRESS_DOMAIN
+            Value: http://code-executor.retoolsvc:3004
+          - Name: LICENSE_KEY
+            Value: !Ref LicenseKey
+        Command: ["./docker_scripts/start_api.sh"]
+
+  RetoolCodeExecutorTask:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: 'retool-code-executor'
+      TaskRoleArn: !Ref 'RetoolTaskRole'
+      NetworkMode: awsvpc
+      ContainerDefinitions:
+        - Name: "retool-code-executor"
+          Cpu: '2048'
+          Memory: '4096'
+          Essential: true
+          Image: !Sub tryretool/code-executor-service:${RetoolVersion}
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Ref CloudwatchLogsGroup
+              awslogs-region: !Ref AWS::Region
+              awslogs-stream-prefix: SERVICE_RETOOL
+          # nsjail sandboxing (required for custom JS/Python libraries) needs
+          # privileged mode. By default (EnableNsjail=false) the executor runs
+          # hardened: non-privileged, all capabilities dropped, non-root user, and
+          # no-new-privileges, so an executor escape cannot compromise the host.
+          # Set EnableNsjail=true to opt back into privileged nsjail mode.
+          # Learn more here: https://docs.retool.com/self-hosted/concepts/architecture#code-executor
+          Privileged: !If [UseNsjail, true, false]
+          User: !If [UseNsjail, !Ref 'AWS::NoValue', "1001:1001"]
+          LinuxParameters: !If
+            - UseNsjail
+            - !Ref 'AWS::NoValue'
+            - InitProcessEnabled: true
+              Capabilities:
+                Drop: ["ALL"]
+          DockerSecurityOptions:
+            - "no-new-privileges"
+          Environment:
+            - Name: NODE_OPTIONS
+              Value: "--max_old_space_size=1024"
+            - Name: NODE_ENV
+              Value: "production"
+          PortMappings:
+            - ContainerPort: 3004
+              HostPort: 3004
+              Protocol: "tcp"
+          Command:
+            - ./start.sh
+
+  RetoolJWTSecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Description: 'This is the secret for Retool JWTs'
+      GenerateSecretString:
+        SecretStringTemplate: '{}'
+        GenerateStringKey: 'password'
+        PasswordLength: 16
+        ExcludeCharacters: '"@/\'
+
+  RetoolEncryptionKeySecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Description: 'This is the secret for encrypting credentials'
+      GenerateSecretString:
+        SecretStringTemplate: '{}'
+        GenerateStringKey: 'password'
+        PasswordLength: 16
+        ExcludeCharacters: '"@/\'
+
+  RetoolRDSSecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Description: 'This is the secret for the Retool RDS instance'
+      GenerateSecretString:
+        SecretStringTemplate: '{"username": "retool"}'
+        GenerateStringKey: 'password'
+        PasswordLength: 16
+        # Also excludes URL-reserved characters so the password is safe to embed
+        # in AGENT_SANDBOX_POSTGRES_URL without percent-encoding.
+        ExcludeCharacters: '"@/\:?#[]% '
+
+  # Agent sandbox secrets. The JWT keys / encryption key are user-supplied via
+  # CloudFormation parameters (they must match across backend + sandbox tasks),
+  # so they cannot be auto-generated. Store the parameter values in Secrets
+  # Manager and inject them via the ECS `Secrets` property so they are fetched
+  # at runtime instead of being stored as plaintext in the task definition.
+  AgentSandboxJwtPrivateKeySecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Description: 'Agent sandbox ES256 private key (user-supplied)'
+      SecretString: !Ref AgentSandboxJwtPrivateKey
+
+  AgentSandboxJwtPublicKeySecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Description: 'Agent sandbox ES256 public key (user-supplied)'
+      SecretString: !Ref AgentSandboxJwtPublicKey
+
+  AgentSandboxEncryptionKeySecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Description: 'Agent sandbox encryption key (user-supplied)'
+      SecretString: !Ref AgentSandboxEncryptionKey
+
+
+  RetoolRDSInstance:
+    Type: AWS::RDS::DBInstance
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      AllocatedStorage: "80"
+      DBInstanceClass: "db.m5.large"
+      Engine: postgres
+      EngineVersion: "15.10"
+      DBName: "hammerhead_production"
+      StorageEncrypted: true
+      MasterUsername: !Join ['', ['{{resolve:secretsmanager:', !Ref RetoolRDSSecret, ':SecretString:username}}' ]]
+      MasterUserPassword: !Join ['', ['{{resolve:secretsmanager:', !Ref RetoolRDSSecret, ':SecretString:password}}' ]]
+      Port: "5432"
+      VPCSecurityGroups: [!GetAtt [RDSSecurityGroup, GroupId]]
+      DBSubnetGroupName: !Ref 'RDSSubnetGroup'
+
+  RDSSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties: 
+      DBSubnetGroupDescription: !Join [" ", [!Ref 'AWS::StackName', 'rds subnet security group']]
+      SubnetIds: !Ref 'SubnetId' 
+
+  ECSALB:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Name: !Join ['-', [!Ref 'AWS::StackName', 'lb']]
+      Scheme: !Ref AlbScheme
+      LoadBalancerAttributes:
+      - Key: idle_timeout.timeout_seconds
+        Value: '60'
+      Subnets: !Ref 'ALBSubnetId'
+      SecurityGroups: [!GetAtt [ALBSecurityGroup, GroupId]]
+
+  # HTTP listener. When no certificate is provided it forwards to the backend;
+  # when a certificate is provided it redirects to the HTTPS listener on 443.
+  ALBListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    DependsOn: RetoolServiceRole
+    Properties:
+      DefaultActions:
+        - !If
+          - HasCertificate
+          - Type: redirect
+            RedirectConfig:
+              Protocol: HTTPS
+              Port: '443'
+              StatusCode: HTTP_301
+          - Type: forward
+            TargetGroupArn: !Ref 'ECSTG'
+      LoadBalancerArn: !Ref 'ECSALB'
+      Port: '80'
+      Protocol: HTTP
+
+  # HTTPS listener, only created when an ACM certificate is supplied.
+  ALBHttpsListener:
+    Condition: HasCertificate
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    DependsOn: RetoolServiceRole
+    Properties:
+      Certificates:
+        - CertificateArn: !Ref CertificateArn
+      DefaultActions:
+      - Type: forward
+        TargetGroupArn: !Ref 'ECSTG'
+      LoadBalancerArn: !Ref 'ECSALB'
+      Port: '443'
+      Protocol: HTTPS
+      SslPolicy: ELBSecurityPolicy-TLS13-1-2-2021-06
+
+  ECSALBListenerRule:
+    Type: AWS::ElasticLoadBalancingV2::ListenerRule
+    DependsOn: ALBListener
+    Properties:
+      Actions:
+      - Type: forward
+        TargetGroupArn: !Ref 'ECSTG'
+      Conditions:
+      - Field: path-pattern
+        Values: [/]
+      ListenerArn: !If [HasCertificate, !Ref 'ALBHttpsListener', !Ref 'ALBListener']
+      Priority: 1
+
+  ECSTG:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    DependsOn: ECSALB
+    Properties:
+      TargetType: ip
+      HealthCheckIntervalSeconds: 61
+      HealthCheckPath: '/api/checkHealth'
+      HealthCheckProtocol: HTTP
+      HealthCheckTimeoutSeconds: 60
+      HealthyThresholdCount: 4
+      Name: !Join ['-', [!Ref 'AWS::StackName', 'tg']]
+      Port: '3000'
+      Protocol: HTTP
+      UnhealthyThresholdCount: 2
+      VpcId: !Ref 'VpcId'
+      TargetGroupAttributes:
+      - Key: deregistration_delay.timeout_seconds
+        Value: '30'
+
+  RetoolECSservice:
+    Type: AWS::ECS::Service
+    DependsOn: [ALBListener, ClusterCapacityProviderAssociations]
+    Properties:
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: DISABLED # must be run in private subnet with NAT gateway
+          SecurityGroups: [!GetAtt [RetoolSecurityGroup, GroupId]]
+          Subnets: !Ref 'SubnetId'
+      # Registered in CloudMap so internal components (controller, proxy,
+      # sandboxes, r2-agent-worker) reach the backend at retool-backend.retoolsvc
+      # without hairpinning through the internet-facing ALB.
+      ServiceRegistries:
+        - RegistryArn: !GetAtt [RetoolBackendCloudmapService, Arn]
+      Cluster: !Ref 'RetoolCluster'
+      DesiredCount: !Ref 'DesiredCount'
+      DeploymentConfiguration:
+        MaximumPercent: !Ref 'MaximumPercent'
+        MinimumHealthyPercent: !Ref 'MinimumHealthyPercent'
+      LoadBalancers:
+      - ContainerName: 'retool'
+        ContainerPort: '3000'
+        TargetGroupArn: !Ref 'ECSTG'
+      TaskDefinition: !Ref 'RetoolTask'
+
+  RetoolJobsRunnerECSservice:
+    Type: AWS::ECS::Service
+    DependsOn: ClusterCapacityProviderAssociations
+    Properties:
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: DISABLED # must be run in private subnet with NAT gateway
+          SecurityGroups: [!GetAtt [RetoolSecurityGroup, GroupId]]
+          Subnets: !Ref 'SubnetId'
+      Cluster: !Ref 'RetoolCluster'
+      DesiredCount: 1
+      TaskDefinition: !Ref 'RetoolJobsRunnerTask'
+
+  RetoolWorkflowsWorkerECSService:
+    Type: AWS::ECS::Service
+    DependsOn: ClusterCapacityProviderAssociations
+    Properties:
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: DISABLED # must be run in private subnet with NAT gateway
+          SecurityGroups: [!GetAtt [RetoolSecurityGroup, GroupId]]
+          Subnets: !Ref 'SubnetId'
+      Cluster: !Ref 'RetoolCluster'
+      DesiredCount: !Ref 'DesiredWorkflowsCount'
+      DeploymentConfiguration:
+        MaximumPercent: !Ref 'MaximumPercent'
+        MinimumHealthyPercent: !Ref 'MinimumHealthyPercent'
+      TaskDefinition: !Ref 'RetoolWorkflowsWorkerTask'
+
+  RetoolWorkflowsBackendECSService:
+    DependsOn: [RetoolWorkflowBackendServiceCloudmapService, ClusterCapacityProviderAssociations]
+    Type: AWS::ECS::Service
+    Properties:
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: DISABLED # must be run in private subnet with NAT gateway
+          SecurityGroups: [!GetAtt [RetoolSecurityGroup, GroupId]]
+          Subnets: !Ref 'SubnetId'
+      ServiceRegistries:
+        - RegistryArn: !GetAtt [RetoolWorkflowBackendServiceCloudmapService, Arn]
+      Cluster: !Ref 'RetoolCluster'
+      DesiredCount: !Ref 'DesiredWorkflowsCount'
+      DeploymentConfiguration:
+        MaximumPercent: !Ref 'MaximumPercent'
+        MinimumHealthyPercent: !Ref 'MinimumHealthyPercent'
+      TaskDefinition: !Ref 'RetoolWorkflowsBackendTask'
+
+  RetoolCodeExecutorECSService:
+    DependsOn: [RetoolCodeExecutorServiceCloudmapService, ClusterCapacityProviderAssociations]
+    Type: AWS::ECS::Service
+    Properties:
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: DISABLED # must be run in private subnet with NAT gateway
+          SecurityGroups: [!GetAtt [RetoolSecurityGroup, GroupId]]
+          Subnets: !Ref 'SubnetId'
+      ServiceRegistries:
+        - RegistryArn: !GetAtt [RetoolCodeExecutorServiceCloudmapService, Arn]
+      Cluster: !Ref 'RetoolCluster'
+      DesiredCount: !Ref 'DesiredCodeExecutorCount'
+      DeploymentConfiguration:
+        MaximumPercent: !Ref 'MaximumPercent'
+        MinimumHealthyPercent: !Ref 'MinimumHealthyPercent'
+      TaskDefinition: !Ref 'RetoolCodeExecutorTask'
+
+  RetoolServiceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service: [ecs.amazonaws.com]
+          Action: ['sts:AssumeRole']
+      Path: /
+      Policies:
+      - PolicyName: !Join ['-', ['Retool', !Ref 'Environment', 'service-policy']]
+        PolicyDocument:
+          Statement:
+          - Effect: Allow
+            Action: [
+              'elasticloadbalancing:DeregisterInstancesFromLoadBalancer',
+              'elasticloadbalancing:DeregisterTargets',
+              'elasticloadbalancing:Describe*',
+              'elasticloadbalancing:RegisterInstancesWithLoadBalancer',
+              'elasticloadbalancing:RegisterTargets',
+              'ec2:Describe*',
+              'ec2:AuthorizeSecurityGroupIngress']
+            Resource: '*'
+
+  RetoolTaskRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service: ['ecs-tasks.amazonaws.com']
+          Action: ['sts:AssumeRole']
+      Path: /
+      Policies:
+        - PolicyName: !Join ['-', ['Retool', !Ref 'Environment', 'rr-blob-storage']]
+          PolicyDocument:
+            Statement:
+              - Effect: Allow
+                Action: [s3:GetObject, s3:PutObject, s3:DeleteObject, s3:ListBucket]
+                Resource:
+                  - !GetAtt [RrSnapshotsBucket, Arn]
+                  - !Sub "${RrSnapshotsBucket.Arn}/*"
+                  - !GetAtt [RrGitBucket, Arn]
+                  - !Sub "${RrGitBucket.Arn}/*"
+
+  # Execution role for platform tasks (Retool backend + R2 agent worker) that
+  # inject agent-sandbox secrets via the ECS `Secrets` property. Grants ECR image
+  # pull, CloudWatch Logs writes, and Secrets Manager read for the sandbox keys.
+  RetoolExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ['ecs-tasks.amazonaws.com']
+            Action: ['sts:AssumeRole']
+      Path: /
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy
+      Policies:
+        - PolicyName: agent-sandbox-secrets
+          PolicyDocument:
+            Statement:
+              - Effect: Allow
+                Action: [secretsmanager:GetSecretValue]
+                Resource:
+                  - !Ref AgentSandboxJwtPrivateKeySecret
+                  - !Ref AgentSandboxJwtPublicKeySecret
+                  - !Ref AgentSandboxEncryptionKeySecret
+
+# Workflows
+  WorkflowsCloudMapNamespace:
+    Type: AWS::ServiceDiscovery::PrivateDnsNamespace
+    Properties:
+      Name: retoolsvc
+      Vpc: !Ref 'VpcId'
+
+  RetoolWorkflowBackendServiceCloudmapService:
+    Type: AWS::ServiceDiscovery::Service
+    Properties:
+      DnsConfig:
+        DnsRecords:
+          - TTL: 60
+            Type: A
+        NamespaceId: !GetAtt [WorkflowsCloudMapNamespace, Id]
+        RoutingPolicy: MULTIVALUE
+      HealthCheckCustomConfig:
+        FailureThreshold: 1
+      Name: workflows-backend
+      NamespaceId: !GetAtt [WorkflowsCloudMapNamespace, Id]
+
+  RetoolCodeExecutorServiceCloudmapService:
+    Type: AWS::ServiceDiscovery::Service
+    Properties:
+      DnsConfig:
+        DnsRecords:
+          - TTL: 60
+            Type: A
+        NamespaceId: !GetAtt [WorkflowsCloudMapNamespace, Id]
+        RoutingPolicy: MULTIVALUE
+      HealthCheckCustomConfig:
+        FailureThreshold: 1
+      Name: code-executor
+      NamespaceId: !GetAtt [WorkflowsCloudMapNamespace, Id]
+
+# Temporal
+  RetoolTemporalRDSSecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Description: 'This is the secret for the Retool Temporal RDS instance'
+      GenerateSecretString:
+        SecretStringTemplate: '{"username": "retool"}'
+        GenerateStringKey: 'password'
+        PasswordLength: 16
+        ExcludeCharacters: '"@/\'
+
+  # RDS-based Temporal DB
+  # RetoolTemporalRDSInstance:
+  #   Type: AWS::RDS::DBInstance
+  #   Properties:
+  #     AllocatedStorage: "80"
+  #     DBInstanceClass: "db.m4.large"
+  #     Engine: postgres
+  #     EngineVersion: "11.12"
+  #     DBName: "temporal"
+  #     MasterUsername: !Join ['', ['{{resolve:secretsmanager:', !Ref RetoolTemporalRDSSecret, ':SecretString:username}}' ]]
+  #     MasterUserPassword: !Join ['', ['{{resolve:secretsmanager:', !Ref RetoolTemporalRDSSecret, ':SecretString:password}}' ]]
+  #     Port: "5432"
+  #     VPCSecurityGroups: [!GetAtt [RDSSecurityGroup, GroupId]]
+  #     DBSubnetGroupName: !Ref 'RDSSubnetGroup'
+
+  # Aurora-based Temporal DB
+  RetoolTemporalRDSCluster:
+    Type: AWS::RDS::DBCluster
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      Engine: "aurora-postgresql"
+      EngineVersion: "16.6"
+      StorageEncrypted: true
+      MasterUsername: !Join ['', ['{{resolve:secretsmanager:', !Ref RetoolTemporalRDSSecret, ':SecretString:username}}' ]]
+      MasterUserPassword: !Join ['', ['{{resolve:secretsmanager:', !Ref RetoolTemporalRDSSecret, ':SecretString:password}}' ]]
+      Port: "5432"
+      VpcSecurityGroupIds: [!GetAtt [TemporalRDSSecurityGroup, GroupId]]
+      DBSubnetGroupName: !Ref 'RDSSubnetGroup'
+      ServerlessV2ScalingConfiguration:
+        MinCapacity: 0.5
+        MaxCapacity: 10
+  RetoolTemporalRDSInstance:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      Engine: "aurora-postgresql"
+      DBInstanceClass: "db.serverless"
+      DBClusterIdentifier: !Ref 'RetoolTemporalRDSCluster'
+
+  TemporalClusterFrontendTask:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: 'retool-temporal-frontend'
+      TaskRoleArn: !Ref 'RetoolTaskRole'
+      NetworkMode: awsvpc
+      ContainerDefinitions:
+        - Name: temporal-cluster-frontend
+          Cpu: '256'
+          Memory: '512'
+          Essential: 'true'
+          Image: tryretool/one-offs:retool-temporal-1.1.6
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Ref 'CloudwatchLogsGroup'
+              awslogs-region: !Ref 'AWS::Region'
+              awslogs-stream-prefix: "SERVICE_RETOOL_TEMPORAL"
+          Environment:
+            - Name: SERVICES
+              Value: frontend
+            - Name: LOG_LEVEL
+              Value: debug,info
+            - Name: NUM_HISTORY_SHARDS
+              Value: "128"
+            - Name: DB
+              Value: postgresql
+            - Name: POSTGRES_HOST
+              Value: !GetAtt [RetoolTemporalRDSInstance, Endpoint.Address]
+            - Name: POSTGRES_PORT
+              Value: 5432
+            - Name: POSTGRES_USER
+              Value: !Join ['', ['{{resolve:secretsmanager:', !Ref RetoolTemporalRDSSecret, ':SecretString:username}}' ]]
+            - Name: POSTGRES_PASSWORD
+              Value: !Join ['', ['{{resolve:secretsmanager:', !Ref RetoolTemporalRDSSecret, ':SecretString:password}}' ]]
+            # - Name: SQL_TLS_ENABLED
+            #   Value: "true"
+            # - Name: SQL_TLS
+            #   Value: "true"
+            # - Name: SQL_TLS_SKIP_HOST_VERIFICATION
+            #   Value: "true"
+            # - Name: SQL_TLS_DISABLE_HOST_VERIFICATION
+            #   Value: "true"
+            - Name: DBNAME
+              Value: temporal
+            - Name: DBNAME_VISIBILITY
+              Value: temporal_visibility
+            - Name: DYNAMIC_CONFIG_FILE_PATH
+              Value: /etc/temporal/ecs/dynamic_config/dynamicconfig-sql.yaml
+            - Name: ECS_DEPLOYED
+              Value: "true"
+          PortMappings:
+            - ContainerPort: 7233
+              HostPort: 7233
+              Protocol: tcp
+            - ContainerPort: 6933
+              HostPort: 6933
+              Protocol: tcp
+  TemporalClusterHistoryTask:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: 'retool-temporal-history'
+      TaskRoleArn: !Ref 'RetoolTaskRole'
+      NetworkMode: awsvpc
+      ContainerDefinitions:
+        - Name: temporal-cluster-history
+          Cpu: '512'
+          Memory: '1024'
+          Essential: 'true'
+          Image: tryretool/one-offs:retool-temporal-1.1.6
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Ref 'CloudwatchLogsGroup'
+              awslogs-region: !Ref 'AWS::Region'
+              awslogs-stream-prefix: "SERVICE_RETOOL_TEMPORAL"
+          Environment:
+            - Name: SERVICES
+              Value: history
+            - Name: LOG_LEVEL
+              Value: debug,info
+            - Name: NUM_HISTORY_SHARDS
+              Value: "128"
+            - Name: DB
+              Value: postgresql
+            - Name: POSTGRES_HOST
+              Value: !GetAtt [RetoolTemporalRDSInstance, Endpoint.Address]
+            - Name: POSTGRES_PORT
+              Value: 5432
+            - Name: POSTGRES_USER
+              Value: !Join ['', ['{{resolve:secretsmanager:', !Ref RetoolTemporalRDSSecret, ':SecretString:username}}' ]]
+            - Name: POSTGRES_PASSWORD
+              Value: !Join ['', ['{{resolve:secretsmanager:', !Ref RetoolTemporalRDSSecret, ':SecretString:password}}' ]]
+            # - Name: SQL_TLS_ENABLED
+            #   Value: "true"
+            # - Name: SQL_TLS
+            #   Value: "true"
+            # - Name: SQL_TLS_SKIP_HOST_VERIFICATION
+            #   Value: "true"
+            # - Name: SQL_TLS_DISABLE_HOST_VERIFICATION
+            #   Value: "true"
+            - Name: DBNAME
+              Value: temporal
+            - Name: DBNAME_VISIBILITY
+              Value: temporal_visibility
+            - Name: DYNAMIC_CONFIG_FILE_PATH
+              Value: /etc/temporal/ecs/dynamic_config/dynamicconfig-sql.yaml
+            - Name: PUBLIC_FRONTEND_ADDRESS
+              Value: temporal.retoolsvc:7233
+            - Name: ECS_DEPLOYED
+              Value: "true"
+          PortMappings:
+            - ContainerPort: 7234
+              HostPort: 7234
+              Protocol: tcp
+            - ContainerPort: 6934
+              HostPort: 6934
+              Protocol: tcp
+  TemporalClusterMatchingTask:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: 'retool-temporal-matching'
+      TaskRoleArn: !Ref 'RetoolTaskRole'
+      NetworkMode: awsvpc
+      ContainerDefinitions:
+        - Name: temporal-cluster-matching
+          Cpu: '512'
+          Memory: '1024'
+          Essential: 'true'
+          Image: tryretool/one-offs:retool-temporal-1.1.6
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Ref 'CloudwatchLogsGroup'
+              awslogs-region: !Ref 'AWS::Region'
+              awslogs-stream-prefix: "SERVICE_RETOOL_TEMPORAL"
+          Environment:
+            - Name: SERVICES
+              Value: matching
+            - Name: LOG_LEVEL
+              Value: debug,info
+            - Name: NUM_HISTORY_SHARDS
+              Value: "128"
+            - Name: DB
+              Value: postgresql
+            - Name: POSTGRES_HOST
+              Value: !GetAtt [RetoolTemporalRDSInstance, Endpoint.Address]
+            - Name: POSTGRES_PORT
+              Value: 5432
+            - Name: POSTGRES_USER
+              Value: !Join ['', ['{{resolve:secretsmanager:', !Ref RetoolTemporalRDSSecret, ':SecretString:username}}' ]]
+            - Name: POSTGRES_PASSWORD
+              Value: !Join ['', ['{{resolve:secretsmanager:', !Ref RetoolTemporalRDSSecret, ':SecretString:password}}' ]]
+            # - Name: SQL_TLS_ENABLED
+            #   Value: "true"
+            # - Name: SQL_TLS
+            #   Value: "true"
+            # - Name: SQL_TLS_SKIP_HOST_VERIFICATION
+            #   Value: "true"
+            # - Name: SQL_TLS_DISABLE_HOST_VERIFICATION
+            #   Value: "true"
+            - Name: DBNAME
+              Value: temporal
+            - Name: DBNAME_VISIBILITY
+              Value: temporal_visibility
+            - Name: DYNAMIC_CONFIG_FILE_PATH
+              Value: /etc/temporal/ecs/dynamic_config/dynamicconfig-sql.yaml
+            - Name: PUBLIC_FRONTEND_ADDRESS
+              Value: temporal.retoolsvc:7233
+            - Name: ECS_DEPLOYED
+              Value: "true"
+          PortMappings:
+            - ContainerPort: 7235
+              HostPort: 7235
+              Protocol: tcp
+            - ContainerPort: 6935
+              HostPort: 6935
+              Protocol: tcp
+  TemporalClusterWorkerTask:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: 'retool-temporal-worker'
+      TaskRoleArn: !Ref 'RetoolTaskRole'
+      NetworkMode: awsvpc
+      ContainerDefinitions:
+        - Name: temporal-cluster-worker
+          Cpu: '256'
+          Memory: '512'
+          Essential: 'true'
+          Image: tryretool/one-offs:retool-temporal-1.1.6
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Ref 'CloudwatchLogsGroup'
+              awslogs-region: !Ref 'AWS::Region'
+              awslogs-stream-prefix: "SERVICE_RETOOL_TEMPORAL"
+          Environment:
+            - Name: SERVICES
+              Value: worker
+            - Name: LOG_LEVEL
+              Value: debug,info
+            - Name: NUM_HISTORY_SHARDS
+              Value: "128"
+            - Name: DB
+              Value: postgresql
+            - Name: POSTGRES_HOST
+              Value: !GetAtt [RetoolTemporalRDSInstance, Endpoint.Address]
+            - Name: POSTGRES_PORT
+              Value: 5432
+            - Name: POSTGRES_USER
+              Value: !Join ['', ['{{resolve:secretsmanager:', !Ref RetoolTemporalRDSSecret, ':SecretString:username}}' ]]
+            - Name: POSTGRES_PASSWORD
+              Value: !Join ['', ['{{resolve:secretsmanager:', !Ref RetoolTemporalRDSSecret, ':SecretString:password}}' ]]
+            # - Name: SQL_TLS_ENABLED
+            #   Value: "true"
+            # - Name: SQL_TLS
+            #   Value: "true"
+            # - Name: SQL_TLS_SKIP_HOST_VERIFICATION
+            #   Value: "true"
+            # - Name: SQL_TLS_DISABLE_HOST_VERIFICATION
+            #   Value: "true"
+            - Name: DBNAME
+              Value: temporal
+            - Name: DBNAME_VISIBILITY
+              Value: temporal_visibility
+            - Name: DYNAMIC_CONFIG_FILE_PATH
+              Value: /etc/temporal/ecs/dynamic_config/dynamicconfig-sql.yaml
+            - Name: PUBLIC_FRONTEND_ADDRESS
+              Value: temporal.retoolsvc:7233
+            - Name: ECS_DEPLOYED
+              Value: "true"
+          PortMappings:
+            - ContainerPort: 7239
+              HostPort: 7239
+              Protocol: tcp
+            - ContainerPort: 6939
+              HostPort: 6939
+              Protocol: tcp
+  TemporalClusterWebTask:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: 'retool-temporal-web'
+      TaskRoleArn: !Ref 'RetoolTaskRole'
+      NetworkMode: awsvpc
+      ContainerDefinitions:
+        - Name: temporal-cluster-web
+          Cpu: '256'
+          Memory: '512'
+          Image: temporalio/ui:2.14.0
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Ref 'CloudwatchLogsGroup'
+              awslogs-region: !Ref 'AWS::Region'
+              awslogs-stream-prefix: "SERVICE_RETOOL_TEMPORAL"
+          Environment:
+            - Name: TEMPORAL_ADDRESS
+              Value: temporal.retoolsvc:7233
+          PortMappings:
+            - ContainerPort: 8088
+              HostPort: 8088
+              Protocol: tcp
+  TemporalFrontendService:
+    Type: AWS::ECS::Service
+    DependsOn: ClusterCapacityProviderAssociations
+    Properties:
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: DISABLED # must be run in private subnet with NAT gateway
+          SecurityGroups: [!GetAtt [TemporalSecurityGroup, GroupId]]
+          Subnets: !Ref 'SubnetId'
+      ServiceRegistries:
+        - RegistryArn: !GetAtt [TemporalFrontendCloudmapService, Arn]
+      Cluster: !Ref 'RetoolCluster'
+      DesiredCount: !Ref 'DesiredWorkflowsCount'
+      DeploymentConfiguration:
+        MaximumPercent: !Ref 'MaximumPercent'
+        MinimumHealthyPercent: !Ref 'MinimumHealthyPercent'
+      TaskDefinition: !Ref 'TemporalClusterFrontendTask'
+  TemporalHistoryService:
+    Type: AWS::ECS::Service
+    DependsOn: [TemporalFrontendService, ClusterCapacityProviderAssociations]
+    Properties:
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: DISABLED # must be run in private subnet with NAT gateway
+          SecurityGroups: [!GetAtt [TemporalSecurityGroup, GroupId]]
+          Subnets: !Ref 'SubnetId'
+      Cluster: !Ref 'RetoolCluster'
+      DesiredCount: !Ref 'DesiredWorkflowsCount'
+      DeploymentConfiguration:
+        MaximumPercent: !Ref 'MaximumPercent'
+        MinimumHealthyPercent: !Ref 'MinimumHealthyPercent'
+      TaskDefinition: !Ref 'TemporalClusterHistoryTask'
+  TemporalMatchingService:
+    Type: AWS::ECS::Service
+    DependsOn: [TemporalFrontendService, ClusterCapacityProviderAssociations]
+    Properties:
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: DISABLED # must be run in private subnet with NAT gateway
+          SecurityGroups: [!GetAtt [TemporalSecurityGroup, GroupId]]
+          Subnets: !Ref 'SubnetId'
+      Cluster: !Ref 'RetoolCluster'
+      DesiredCount: !Ref 'DesiredWorkflowsCount'
+      DeploymentConfiguration:
+        MaximumPercent: !Ref 'MaximumPercent'
+        MinimumHealthyPercent: !Ref 'MinimumHealthyPercent'
+      TaskDefinition: !Ref 'TemporalClusterMatchingTask'
+  TemporalWorkerService:
+    Type: AWS::ECS::Service
+    DependsOn: [TemporalFrontendService, ClusterCapacityProviderAssociations]
+    Properties:
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: DISABLED # must be run in private subnet with NAT gateway
+          SecurityGroups: [!GetAtt [TemporalSecurityGroup, GroupId]]
+          Subnets: !Ref 'SubnetId'
+      Cluster: !Ref 'RetoolCluster'
+      DesiredCount: 1
+      DeploymentConfiguration:
+        MaximumPercent: !Ref 'MaximumPercent'
+        MinimumHealthyPercent: !Ref 'MinimumHealthyPercent'
+      TaskDefinition: !Ref 'TemporalClusterWorkerTask'
+  TemporalClusterWebService:
+    Type: AWS::ECS::Service
+    DependsOn: [TemporalFrontendService, ClusterCapacityProviderAssociations]
+    Properties:
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: DISABLED # must be run in private subnet with NAT gateway
+          SecurityGroups: [!GetAtt [TemporalSecurityGroup, GroupId]]
+          Subnets: !Ref 'SubnetId'
+      Cluster: !Ref 'RetoolCluster'
+      DesiredCount: 1
+      DeploymentConfiguration:
+        MaximumPercent: !Ref 'MaximumPercent'
+        MinimumHealthyPercent: !Ref 'MinimumHealthyPercent'
+      TaskDefinition: !Ref 'TemporalClusterWebTask'
+  TemporalFrontendCloudmapService:
+    Type: AWS::ServiceDiscovery::Service
+    Properties:
+      DnsConfig:
+        DnsRecords:
+          - TTL: 60
+            Type: A
+        NamespaceId: !GetAtt [WorkflowsCloudMapNamespace, Id]
+        RoutingPolicy: MULTIVALUE
+      HealthCheckCustomConfig:
+        FailureThreshold: 1
+      Name: temporal
+      NamespaceId: !GetAtt [WorkflowsCloudMapNamespace, Id]
+
+# ===========================================================================
+# R2 / Agent Sandbox
+#
+# - Controller (3018): ORCHESTRATOR=ecs; RunTasks the pre-registered
+#   retool-agent-sandbox family and resolves each sandbox at instanceIP:hostPort.
+# - Proxy (3019): browser-facing WebSocket egress; fronted by the ALB.
+# - Sandbox task definition: the bridge-networked, dynamic-host-port family the
+#   controller launches. All env/devices/seccomp are baked in because RunTask
+#   sends no overrides.
+# - js-executor (3000): serverless functions (nsjail).
+# - r2-agent-worker: server-side agent loop (Temporal queue r2-agent).
+# ===========================================================================
+  RetoolBackendCloudmapService:
+    Type: AWS::ServiceDiscovery::Service
+    Properties:
+      DnsConfig:
+        DnsRecords:
+          - TTL: 60
+            Type: A
+        NamespaceId: !GetAtt [WorkflowsCloudMapNamespace, Id]
+        RoutingPolicy: MULTIVALUE
+      HealthCheckCustomConfig:
+        FailureThreshold: 1
+      Name: retool-backend
+      NamespaceId: !GetAtt [WorkflowsCloudMapNamespace, Id]
+
+  AgentSandboxControllerCloudmapService:
+    Type: AWS::ServiceDiscovery::Service
+    Properties:
+      DnsConfig:
+        DnsRecords:
+          - TTL: 60
+            Type: A
+        NamespaceId: !GetAtt [WorkflowsCloudMapNamespace, Id]
+        RoutingPolicy: MULTIVALUE
+      HealthCheckCustomConfig:
+        FailureThreshold: 1
+      Name: agent-sandbox-controller
+      NamespaceId: !GetAtt [WorkflowsCloudMapNamespace, Id]
+
+  AgentSandboxProxyCloudmapService:
+    Type: AWS::ServiceDiscovery::Service
+    Properties:
+      DnsConfig:
+        DnsRecords:
+          - TTL: 60
+            Type: A
+        NamespaceId: !GetAtt [WorkflowsCloudMapNamespace, Id]
+        RoutingPolicy: MULTIVALUE
+      HealthCheckCustomConfig:
+        FailureThreshold: 1
+      Name: agent-sandbox-proxy
+      NamespaceId: !GetAtt [WorkflowsCloudMapNamespace, Id]
+
+  JsExecutorCloudmapService:
+    Type: AWS::ServiceDiscovery::Service
+    Properties:
+      DnsConfig:
+        DnsRecords:
+          - TTL: 60
+            Type: A
+        NamespaceId: !GetAtt [WorkflowsCloudMapNamespace, Id]
+        RoutingPolicy: MULTIVALUE
+      HealthCheckCustomConfig:
+        FailureThreshold: 1
+      Name: js-executor
+      NamespaceId: !GetAtt [WorkflowsCloudMapNamespace, Id]
+
+  AgentSandboxControllerTask:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: 'retool-agent-sandbox-controller'
+      TaskRoleArn: !Ref 'AgentSandboxControllerTaskRole'
+      ExecutionRoleArn: !Ref 'SandboxExecutionRole'
+      NetworkMode: awsvpc
+      ContainerDefinitions:
+        - Name: 'agent-sandbox-controller'
+          Cpu: '512'
+          Memory: '1024'
+          Essential: true
+          Image: !Sub tryretool/agent-sandbox-service:${RetoolVersion}
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Ref 'CloudwatchLogsGroup'
+              awslogs-region: !Ref 'AWS::Region'
+              awslogs-stream-prefix: "SERVICE_AGENT_SANDBOX_CONTROLLER"
+          Environment:
+            - Name: NODE_ENV
+              Value: production
+            - Name: AGENT_SANDBOX_ROLE
+              Value: controller
+            - Name: CONTROLLER_PORT
+              Value: "3018"
+            - Name: ORCHESTRATOR
+              Value: ecs
+            - Name: ECS_CLUSTER_NAME
+              Value: !Ref 'RetoolCluster'
+            - Name: ECS_TASK_DEFINITION_FAMILY
+              Value: retool-agent-sandbox
+            - Name: ECS_CONTAINER_NAME
+              Value: agent-executor
+            - Name: ECS_TASK_GROUP
+              Value: agent-executor-sandbox
+            - Name: ECS_REGION
+              Value: !Ref 'AWS::Region'
+            - Name: STATE_BACKEND
+              Value: postgres
+            - Name: AGENT_SANDBOX_POSTGRES_URL
+              Value: !Sub
+                - "postgres://${U}:${P}@${H}:5432/hammerhead_production"
+                - U: !Sub '{{resolve:secretsmanager:${RetoolRDSSecret}:SecretString:username}}'
+                  P: !Sub '{{resolve:secretsmanager:${RetoolRDSSecret}:SecretString:password}}'
+                  H: !GetAtt [RetoolRDSInstance, Endpoint.Address]
+            - Name: AGENT_SANDBOX_POSTGRES_SCHEMA
+              Value: agent_executor
+            - Name: SANDBOX_BACKEND_URL
+              Value: http://retool-backend.retoolsvc:3000
+            - Name: DEPLOYED_IMAGE_TAG
+              Value: !Ref 'RetoolVersion'
+            - Name: PREWARM_POOL_SIZE
+              Value: "5"
+            - Name: MAX_TOTAL_JOBS
+              Value: "50"
+            - Name: MAX_CONCURRENT_CREATES
+              Value: "3"
+            - !If
+              - EnableWatcher
+              - Name: ECS_TASK_EVENTS_SQS_URL
+                Value: !Ref 'SandboxTaskEventsQueue'
+              - !Ref 'AWS::NoValue'
+          Secrets:
+            - Name: AGENT_SANDBOX_JWT_PUBLIC_KEY
+              ValueFrom: !Ref AgentSandboxJwtPublicKeySecret
+          PortMappings:
+            - ContainerPort: 3018
+              Protocol: tcp
+
+  AgentSandboxControllerService:
+    Type: AWS::ECS::Service
+    DependsOn: ClusterCapacityProviderAssociations
+    Properties:
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: DISABLED
+          SecurityGroups: [!GetAtt [AgentSandboxControllerProxySecurityGroup, GroupId]]
+          Subnets: !Ref 'SubnetId'
+      ServiceRegistries:
+        - RegistryArn: !GetAtt [AgentSandboxControllerCloudmapService, Arn]
+      Cluster: !Ref 'RetoolCluster'
+      DesiredCount: 1
+      DeploymentConfiguration:
+        MaximumPercent: !Ref 'MaximumPercent'
+        MinimumHealthyPercent: !Ref 'MinimumHealthyPercent'
+      TaskDefinition: !Ref 'AgentSandboxControllerTask'
+
+  AgentSandboxProxyTask:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: 'retool-agent-sandbox-proxy'
+      TaskRoleArn: !Ref 'RetoolTaskRole'
+      ExecutionRoleArn: !Ref 'SandboxExecutionRole'
+      NetworkMode: awsvpc
+      ContainerDefinitions:
+        - Name: 'agent-sandbox-proxy'
+          Cpu: '512'
+          Memory: '1024'
+          Essential: true
+          Image: !Sub tryretool/agent-sandbox-service:${RetoolVersion}
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Ref 'CloudwatchLogsGroup'
+              awslogs-region: !Ref 'AWS::Region'
+              awslogs-stream-prefix: "SERVICE_AGENT_SANDBOX_PROXY"
+          Environment:
+            - Name: NODE_ENV
+              Value: production
+            - Name: AGENT_SANDBOX_ROLE
+              Value: proxy
+            - Name: PROXY_PORT
+              Value: "3019"
+            - Name: ORCHESTRATOR
+              Value: ecs
+            - Name: EXECUTOR_PORT
+              Value: "3017"
+            - Name: STATE_BACKEND
+              Value: postgres
+            - Name: AGENT_SANDBOX_POSTGRES_URL
+              Value: !Sub
+                - "postgres://${U}:${P}@${H}:5432/hammerhead_production"
+                - U: !Sub '{{resolve:secretsmanager:${RetoolRDSSecret}:SecretString:username}}'
+                  P: !Sub '{{resolve:secretsmanager:${RetoolRDSSecret}:SecretString:password}}'
+                  H: !GetAtt [RetoolRDSInstance, Endpoint.Address]
+            - Name: AGENT_SANDBOX_POSTGRES_SCHEMA
+              Value: agent_executor
+            - Name: BACKEND_URL
+              Value: http://retool-backend.retoolsvc:3000
+            - Name: SANDBOX_PROXY_TIMEOUT_MS
+              Value: "180000"
+            - !If
+              - HasAllowedDomains
+              - Name: ALLOWED_DOMAINS
+                Value: !Ref 'AllowedDomains'
+              - !Ref 'AWS::NoValue'
+          Secrets:
+            - Name: AGENT_SANDBOX_JWT_PUBLIC_KEY
+              ValueFrom: !Ref AgentSandboxJwtPublicKeySecret
+            - Name: AGENT_SANDBOX_ENCRYPTION_KEY
+              ValueFrom: !Ref AgentSandboxEncryptionKeySecret
+          PortMappings:
+            - ContainerPort: 3019
+              Protocol: tcp
+
+  AgentSandboxProxyService:
+    Type: AWS::ECS::Service
+    DependsOn: ClusterCapacityProviderAssociations
+    Properties:
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: DISABLED
+          SecurityGroups: [!GetAtt [AgentSandboxControllerProxySecurityGroup, GroupId]]
+          Subnets: !Ref 'SubnetId'
+      ServiceRegistries:
+        - RegistryArn: !GetAtt [AgentSandboxProxyCloudmapService, Arn]
+      Cluster: !Ref 'RetoolCluster'
+      DesiredCount: 1
+      DeploymentConfiguration:
+        MaximumPercent: !Ref 'MaximumPercent'
+        MinimumHealthyPercent: !Ref 'MinimumHealthyPercent'
+      TaskDefinition: !Ref 'AgentSandboxProxyTask'
+
+  # Pre-registered family the controller RunTasks. Bridge networking with a
+  # dynamic host port (containerPort 3017 -> ephemeral hostPort) keeps sandboxes
+  # off per-task ENIs; the controller reads the binding and reaches the sandbox
+  # at instanceIP:hostPort. Pinned to sandbox-attributed hosts.
+  AgentSandboxTaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: 'retool-agent-sandbox'
+      TaskRoleArn: !Ref 'SandboxTaskRole'
+      ExecutionRoleArn: !Ref 'SandboxExecutionRole'
+      NetworkMode: bridge
+      RequiresCompatibilities: [EC2]
+      PlacementConstraints:
+        - Type: memberOf
+          Expression: "attribute:retool.sandbox == true"
+      # Tag propagated to launched sandbox tasks (controller RunTask must use
+      # propagateTags: TASK_DEFINITION) so the controller's ecs:StopTask
+      # permission can be scoped to sandbox tasks only via aws:ResourceTag.
+      Tags:
+        - Key: retool-sandbox
+          Value: "true"
+      ContainerDefinitions:
+        - Name: 'agent-executor'
+          Cpu: '2048'
+          Memory: '4096'
+          Essential: true
+          Image: !Sub tryretool/agent-sandbox-service:${RetoolVersion}
+          User: "1001:1001"
+          LinuxParameters:
+            InitProcessEnabled: true
+            Capabilities:
+              Drop: ["ALL"]
+            Devices:
+              - HostPath: /dev/net/tun
+                ContainerPath: /dev/net/tun
+                Permissions: [read, write]
+          DockerSecurityOptions:
+            - "no-new-privileges"
+            - "seccomp=/etc/retool/gvisor-seccomp.json"
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Ref 'CloudwatchLogsGroup'
+              awslogs-region: !Ref 'AWS::Region'
+              awslogs-stream-prefix: "SERVICE_AGENT_SANDBOX"
+          Environment:
+            - Name: NODE_ENV
+              Value: production
+            - Name: EXECUTOR_PORT
+              Value: "3017"
+            - Name: SANDBOX_NETWORK_ENABLED
+              Value: "true"
+            - Name: SANDBOX_HTTP_PROXY
+              Value: http://agent-sandbox-proxy.retoolsvc:3019
+            - Name: SANDBOX_BACKEND_URL
+              Value: http://retool-backend.retoolsvc:3000
+            - Name: SANDBOX_IDLE_TIMEOUT_MS
+              Value: "600000"
+            - Name: S3_BUCKET
+              Value: !Ref 'RrSnapshotsBucket'
+            - Name: S3_REGION
+              Value: !Ref 'AWS::Region'
+          Secrets:
+            - Name: AGENT_SANDBOX_JWT_PUBLIC_KEY
+              ValueFrom: !Ref AgentSandboxJwtPublicKeySecret
+          PortMappings:
+            - ContainerPort: 3017
+              HostPort: 0
+              Protocol: tcp
+
+  JsExecutorTask:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: 'retool-js-executor'
+      TaskRoleArn: !Ref 'RetoolTaskRole'
+      ExecutionRoleArn: !Ref 'SandboxExecutionRole'
+      NetworkMode: awsvpc
+      ContainerDefinitions:
+        - Name: 'js-executor'
+          Cpu: '2048'
+          Memory: '4096'
+          Essential: true
+          Image: !Sub tryretool/js-executor-service:${RetoolVersion}
+          LinuxParameters:
+            Capabilities:
+              Add: ["NET_ADMIN"]
+          DockerSecurityOptions:
+            - "seccomp=/etc/retool/nsjail-seccomp.json"
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Ref 'CloudwatchLogsGroup'
+              awslogs-region: !Ref 'AWS::Region'
+              awslogs-stream-prefix: "SERVICE_JS_EXECUTOR"
+          Environment:
+            - Name: NODE_ENV
+              Value: production
+            - Name: NODE_OPTIONS
+              Value: "--max_old_space_size=1024"
+          PortMappings:
+            - ContainerPort: 3000
+              Protocol: tcp
+
+  JsExecutorService:
+    Type: AWS::ECS::Service
+    DependsOn: ClusterCapacityProviderAssociations
+    Properties:
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: DISABLED
+          SecurityGroups: [!GetAtt [RetoolSecurityGroup, GroupId]]
+          Subnets: !Ref 'SubnetId'
+      ServiceRegistries:
+        - RegistryArn: !GetAtt [JsExecutorCloudmapService, Arn]
+      Cluster: !Ref 'RetoolCluster'
+      DesiredCount: !Ref 'DesiredCodeExecutorCount'
+      DeploymentConfiguration:
+        MaximumPercent: !Ref 'MaximumPercent'
+        MinimumHealthyPercent: !Ref 'MinimumHealthyPercent'
+      TaskDefinition: !Ref 'JsExecutorTask'
+
+  R2AgentWorkerTask:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: 'retool-r2-agent-worker'
+      TaskRoleArn: !Ref 'RetoolTaskRole'
+      ExecutionRoleArn: !Ref 'RetoolExecutionRole'
+      NetworkMode: awsvpc
+      ContainerDefinitions:
+        - Name: 'r2-agent-worker'
+          Cpu: '2048'
+          Memory: '4096'
+          Essential: true
+          Image: !Sub tryretool/backend:${RetoolVersion}
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Ref 'CloudwatchLogsGroup'
+              awslogs-region: !Ref 'AWS::Region'
+              awslogs-stream-prefix: "SERVICE_RETOOL"
+          Environment:
+            - Name: DEPLOYMENT_TEMPLATE_TYPE
+              Value: "aws-ecs-ec2"
+            - Name: NODE_ENV
+              Value: production
+            - Name: SERVICE_TYPE
+              Value: R2_AGENT_TEMPORAL_WORKER
+            - Name: WORKER_TEMPORAL_TASKQUEUE
+              Value: r2-agent
+            - Name: POSTGRES_DB
+              Value: hammerhead_production
+            - Name: POSTGRES_HOST
+              Value: !GetAtt [RetoolRDSInstance, Endpoint.Address]
+            - Name: POSTGRES_SSL_ENABLED
+              Value: "true"
+            - Name: POSTGRES_PORT
+              Value: "5432"
+            - Name: POSTGRES_USER
+              Value: !Join ['', ['{{resolve:secretsmanager:', !Ref RetoolRDSSecret, ':SecretString:username}}' ]]
+            - Name: POSTGRES_PASSWORD
+              Value: !Join ['', ['{{resolve:secretsmanager:', !Ref RetoolRDSSecret, ':SecretString:password}}' ]]
+            - Name: JWT_SECRET
+              Value: !Join ['', ['{{resolve:secretsmanager:', !Ref RetoolJWTSecret, ':SecretString:password}}' ]]
+            - Name: ENCRYPTION_KEY
+              Value: !Join ['', ['{{resolve:secretsmanager:', !Ref RetoolEncryptionKeySecret, ':SecretString:password}}' ]]
+            - Name: WORKFLOW_TEMPORAL_CLUSTER_FRONTEND_HOST
+              Value: temporal.retoolsvc
+            - Name: WORKFLOW_TEMPORAL_CLUSTER_FRONTEND_PORT
+              Value: "7233"
+            - Name: LICENSE_KEY
+              Value: !Ref LicenseKey
+            - Name: RR_AGENT_PUBSUB_BACKEND
+              Value: postgres
+            - Name: AGENT_SANDBOX_CONTROLLER_INGRESS_DOMAIN
+              Value: http://agent-sandbox-controller.retoolsvc:3018
+            - Name: AGENT_SANDBOX_PROXY_INGRESS_DOMAIN
+              Value: http://agent-sandbox-proxy.retoolsvc:3019
+            - Name: AGENT_SANDBOX_POSTGRES_URL
+              Value: !Sub
+                - "postgres://${U}:${P}@${H}:5432/hammerhead_production"
+                - U: !Sub '{{resolve:secretsmanager:${RetoolRDSSecret}:SecretString:username}}'
+                  P: !Sub '{{resolve:secretsmanager:${RetoolRDSSecret}:SecretString:password}}'
+                  H: !GetAtt [RetoolRDSInstance, Endpoint.Address]
+            - Name: AGENT_SANDBOX_POSTGRES_SCHEMA
+              Value: agent_executor
+          Secrets:
+            - Name: AGENT_SANDBOX_JWT_PRIVATE_KEY
+              ValueFrom: !Ref AgentSandboxJwtPrivateKeySecret
+            - Name: AGENT_SANDBOX_JWT_PUBLIC_KEY
+              ValueFrom: !Ref AgentSandboxJwtPublicKeySecret
+            - Name: AGENT_SANDBOX_ENCRYPTION_KEY
+              ValueFrom: !Ref AgentSandboxEncryptionKeySecret
+          Command: ["./docker_scripts/start_api.sh"]
+
+  R2AgentWorkerService:
+    Type: AWS::ECS::Service
+    DependsOn: ClusterCapacityProviderAssociations
+    Properties:
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: DISABLED
+          SecurityGroups: [!GetAtt [RetoolSecurityGroup, GroupId]]
+          Subnets: !Ref 'SubnetId'
+      Cluster: !Ref 'RetoolCluster'
+      DesiredCount: 1
+      DeploymentConfiguration:
+        MaximumPercent: !Ref 'MaximumPercent'
+        MinimumHealthyPercent: !Ref 'MinimumHealthyPercent'
+      TaskDefinition: !Ref 'R2AgentWorkerTask'
+
+# ===========================================================================
+# R2 supporting resources: IAM, security groups, S3, proxy ingress, watcher
+# ===========================================================================
+
+  # Controller calls the ECS/EC2 control plane to launch and resolve sandboxes.
+  AgentSandboxControllerTaskRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ['ecs-tasks.amazonaws.com']
+            Action: ['sts:AssumeRole']
+      Path: /
+      Policies:
+        - PolicyName: agent-sandbox-controller
+          PolicyDocument:
+            Statement:
+              - Effect: Allow
+                Action:
+                  - ecs:ListTasks
+                  - ecs:DescribeTasks
+                  - ecs:DescribeContainerInstances
+                  - ec2:DescribeInstances
+                Resource: '*'
+              # StopTask is confined to sandbox tasks in this stack's cluster.
+              # Task ARNs are dynamic, so the resource is '*' and two conditions
+              # provide the boundary: ecs:cluster (this stack only) and
+              # aws:ResourceTag/retool-sandbox (sandbox tasks only). Sandbox
+              # tasks are tagged via AgentSandboxTaskDefinition; the controller
+              # must propagate task-definition tags (propagateTags:
+              # TASK_DEFINITION) at RunTask so the tag reaches the running task.
+              - Effect: Allow
+                Action: [ecs:StopTask]
+                Resource: '*'
+                Condition:
+                  StringEquals:
+                    ecs:cluster: !GetAtt [RetoolCluster, Arn]
+                    aws:ResourceTag/retool-sandbox: "true"
+              # Scoped to the sandbox task family only: the credential-bearing
+              # platform task definitions (RetoolTask, R2AgentWorkerTask, ...)
+              # store CloudFormation-resolved PostgreSQL credentials in their
+              # Environment, so a wildcard DescribeTaskDefinition would let a
+              # compromised controller read those plaintext credentials. The
+              # controller only needs to inspect the sandbox task definition.
+              - Effect: Allow
+                Action: [ecs:DescribeTaskDefinition]
+                Resource: !Sub 'arn:${AWS::Partition}:ecs:${AWS::Region}:${AWS::AccountId}:task-definition/retool-agent-sandbox:*'
+              # RunTask is scoped to the sandbox task family AND this stack's
+              # cluster (matching the StopTask boundary) so a compromised
+              # controller cannot launch the sandbox task (and its delegated S3
+              # snapshot permissions) on an unrelated compatible ECS cluster.
+              - Effect: Allow
+                Action: [ecs:RunTask]
+                Resource: !Sub 'arn:${AWS::Partition}:ecs:${AWS::Region}:${AWS::AccountId}:task-definition/retool-agent-sandbox:*'
+                Condition:
+                  ArnEquals:
+                    ecs:cluster: !GetAtt [RetoolCluster, Arn]
+              - Effect: Allow
+                Action: [iam:PassRole]
+                Resource:
+                  - !GetAtt [SandboxTaskRole, Arn]
+                  - !GetAtt [SandboxExecutionRole, Arn]
+
+  # SQS permissions are scoped to the watcher queue and only attached when the
+  # watcher is enabled (the queue is conditionally created). See EnableWatcher.
+  AgentSandboxControllerSqsPolicy:
+    Condition: EnableWatcher
+    Type: AWS::IAM::Policy
+    Properties:
+      Roles:
+        - !Ref AgentSandboxControllerTaskRole
+      PolicyName: agent-sandbox-controller-sqs
+      PolicyDocument:
+        Statement:
+          - Effect: Allow
+            Action: [sqs:ReceiveMessage, sqs:DeleteMessage, sqs:GetQueueAttributes]
+            Resource: !GetAtt [SandboxTaskEventsQueue, Arn]
+
+  # Task execution role (image pull + log writes) shared by the R2 task defs.
+  SandboxExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ['ecs-tasks.amazonaws.com']
+            Action: ['sts:AssumeRole']
+      Path: /
+      Policies:
+        - PolicyName: agent-sandbox-execution
+          PolicyDocument:
+            Statement:
+              - Effect: Allow
+                Action:
+                  - ecr:GetAuthorizationToken
+                  - ecr:BatchCheckLayerAvailability
+                  - ecr:GetDownloadUrlForLayer
+                  - ecr:BatchGetImage
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: '*'
+              - Effect: Allow
+                Action: [secretsmanager:GetSecretValue]
+                Resource:
+                  - !Ref AgentSandboxJwtPrivateKeySecret
+                  - !Ref AgentSandboxJwtPublicKeySecret
+                  - !Ref AgentSandboxEncryptionKeySecret
+
+  # Sandbox task role: snapshot S3 read/write via the default credential chain.
+  SandboxTaskRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ['ecs-tasks.amazonaws.com']
+            Action: ['sts:AssumeRole']
+      Path: /
+      Policies:
+        - PolicyName: agent-sandbox-snapshots
+          PolicyDocument:
+            Statement:
+              - Effect: Allow
+                Action: [s3:GetObject, s3:PutObject, s3:DeleteObject, s3:ListBucket]
+                Resource:
+                  - !GetAtt [RrSnapshotsBucket, Arn]
+                  - !Sub "${RrSnapshotsBucket.Arn}/*"
+
+  # Shared SG for the controller + proxy task ENIs.
+  AgentSandboxControllerProxySecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: !Join [" ", [!Ref 'AWS::StackName', 'agent sandbox controller/proxy security group']]
+      VpcId: !Ref 'VpcId'
+
+  ControllerIngressFromBackend:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !GetAtt [AgentSandboxControllerProxySecurityGroup, GroupId]
+      IpProtocol: tcp
+      FromPort: 3018
+      ToPort: 3018
+      SourceSecurityGroupId: !GetAtt [RetoolSecurityGroup, GroupId]
+
+  ProxyIngressFromBackend:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !GetAtt [AgentSandboxControllerProxySecurityGroup, GroupId]
+      IpProtocol: tcp
+      FromPort: 3019
+      ToPort: 3019
+      SourceSecurityGroupId: !GetAtt [RetoolSecurityGroup, GroupId]
+
+  ProxyIngressFromSandboxHosts:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !GetAtt [AgentSandboxControllerProxySecurityGroup, GroupId]
+      IpProtocol: tcp
+      FromPort: 3019
+      ToPort: 3019
+      SourceSecurityGroupId: !GetAtt [SandboxInstanceSecurityGroup, GroupId]
+
+  # Backend reachable from controller/proxy (token exchange, SANDBOX_BACKEND_URL)
+  # and from sandbox containers (egress via the sandbox host SG).
+  BackendIngressFromControllerProxy:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !GetAtt [RetoolSecurityGroup, GroupId]
+      IpProtocol: tcp
+      FromPort: 3000
+      ToPort: 3000
+      SourceSecurityGroupId: !GetAtt [AgentSandboxControllerProxySecurityGroup, GroupId]
+
+  BackendIngressFromSandboxHosts:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !GetAtt [RetoolSecurityGroup, GroupId]
+      IpProtocol: tcp
+      FromPort: 3000
+      ToPort: 3000
+      SourceSecurityGroupId: !GetAtt [SandboxInstanceSecurityGroup, GroupId]
+
+  # Controller (health-poll) and proxy (request forwarding) reach sandbox
+  # containers on the bridge dynamic host-port range.
+  SandboxHostIngressFromControllerProxy:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !GetAtt [SandboxInstanceSecurityGroup, GroupId]
+      IpProtocol: tcp
+      FromPort: 32768
+      ToPort: 60999
+      SourceSecurityGroupId: !GetAtt [AgentSandboxControllerProxySecurityGroup, GroupId]
+
+  RrSnapshotsBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+
+  RrGitBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+
+  # EventBridge -> SQS task-state watcher (optional; controller polls otherwise).
+  SandboxTaskEventsQueue:
+    Type: AWS::SQS::Queue
+    Condition: EnableWatcher
+    Properties:
+      MessageRetentionPeriod: 3600
+      VisibilityTimeout: 60
+
+  SandboxTaskEventsQueuePolicy:
+    Type: AWS::SQS::QueuePolicy
+    Condition: EnableWatcher
+    Properties:
+      Queues: [!Ref 'SandboxTaskEventsQueue']
+      PolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: events.amazonaws.com
+            Action: sqs:SendMessage
+            Resource: !GetAtt [SandboxTaskEventsQueue, Arn]
+            Condition:
+              ArnEquals:
+                aws:SourceArn: !GetAtt [SandboxTaskStateRule, Arn]
+
+  SandboxTaskStateRule:
+    Type: AWS::Events::Rule
+    Condition: EnableWatcher
+    Properties:
+      Description: ECS task-state changes for the agent sandbox group.
+      EventPattern:
+        source: ["aws.ecs"]
+        detail-type: ["ECS Task State Change"]
+        detail:
+          clusterArn: [!GetAtt [RetoolCluster, Arn]]
+          group: ["agent-executor-sandbox"]
+      Targets:
+        - Arn: !GetAtt [SandboxTaskEventsQueue, Arn]
+          Id: sandbox-task-events
+
+Outputs:
+  ECSALB:
+    Description: Your ALB DNS URL. The agent sandbox proxy is served same-origin under /sandbox/* through the backend, so no separate endpoint is exposed.
+    Value: !GetAtt [ECSALB, DNSName]
