@@ -20,6 +20,33 @@ Parameters:
     Type: String
     Description: Retool version tag (e.g. 3.114.7-stable). Used for backend, code-executor, js-executor, and agent-sandbox-service images.
     Default: 3.114.7-stable
+  BackendImageRepository:
+    Type: String
+    Description: >-
+      Image repository for the Retool backend (API, jobs-runner, workflows
+      backend/worker, r2-agent-worker). Tag is always RetoolVersion. Override
+      to pull from a private registry, e.g. an ECR mirror.
+    Default: "tryretool/backend"
+  CodeExecutorImageRepository:
+    Type: String
+    Description: >-
+      Image repository for the code executor. Tag is always RetoolVersion.
+      Override to pull from a private registry, e.g. an ECR mirror.
+    Default: "tryretool/code-executor-service"
+  AgentSandboxImageRepository:
+    Type: String
+    Description: >-
+      Image repository for the agent-sandbox controller, proxy, and sandbox
+      task definition. Tag is always RetoolVersion. Override to pull from a
+      private registry — note the internal ECR mirror publishes this image as
+      agent-executor-service.
+    Default: "tryretool/agent-sandbox-service"
+  JsExecutorImageRepository:
+    Type: String
+    Description: >-
+      Image repository for the js-executor. Tag is always RetoolVersion.
+      Override to pull from a private registry, e.g. an ECR mirror.
+    Default: "tryretool/js-executor-service"
   DesiredCount:
     Type: Number
     Description: Default number of API container tasks to run
@@ -32,16 +59,30 @@ Parameters:
     Type: Number
     Description: Default number of tasks to run for Retool Code Executor containers
     Default: 1
-  EnableNsjail:
+  EnableWorkflows:
     Type: String
     AllowedValues: ["true", "false"]
-    Default: "false"
+    Default: "true"
     Description: >-
-      Run the code executor in privileged mode so it can use nsjail sandboxing,
-      which is required for custom JS/Python libraries. Defaults to false
-      (hardened: non-privileged, dropped capabilities, non-root user) to avoid
-      host-level blast radius. Set to true only if you need custom libraries.
-      See https://docs.retool.com/self-hosted/concepts/architecture#code-executor
+      Deploy the Workflows backend/worker services. Requires a Temporal
+      backend (TemporalBackend=self-hosted or retool-managed). When false,
+      Workflows (the product) is unavailable; DesiredWorkflowsCount is inert.
+  TemporalBackend:
+    Type: String
+    AllowedValues: ["self-hosted", "retool-managed", "none"]
+    Default: "self-hosted"
+    Description: >-
+      self-hosted (default): deploy the internal Temporal cluster (5 services +
+      dedicated Aurora Postgres) and point Workflows + R2 at it.
+      retool-managed: skip the internal cluster; Workflows + R2 connect to
+      Retool-managed Temporal Cloud. The WORKFLOW_TEMPORAL_CLUSTER_FRONTEND_HOST
+      env var is intentionally left unset (that is what selects the managed
+      path); you must complete the one-time Temporal Cloud enrollment in the
+      Retool UI (Settings -> Workflows) after first login, which stores the
+      namespace + mTLS certs in the database.
+      none: no Temporal anywhere; R2 orchestration runs on pg-boss against the
+      main Postgres (R2_ORCHESTRATION_BACKEND=postgres). Requires
+      EnableWorkflows=false.
   MaximumPercent:
     Type: Number
     Description: Maximum percentage of tasks to run during a deployment
@@ -74,15 +115,79 @@ Parameters:
       internet unless an operator explicitly opts in. For a public deployment,
       set to internet-facing and supply a CertificateArn so authenticated
       traffic is served over HTTPS rather than plaintext HTTP.
+  AlbIngressCidr:
+    Type: String
+    Default: "0.0.0.0/0"
+    Description: >-
+      CIDR allowed to reach the ALB on 80/443. Defaults to open. Ignored when
+      AlbIngressSourceSecurityGroupId is set. NOTE for Tailscale subnet
+      routers: forwarded traffic arrives with the RELAY'S VPC IP as source
+      (subnet routers SNAT to their VPC interface address, not their 100.x
+      tailnet IP), so allow the relay's IP/subnet — or better, pass the relay's
+      security group via AlbIngressSourceSecurityGroupId.
+  AlbIngressSourceSecurityGroupId:
+    Type: String
+    Default: ""
+    Description: >-
+      Optional security group ID allowed to reach the ALB on 80/443 (overrides
+      AlbIngressCidr when set). For an internal ALB fronted by a Tailscale
+      subnet router, pass the relay instance's security group ID — stable
+      across relay IP changes, unlike a CIDR.
   Force:
     Type: String
     Description: "Used to force the deployment even when the image and parameters are otherwised unchanged."
     Default: "false"
+  CloudMapNamespaceName:
+    Type: String
+    Default: "retoolsvc"
+    AllowedPattern: "^[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?$"
+    Description: >-
+      Cloud Map private DNS namespace used for internal service discovery
+      (hostnames like <service>.retoolsvc). A private DNS namespace name is a
+      VPC-wide singleton, so if the VPC already hosts another deployment using
+      the default name, set this to something unique (e.g. retoolsvc-r2) — this
+      stack then creates its own namespace and hosted zone, and internal
+      hostnames use the new name everywhere.
+  BaseDomain:
+    Type: String
+    Default: ""
+    Description: >-
+      External base URL of the deployment (e.g. https://retool.example.com),
+      required by the backend as BASE_DOMAIN. When left empty it defaults to
+      the stack's ALB DNS name (http, or https when a CertificateArn is set).
+  RdsStorageEncrypted:
+    Type: String
+    AllowedValues: ["true", "false"]
+    Default: "false"
+    Description: >-
+      Encrypt the main Retool Postgres instance and (when
+      TemporalBackend=self-hosted) the internal Temporal Aurora cluster at
+      rest. Defaults to false to match retool.yaml / retool-workflows.ec2.yaml:
+      storage encryption cannot be toggled on an existing RDS resource, so a
+      false default keeps in-place upgrades from those templates safe from
+      accidental database replacement. Set true for fresh deployments that
+      require encryption at rest (enabling it later requires a pg_dump
+      migration).
+  PostgresEngineVersion:
+    Type: String
+    Description: >-
+      Engine version for the main Retool Postgres instance. AWS periodically
+      removes old minor versions, so check aws rds describe-db-engine-versions
+      --engine postgres if deployment fails with "Cannot find version".
+    Default: "15.19"
+  TemporalPostgresEngineVersion:
+    Type: String
+    Description: >-
+      Engine version for the internal Temporal Aurora Serverless v2 cluster
+      (only deployed when TemporalBackend=self-hosted). AWS periodically removes
+      old minor versions, so check aws rds describe-db-engine-versions
+      --engine aurora-postgresql if deployment fails with "Cannot find version".
+    Default: "16.8"
 
   # --- EC2 capacity ---------------------------------------------------------
   EcsAmiId:
     Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
-    Description: ECS-optimized AMI. Default resolves the latest Amazon Linux 2023 ECS AMI (no AppArmor, so the gVisor sandbox needs only tun + a seccomp profile on the host).
+    Description: ECS-optimized AMI. Default resolves the latest Amazon Linux 2023 ECS AMI (no AppArmor; the gVisor sandbox needs /dev/net/tun on the host — see the AMI note in cloudformation/README.md).
     Default: /aws/service/ecs/optimized-ami/amazon-linux-2023/recommended/image_id
   KeyName:
     Type: String
@@ -103,7 +208,7 @@ Parameters:
     Default: 3
   SandboxInstanceType:
     Type: String
-    Description: Instance type for the gVisor sandbox capacity pool. Sandboxes are 2 vCPU / 4 GB each and bridge-networked, so they binpack to the CPU/RAM limit.
+    Description: Instance type for the sandbox capacity pool. Hosts the bridge-networked sandboxes (2 vCPU / 4 GB each) and the js-executor (2 vCPU / 4 GB per task), which is pinned to this pool.
     Default: m5.2xlarge
   SandboxAsgMinSize:
     Type: Number
@@ -113,7 +218,7 @@ Parameters:
     Default: 10
   SandboxAsgDesiredCapacity:
     Type: Number
-    Description: Provision enough instances to hold the prewarm pool plus headroom (each m5.2xlarge holds ~4 sandboxes).
+    Description: Provision enough instances to hold the prewarm pool + js-executor tasks (DesiredCodeExecutorCount) plus headroom (each m5.2xlarge holds ~4 tasks).
     Default: 2
   SandboxInstanceVolumeSize:
     Type: Number
@@ -159,26 +264,43 @@ Rules:
           AlbScheme=internet-facing exposes the stack to the internet and must
           be paired with a CertificateArn so authenticated traffic is served over
           HTTPS. Use an internal ALB (the default) or supply an ACM certificate.
+  WorkflowsRequiresTemporal:
+    Assertions:
+      - Assert: !Or
+          - !Equals [!Ref EnableWorkflows, "false"]
+          - !Not [!Equals [!Ref TemporalBackend, "none"]]
+        AssertDescription: >-
+          EnableWorkflows=true requires a Temporal backend. Set
+          TemporalBackend to self-hosted (in-cluster Temporal) or
+          retool-managed (Temporal Cloud), or set EnableWorkflows=false to
+          deploy the minimal R2 stack on pg-boss.
 
 Conditions:
   HasKeyName: !Not [!Equals [!Ref KeyName, ""]]
   HasAllowedDomains: !Not [!Equals [!Ref AllowedDomains, ""]]
   HasCertificate: !Not [!Equals [!Ref CertificateArn, ""]]
   EnableWatcher: !Equals [!Ref EnableTaskEventWatcher, "true"]
-  UseNsjail: !Equals [!Ref EnableNsjail, "true"]
+  WorkflowsEnabled: !Equals [!Ref EnableWorkflows, "true"]
+  TemporalSelfHosted: !Equals [!Ref TemporalBackend, "self-hosted"]
+  TemporalDisabled: !Equals [!Ref TemporalBackend, "none"]
+  HasBaseDomain: !Not [!Equals [!Ref BaseDomain, ""]]
+  HasAlbIngressSg: !Not [!Equals [!Ref AlbIngressSourceSecurityGroupId, ""]]
+  RdsEncrypted: !Equals [!Ref RdsStorageEncrypted, "true"]
 
 Resources:
   # ===========================================================================
   # ECS cluster + EC2 capacity
   #
   # Two capacity pools share the cluster:
-  #   - Platform: awsvpc services (Retool, Workflows, Temporal, code/js-executor,
+  #   - Platform: awsvpc services (Retool, Workflows, Temporal, code-executor,
   #     agent-sandbox controller/proxy, r2-agent-worker). Each task gets an ENI,
   #     so instances are sized for ENI count.
   #   - Sandbox: gVisor-ready hosts for the bridge-networked, RunTask'd ephemeral
-  #     sandboxes. UserData loads /dev/net/tun and writes the gVisor seccomp
-  #     profile the sandbox task definition references. Tagged with the
-  #     `retool.sandbox` ECS attribute so only sandbox tasks land here.
+  #     sandboxes plus the js-executor (pinned here for nsjail's seccomp needs).
+  #     UserData loads /dev/net/tun and installs a relaxed Docker daemon-default
+  #     seccomp profile (ECS task definitions cannot set per-task profiles).
+  #     Tagged with the `retool.sandbox` ECS attribute so only sandbox-pool
+  #     tasks land here.
   # Capacity-provider binding keeps platform services off sandbox hosts; the
   # sandbox task definition's memberOf placement constraint keeps sandboxes on
   # sandbox hosts.
@@ -243,16 +365,14 @@ Resources:
           Arn: !GetAtt [EcsInstanceProfile, Arn]
         SecurityGroupIds:
           - !GetAtt [PlatformInstanceSecurityGroup, GroupId]
-        # js-executor uses nsjail (NET_ADMIN + a host seccomp profile), so the
-        # profile must exist on platform hosts where js-executor runs.
+        # js-executor runs on the sandbox pool (it needs those hosts' relaxed
+        # Docker seccomp default for nsjail), so platform hosts keep Docker's
+        # stock seccomp profile.
         UserData:
           Fn::Base64: !Sub |
             #!/bin/bash
             set -euo pipefail
             echo "ECS_CLUSTER=${RetoolCluster}" >> /etc/ecs/ecs.config
-            mkdir -p /etc/retool
-            echo "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" | base64 -d | gunzip > /etc/retool/nsjail-seccomp.json
-            chmod 0644 /etc/retool/nsjail-seccomp.json
 
   SandboxLaunchTemplate:
     Type: AWS::EC2::LaunchTemplate
@@ -274,8 +394,15 @@ Resources:
               DeleteOnTermination: true
         # gVisor (runsc --rootless) + pasta run inside the sandbox container and
         # need /dev/net/tun on the host plus a seccomp profile that allows their
-        # mount/pivot_root syscalls. The sandbox task definition references
-        # /etc/retool/gvisor-seccomp.json via dockerSecurityOptions.
+        # mount/pivot_root/unshare syscalls. ECS task definitions cannot set
+        # custom seccomp profiles (DockerSecurityOptions rejects them), so the
+        # profile is installed as the Docker DAEMON DEFAULT here instead: every
+        # container on a sandbox host (sandbox tasks + the js-executor, which is
+        # pinned to this pool) inherits it. Only sandbox-pool tasks can land on
+        # these hosts, so the relaxed default's blast radius is exactly the
+        # containers that need it. This also keeps the sandbox task definition
+        # fully hardened: non-root, all capabilities dropped, no-new-privileges,
+        # still seccomp-filtered (device cgroup and masked paths stay enforced).
         UserData:
           Fn::Base64: !Sub |
             #!/bin/bash
@@ -284,9 +411,15 @@ Resources:
             echo 'ECS_INSTANCE_ATTRIBUTES={"retool.sandbox":"true"}' >> /etc/ecs/ecs.config
             modprobe tun
             echo tun > /etc/modules-load.d/retool-tun.conf
-            mkdir -p /etc/retool
-            echo "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" | base64 -d | gunzip > /etc/retool/gvisor-seccomp.json
-            chmod 0644 /etc/retool/gvisor-seccomp.json
+            mkdir -p /etc/docker
+            echo "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" | base64 -d | gunzip > /etc/docker/seccomp.json
+            chmod 0644 /etc/docker/seccomp.json
+            # Point the Docker daemon at the custom default seccomp profile
+            # (merging into daemon.json in case the AMI ships one). Restarting
+            # docker here at boot is safe: the ECS agent registers this instance
+            # only after docker is up, and no tasks have been placed yet.
+            python3 -c "import json,os;p='/etc/docker/daemon.json';d=json.load(open(p)) if os.path.exists(p) else {};d['seccomp-profile']='/etc/docker/seccomp.json';json.dump(d,open(p,'w'))"
+            systemctl restart docker
 
   PlatformAutoScalingGroup:
     Type: AWS::AutoScaling::AutoScalingGroup
@@ -298,7 +431,6 @@ Resources:
       MinSize: !Ref 'PlatformAsgMinSize'
       MaxSize: !Ref 'PlatformAsgMaxSize'
       DesiredCapacity: !Ref 'PlatformAsgDesiredCapacity'
-      NewInstancesProtectedFromScaleIn: true
       Tags:
         - Key: Name
           Value: !Join ['-', [!Ref 'AWS::StackName', 'platform']]
@@ -314,7 +446,6 @@ Resources:
       MinSize: !Ref 'SandboxAsgMinSize'
       MaxSize: !Ref 'SandboxAsgMaxSize'
       DesiredCapacity: !Ref 'SandboxAsgDesiredCapacity'
-      NewInstancesProtectedFromScaleIn: true
       Tags:
         - Key: Name
           Value: !Join ['-', [!Ref 'AWS::StackName', 'sandbox']]
@@ -325,7 +456,14 @@ Resources:
     Properties:
       AutoScalingGroupProvider:
         AutoScalingGroupArn: !Ref 'PlatformAutoScalingGroup'
-        ManagedTerminationProtection: ENABLED
+        # ManagedTerminationProtection requires the ASG to enable scale-in
+        # protection, which blocks stack deletion (the ASG can never drain:
+        # "all remaining instances are protected from scale-in"). Keep both
+        # off so teardown works. The tradeoff: a managed-scaling scale-in event
+        # may terminate instances with running tasks — services reschedule
+        # automatically; re-enable both together only if you accept manual
+        # unprotection before every delete-stack.
+        ManagedTerminationProtection: DISABLED
         ManagedScaling:
           Status: ENABLED
           TargetCapacity: 100
@@ -338,7 +476,7 @@ Resources:
     Properties:
       AutoScalingGroupProvider:
         AutoScalingGroupArn: !Ref 'SandboxAutoScalingGroup'
-        ManagedTerminationProtection: ENABLED
+        ManagedTerminationProtection: DISABLED
         ManagedScaling:
           Status: ENABLED
           TargetCapacity: 90
@@ -368,7 +506,9 @@ Resources:
       IpProtocol: tcp
       FromPort: '80'
       ToPort: '80'
-      CidrIp: '0.0.0.0/0'
+      # SG-source (Tailscale relay) takes precedence over the CIDR when set.
+      CidrIp: !If [HasAlbIngressSg, !Ref 'AWS::NoValue', !Ref AlbIngressCidr]
+      SourceSecurityGroupId: !If [HasAlbIngressSg, !Ref AlbIngressSourceSecurityGroupId, !Ref 'AWS::NoValue']
 
   GlobalHttpsInbound:
     Type: AWS::EC2::SecurityGroupIngress
@@ -377,7 +517,8 @@ Resources:
       IpProtocol: tcp
       FromPort: '443'
       ToPort: '443'
-      CidrIp: '0.0.0.0/0'
+      CidrIp: !If [HasAlbIngressSg, !Ref 'AWS::NoValue', !Ref AlbIngressCidr]
+      SourceSecurityGroupId: !If [HasAlbIngressSg, !Ref AlbIngressSourceSecurityGroupId, !Ref 'AWS::NoValue']
   
   RetoolSecurityGroup:
     Type: AWS::EC2::SecurityGroup
@@ -403,6 +544,7 @@ Resources:
 
   TemporalSecurityGroup:
     Type: AWS::EC2::SecurityGroup
+    Condition: TemporalSelfHosted
     Properties:
       GroupDescription: !Join [" ", [!Ref 'AWS::StackName', 'temporal security group']]
       SecurityGroupEgress:
@@ -413,6 +555,7 @@ Resources:
 
   TemporalFrontendIngress:
     Type: AWS::EC2::SecurityGroupIngress
+    Condition: TemporalSelfHosted
     Properties:
       GroupId: !GetAtt [TemporalSecurityGroup, GroupId]
       IpProtocol: tcp
@@ -422,6 +565,7 @@ Resources:
 
   TemporalSelfIngress:
     Type: AWS::EC2::SecurityGroupIngress
+    Condition: TemporalSelfHosted
     Properties:
       GroupId: !GetAtt [TemporalSecurityGroup, GroupId]
       IpProtocol: -1
@@ -446,6 +590,7 @@ Resources:
   # reach the Temporal database, not the Retool production database.
   TemporalRDSSecurityGroup:
     Type: AWS::EC2::SecurityGroup
+    Condition: TemporalSelfHosted
     Properties:
       GroupDescription: !Join [" ", [!Ref 'AWS::StackName', 'temporal database security group']]
       VpcId: !Ref 'VpcId'
@@ -476,6 +621,7 @@ Resources:
   # grants Temporal containers access only to the Temporal database.
   TemporalPostgresInbound:
     Type: AWS::EC2::SecurityGroupIngress
+    Condition: TemporalSelfHosted
     Properties:
       GroupId: !GetAtt [TemporalRDSSecurityGroup, GroupId]
       IpProtocol: tcp
@@ -493,9 +639,9 @@ Resources:
       ContainerDefinitions:
       - Name: 'retool'
         Cpu: '2048'
-        Memory: '4096'
+        Memory: '6144'
         Essential: 'true'
-        Image: !Sub tryretool/backend:${RetoolVersion}
+        Image: !Sub '${BackendImageRepository}:${RetoolVersion}'
         LogConfiguration:
           LogDriver: awslogs
           Options:
@@ -508,7 +654,7 @@ Resources:
           - Name: NODE_ENV
             Value: production
           - Name: SERVICE_TYPE
-            Value: MAIN_BACKEND,DB_CONNECTOR,DB_SSH_CONNECTOR
+            Value: MAIN_BACKEND,DB_CONNECTOR,DB_SSH_CONNECTOR,RR_GIT_SERVER
           - Name: "FORCE_DEPLOYMENT"
             Value: !Ref "Force"
           - Name: POSTGRES_DB
@@ -527,16 +673,37 @@ Resources:
             Value: !Join ['', ['{{resolve:secretsmanager:', !Ref RetoolJWTSecret, ':SecretString:password}}' ]]
           - Name: ENCRYPTION_KEY
             Value: !Join ['', ['{{resolve:secretsmanager:', !Ref RetoolEncryptionKeySecret, ':SecretString:password}}' ]]
-          - Name: WORKFLOW_TEMPORAL_CLUSTER_FRONTEND_HOST
-            Value: temporal.retoolsvc
-          - Name: WORKFLOW_TEMPORAL_CLUSTER_FRONTEND_PORT
-            Value: "7233"
-          - Name: WORKFLOW_BACKEND_HOST
-            Value: http://workflows-backend.retoolsvc:3000
+          # In-cluster Temporal wiring only exists when TemporalBackend=self-hosted.
+          # When unset (retool-managed / none) the backend does NOT fall back to
+          # localhost — it selects the Retool-managed Temporal Cloud path (or
+          # pg-boss for R2 when TemporalBackend=none).
+          - Fn::If:
+              - TemporalSelfHosted
+              - Name: WORKFLOW_TEMPORAL_CLUSTER_FRONTEND_HOST
+                Value: !Sub 'temporal.${CloudMapNamespaceName}'
+              - !Ref 'AWS::NoValue'
+          - Fn::If:
+              - TemporalSelfHosted
+              - Name: WORKFLOW_TEMPORAL_CLUSTER_FRONTEND_PORT
+                Value: "7233"
+              - !Ref 'AWS::NoValue'
+          - Fn::If:
+              - WorkflowsEnabled
+              - Name: WORKFLOW_BACKEND_HOST
+                Value: !Sub 'http://workflows-backend.${CloudMapNamespaceName}:3000'
+              - !Ref 'AWS::NoValue'
+          # pg-boss orchestration for R2 when no Temporal backend is deployed.
+          - Fn::If:
+              - TemporalDisabled
+              - Name: R2_ORCHESTRATION_BACKEND
+                Value: postgres
+              - !Ref 'AWS::NoValue'
           - Name: CODE_EXECUTOR_INGRESS_DOMAIN
-            Value: http://code-executor.retoolsvc:3004
+            Value: !Sub 'http://code-executor.${CloudMapNamespaceName}:3004'
           - Name: JS_EXECUTOR_INGRESS_DOMAIN
-            Value: http://js-executor.retoolsvc:3000
+            Value: !Sub 'http://js-executor.${CloudMapNamespaceName}:3000'
+          - Name: BASE_DOMAIN
+            Value: !If [HasBaseDomain, !Ref BaseDomain, !If [HasCertificate, !Sub 'https://${ECSALB.DNSName}', !Sub 'http://${ECSALB.DNSName}']]
           - Name: LICENSE_KEY
             Value: !Ref LicenseKey
           # Set automatically from CertificateArn: insecure cookies are only
@@ -549,16 +716,22 @@ Resources:
           - Name: RR_AGENT_PUBSUB_BACKEND
             Value: postgres
           - Name: AGENT_SANDBOX_CONTROLLER_INGRESS_DOMAIN
-            Value: http://agent-sandbox-controller.retoolsvc:3018
+            Value: !Sub 'http://agent-sandbox-controller.${CloudMapNamespaceName}:3018'
           # Browser sandbox traffic is served same-origin: the frontend hits the
           # main ingress and the backend forwards /sandbox/* to the proxy below.
           # AGENT_SANDBOX_FRONTEND_WS_PROXY_DOMAIN is intentionally unset so the
           # backend falls back to the org's base URL.
           - Name: AGENT_SANDBOX_PROXY_INGRESS_DOMAIN
-            Value: http://agent-sandbox-proxy.retoolsvc:3019
+            Value: !Sub 'http://agent-sandbox-proxy.${CloudMapNamespaceName}:3019'
+          # no-verify (not require): node-postgres maps sslmode=require to
+          # verification-on, which fails on RDS's self-signed CA. no-verify
+          # keeps the connection encrypted without cert verification. Once
+          # the agent-executor image ships the RDS CA bundle, switch to
+          # sslmode=verify-full and set NODE_EXTRA_CA_CERTS=<bundle path> on
+          # the controller/proxy/r2-agent-worker tasks.
           - Name: AGENT_SANDBOX_POSTGRES_URL
             Value: !Sub
-              - "postgres://${U}:${P}@${H}:5432/hammerhead_production"
+              - "postgres://${U}:${P}@${H}:5432/hammerhead_production?sslmode=no-verify"
               - U: !Sub '{{resolve:secretsmanager:${RetoolRDSSecret}:SecretString:username}}'
                 P: !Sub '{{resolve:secretsmanager:${RetoolRDSSecret}:SecretString:password}}'
                 H: !GetAtt [RetoolRDSInstance, Endpoint.Address]
@@ -596,7 +769,7 @@ Resources:
         Cpu: '1024'
         Memory: '2048'
         Essential: 'true'
-        Image: !Sub tryretool/backend:${RetoolVersion}
+        Image: !Sub '${BackendImageRepository}:${RetoolVersion}'
         LogConfiguration:
           LogDriver: awslogs
           Options:
@@ -628,12 +801,15 @@ Resources:
             Value: !Join ['', ['{{resolve:secretsmanager:', !Ref RetoolJWTSecret, ':SecretString:password}}' ]]
           - Name: ENCRYPTION_KEY
             Value: !Join ['', ['{{resolve:secretsmanager:', !Ref RetoolEncryptionKeySecret, ':SecretString:password}}' ]]
+          - Name: BASE_DOMAIN
+            Value: !If [HasBaseDomain, !Ref BaseDomain, !If [HasCertificate, !Sub 'https://${ECSALB.DNSName}', !Sub 'http://${ECSALB.DNSName}']]
           - Name: LICENSE_KEY
             Value: !Ref LicenseKey
         Command: ["./docker_scripts/start_api.sh"]
 
   RetoolWorkflowsBackendTask:
     Type: AWS::ECS::TaskDefinition
+    Condition: WorkflowsEnabled
     Properties:
       Family: 'retool-workflows-backend'
       TaskRoleArn: !Ref 'RetoolTaskRole'
@@ -641,9 +817,9 @@ Resources:
       ContainerDefinitions:
       - Name: 'retool-workflows-backend'
         Cpu: '2048'
-        Memory: '4096'
+        Memory: '6144'
         Essential: 'true'
-        Image: !Sub tryretool/backend:${RetoolVersion}
+        Image: !Sub '${BackendImageRepository}:${RetoolVersion}'
         LogConfiguration:
           LogDriver: awslogs
           Options:
@@ -675,14 +851,24 @@ Resources:
             Value: !Join ['', ['{{resolve:secretsmanager:', !Ref RetoolJWTSecret, ':SecretString:password}}' ]]
           - Name: ENCRYPTION_KEY
             Value: !Join ['', ['{{resolve:secretsmanager:', !Ref RetoolEncryptionKeySecret, ':SecretString:password}}' ]]
-          - Name: WORKFLOW_TEMPORAL_CLUSTER_FRONTEND_HOST
-            Value: temporal.retoolsvc
-          - Name: WORKFLOW_TEMPORAL_CLUSTER_FRONTEND_PORT
-            Value: "7233"
+          # In-cluster Temporal only when TemporalBackend=self-hosted; unset
+          # selects the Retool-managed Temporal Cloud path.
+          - Fn::If:
+              - TemporalSelfHosted
+              - Name: WORKFLOW_TEMPORAL_CLUSTER_FRONTEND_HOST
+                Value: !Sub 'temporal.${CloudMapNamespaceName}'
+              - !Ref 'AWS::NoValue'
+          - Fn::If:
+              - TemporalSelfHosted
+              - Name: WORKFLOW_TEMPORAL_CLUSTER_FRONTEND_PORT
+                Value: "7233"
+              - !Ref 'AWS::NoValue'
           - Name: WORKFLOW_BACKEND_HOST
-            Value: http://workflows-backend.retoolsvc:3000
+            Value: !Sub 'http://workflows-backend.${CloudMapNamespaceName}:3000'
           - Name: CODE_EXECUTOR_INGRESS_DOMAIN
-            Value: http://code-executor.retoolsvc:3004
+            Value: !Sub 'http://code-executor.${CloudMapNamespaceName}:3004'
+          - Name: BASE_DOMAIN
+            Value: !If [HasBaseDomain, !Ref BaseDomain, !If [HasCertificate, !Sub 'https://${ECSALB.DNSName}', !Sub 'http://${ECSALB.DNSName}']]
           - Name: LICENSE_KEY
             Value: !Ref LicenseKey
           # Set automatically from CertificateArn: insecure cookies are only
@@ -695,6 +881,7 @@ Resources:
 
   RetoolWorkflowsWorkerTask:
     Type: AWS::ECS::TaskDefinition
+    Condition: WorkflowsEnabled
     Properties:
       Family: 'retool-workflows-worker'
       TaskRoleArn: !Ref 'RetoolTaskRole'
@@ -702,9 +889,9 @@ Resources:
       ContainerDefinitions:
       - Name: 'retool-workflows-worker'
         Cpu: '2048'
-        Memory: '4096'
+        Memory: '6144'
         Essential: 'true'
-        Image: !Sub tryretool/backend:${RetoolVersion}
+        Image: !Sub '${BackendImageRepository}:${RetoolVersion}'
         LogConfiguration:
           LogDriver: awslogs
           Options:
@@ -736,14 +923,24 @@ Resources:
             Value: !Join ['', ['{{resolve:secretsmanager:', !Ref RetoolJWTSecret, ':SecretString:password}}' ]]
           - Name: ENCRYPTION_KEY
             Value: !Join ['', ['{{resolve:secretsmanager:', !Ref RetoolEncryptionKeySecret, ':SecretString:password}}' ]]
-          - Name: WORKFLOW_TEMPORAL_CLUSTER_FRONTEND_HOST
-            Value: temporal.retoolsvc
-          - Name: WORKFLOW_TEMPORAL_CLUSTER_FRONTEND_PORT
-            Value: "7233"
+          # In-cluster Temporal only when TemporalBackend=self-hosted; unset
+          # selects the Retool-managed Temporal Cloud path.
+          - Fn::If:
+              - TemporalSelfHosted
+              - Name: WORKFLOW_TEMPORAL_CLUSTER_FRONTEND_HOST
+                Value: !Sub 'temporal.${CloudMapNamespaceName}'
+              - !Ref 'AWS::NoValue'
+          - Fn::If:
+              - TemporalSelfHosted
+              - Name: WORKFLOW_TEMPORAL_CLUSTER_FRONTEND_PORT
+                Value: "7233"
+              - !Ref 'AWS::NoValue'
           - Name: WORKFLOW_BACKEND_HOST
-            Value: http://workflows-backend.retoolsvc:3000
+            Value: !Sub 'http://workflows-backend.${CloudMapNamespaceName}:3000'
           - Name: CODE_EXECUTOR_INGRESS_DOMAIN
-            Value: http://code-executor.retoolsvc:3004
+            Value: !Sub 'http://code-executor.${CloudMapNamespaceName}:3004'
+          - Name: BASE_DOMAIN
+            Value: !If [HasBaseDomain, !Ref BaseDomain, !If [HasCertificate, !Sub 'https://${ECSALB.DNSName}', !Sub 'http://${ECSALB.DNSName}']]
           - Name: LICENSE_KEY
             Value: !Ref LicenseKey
         Command: ["./docker_scripts/start_api.sh"]
@@ -759,29 +956,16 @@ Resources:
           Cpu: '2048'
           Memory: '4096'
           Essential: true
-          Image: !Sub tryretool/code-executor-service:${RetoolVersion}
+          Image: !Sub '${CodeExecutorImageRepository}:${RetoolVersion}'
           LogConfiguration:
             LogDriver: awslogs
             Options:
               awslogs-group: !Ref CloudwatchLogsGroup
               awslogs-region: !Ref AWS::Region
               awslogs-stream-prefix: SERVICE_RETOOL
-          # nsjail sandboxing (required for custom JS/Python libraries) needs
-          # privileged mode. By default (EnableNsjail=false) the executor runs
-          # hardened: non-privileged, all capabilities dropped, non-root user, and
-          # no-new-privileges, so an executor escape cannot compromise the host.
-          # Set EnableNsjail=true to opt back into privileged nsjail mode.
+          # required to use nsjail sandboxing, which is required for custom libraries for JS and Python
           # Learn more here: https://docs.retool.com/self-hosted/concepts/architecture#code-executor
-          Privileged: !If [UseNsjail, true, false]
-          User: !If [UseNsjail, !Ref 'AWS::NoValue', "1001:1001"]
-          LinuxParameters: !If
-            - UseNsjail
-            - !Ref 'AWS::NoValue'
-            - InitProcessEnabled: true
-              Capabilities:
-                Drop: ["ALL"]
-          DockerSecurityOptions:
-            - "no-new-privileges"
+          Privileged: true
           Environment:
             - Name: NODE_OPTIONS
               Value: "--max_old_space_size=1024"
@@ -858,9 +1042,9 @@ Resources:
       AllocatedStorage: "80"
       DBInstanceClass: "db.m5.large"
       Engine: postgres
-      EngineVersion: "15.10"
+      EngineVersion: !Ref PostgresEngineVersion
       DBName: "hammerhead_production"
-      StorageEncrypted: true
+      StorageEncrypted: !If [RdsEncrypted, true, false]
       MasterUsername: !Join ['', ['{{resolve:secretsmanager:', !Ref RetoolRDSSecret, ':SecretString:username}}' ]]
       MasterUserPassword: !Join ['', ['{{resolve:secretsmanager:', !Ref RetoolRDSSecret, ':SecretString:password}}' ]]
       Port: "5432"
@@ -992,6 +1176,7 @@ Resources:
 
   RetoolWorkflowsWorkerECSService:
     Type: AWS::ECS::Service
+    Condition: WorkflowsEnabled
     DependsOn: ClusterCapacityProviderAssociations
     Properties:
       NetworkConfiguration:
@@ -1007,6 +1192,7 @@ Resources:
       TaskDefinition: !Ref 'RetoolWorkflowsWorkerTask'
 
   RetoolWorkflowsBackendECSService:
+    Condition: WorkflowsEnabled
     DependsOn: [RetoolWorkflowBackendServiceCloudmapService, ClusterCapacityProviderAssociations]
     Type: AWS::ECS::Service
     Properties:
@@ -1119,11 +1305,12 @@ Resources:
   WorkflowsCloudMapNamespace:
     Type: AWS::ServiceDiscovery::PrivateDnsNamespace
     Properties:
-      Name: retoolsvc
+      Name: !Ref CloudMapNamespaceName
       Vpc: !Ref 'VpcId'
 
   RetoolWorkflowBackendServiceCloudmapService:
     Type: AWS::ServiceDiscovery::Service
+    Condition: WorkflowsEnabled
     Properties:
       DnsConfig:
         DnsRecords:
@@ -1153,6 +1340,7 @@ Resources:
 # Temporal
   RetoolTemporalRDSSecret:
     Type: AWS::SecretsManager::Secret
+    Condition: TemporalSelfHosted
     Properties:
       Description: 'This is the secret for the Retool Temporal RDS instance'
       GenerateSecretString:
@@ -1179,12 +1367,13 @@ Resources:
   # Aurora-based Temporal DB
   RetoolTemporalRDSCluster:
     Type: AWS::RDS::DBCluster
+    Condition: TemporalSelfHosted
     DeletionPolicy: Retain
     UpdateReplacePolicy: Retain
     Properties:
       Engine: "aurora-postgresql"
-      EngineVersion: "16.6"
-      StorageEncrypted: true
+      EngineVersion: !Ref TemporalPostgresEngineVersion
+      StorageEncrypted: !If [RdsEncrypted, true, false]
       MasterUsername: !Join ['', ['{{resolve:secretsmanager:', !Ref RetoolTemporalRDSSecret, ':SecretString:username}}' ]]
       MasterUserPassword: !Join ['', ['{{resolve:secretsmanager:', !Ref RetoolTemporalRDSSecret, ':SecretString:password}}' ]]
       Port: "5432"
@@ -1195,6 +1384,7 @@ Resources:
         MaxCapacity: 10
   RetoolTemporalRDSInstance:
     Type: AWS::RDS::DBInstance
+    Condition: TemporalSelfHosted
     Properties:
       Engine: "aurora-postgresql"
       DBInstanceClass: "db.serverless"
@@ -1202,6 +1392,7 @@ Resources:
 
   TemporalClusterFrontendTask:
     Type: AWS::ECS::TaskDefinition
+    Condition: TemporalSelfHosted
     Properties:
       Family: 'retool-temporal-frontend'
       TaskRoleArn: !Ref 'RetoolTaskRole'
@@ -1260,6 +1451,7 @@ Resources:
               Protocol: tcp
   TemporalClusterHistoryTask:
     Type: AWS::ECS::TaskDefinition
+    Condition: TemporalSelfHosted
     Properties:
       Family: 'retool-temporal-history'
       TaskRoleArn: !Ref 'RetoolTaskRole'
@@ -1308,7 +1500,7 @@ Resources:
             - Name: DYNAMIC_CONFIG_FILE_PATH
               Value: /etc/temporal/ecs/dynamic_config/dynamicconfig-sql.yaml
             - Name: PUBLIC_FRONTEND_ADDRESS
-              Value: temporal.retoolsvc:7233
+              Value: !Sub 'temporal.${CloudMapNamespaceName}:7233'
             - Name: ECS_DEPLOYED
               Value: "true"
           PortMappings:
@@ -1320,6 +1512,7 @@ Resources:
               Protocol: tcp
   TemporalClusterMatchingTask:
     Type: AWS::ECS::TaskDefinition
+    Condition: TemporalSelfHosted
     Properties:
       Family: 'retool-temporal-matching'
       TaskRoleArn: !Ref 'RetoolTaskRole'
@@ -1368,7 +1561,7 @@ Resources:
             - Name: DYNAMIC_CONFIG_FILE_PATH
               Value: /etc/temporal/ecs/dynamic_config/dynamicconfig-sql.yaml
             - Name: PUBLIC_FRONTEND_ADDRESS
-              Value: temporal.retoolsvc:7233
+              Value: !Sub 'temporal.${CloudMapNamespaceName}:7233'
             - Name: ECS_DEPLOYED
               Value: "true"
           PortMappings:
@@ -1380,6 +1573,7 @@ Resources:
               Protocol: tcp
   TemporalClusterWorkerTask:
     Type: AWS::ECS::TaskDefinition
+    Condition: TemporalSelfHosted
     Properties:
       Family: 'retool-temporal-worker'
       TaskRoleArn: !Ref 'RetoolTaskRole'
@@ -1428,7 +1622,7 @@ Resources:
             - Name: DYNAMIC_CONFIG_FILE_PATH
               Value: /etc/temporal/ecs/dynamic_config/dynamicconfig-sql.yaml
             - Name: PUBLIC_FRONTEND_ADDRESS
-              Value: temporal.retoolsvc:7233
+              Value: !Sub 'temporal.${CloudMapNamespaceName}:7233'
             - Name: ECS_DEPLOYED
               Value: "true"
           PortMappings:
@@ -1440,6 +1634,7 @@ Resources:
               Protocol: tcp
   TemporalClusterWebTask:
     Type: AWS::ECS::TaskDefinition
+    Condition: TemporalSelfHosted
     Properties:
       Family: 'retool-temporal-web'
       TaskRoleArn: !Ref 'RetoolTaskRole'
@@ -1457,13 +1652,14 @@ Resources:
               awslogs-stream-prefix: "SERVICE_RETOOL_TEMPORAL"
           Environment:
             - Name: TEMPORAL_ADDRESS
-              Value: temporal.retoolsvc:7233
+              Value: !Sub 'temporal.${CloudMapNamespaceName}:7233'
           PortMappings:
             - ContainerPort: 8088
               HostPort: 8088
               Protocol: tcp
   TemporalFrontendService:
     Type: AWS::ECS::Service
+    Condition: TemporalSelfHosted
     DependsOn: ClusterCapacityProviderAssociations
     Properties:
       NetworkConfiguration:
@@ -1481,6 +1677,7 @@ Resources:
       TaskDefinition: !Ref 'TemporalClusterFrontendTask'
   TemporalHistoryService:
     Type: AWS::ECS::Service
+    Condition: TemporalSelfHosted
     DependsOn: [TemporalFrontendService, ClusterCapacityProviderAssociations]
     Properties:
       NetworkConfiguration:
@@ -1496,6 +1693,7 @@ Resources:
       TaskDefinition: !Ref 'TemporalClusterHistoryTask'
   TemporalMatchingService:
     Type: AWS::ECS::Service
+    Condition: TemporalSelfHosted
     DependsOn: [TemporalFrontendService, ClusterCapacityProviderAssociations]
     Properties:
       NetworkConfiguration:
@@ -1511,6 +1709,7 @@ Resources:
       TaskDefinition: !Ref 'TemporalClusterMatchingTask'
   TemporalWorkerService:
     Type: AWS::ECS::Service
+    Condition: TemporalSelfHosted
     DependsOn: [TemporalFrontendService, ClusterCapacityProviderAssociations]
     Properties:
       NetworkConfiguration:
@@ -1526,6 +1725,7 @@ Resources:
       TaskDefinition: !Ref 'TemporalClusterWorkerTask'
   TemporalClusterWebService:
     Type: AWS::ECS::Service
+    Condition: TemporalSelfHosted
     DependsOn: [TemporalFrontendService, ClusterCapacityProviderAssociations]
     Properties:
       NetworkConfiguration:
@@ -1541,6 +1741,7 @@ Resources:
       TaskDefinition: !Ref 'TemporalClusterWebTask'
   TemporalFrontendCloudmapService:
     Type: AWS::ServiceDiscovery::Service
+    Condition: TemporalSelfHosted
     Properties:
       DnsConfig:
         DnsRecords:
@@ -1633,7 +1834,7 @@ Resources:
           Cpu: '512'
           Memory: '1024'
           Essential: true
-          Image: !Sub tryretool/agent-sandbox-service:${RetoolVersion}
+          Image: !Sub '${AgentSandboxImageRepository}:${RetoolVersion}'
           LogConfiguration:
             LogDriver: awslogs
             Options:
@@ -1663,14 +1864,14 @@ Resources:
               Value: postgres
             - Name: AGENT_SANDBOX_POSTGRES_URL
               Value: !Sub
-                - "postgres://${U}:${P}@${H}:5432/hammerhead_production"
+                - "postgres://${U}:${P}@${H}:5432/hammerhead_production?sslmode=no-verify"
                 - U: !Sub '{{resolve:secretsmanager:${RetoolRDSSecret}:SecretString:username}}'
                   P: !Sub '{{resolve:secretsmanager:${RetoolRDSSecret}:SecretString:password}}'
                   H: !GetAtt [RetoolRDSInstance, Endpoint.Address]
             - Name: AGENT_SANDBOX_POSTGRES_SCHEMA
               Value: agent_executor
             - Name: SANDBOX_BACKEND_URL
-              Value: http://retool-backend.retoolsvc:3000
+              Value: !Sub 'http://retool-backend.${CloudMapNamespaceName}:3000'
             - Name: DEPLOYED_IMAGE_TAG
               Value: !Ref 'RetoolVersion'
             - Name: PREWARM_POOL_SIZE
@@ -1721,7 +1922,7 @@ Resources:
           Cpu: '512'
           Memory: '1024'
           Essential: true
-          Image: !Sub tryretool/agent-sandbox-service:${RetoolVersion}
+          Image: !Sub '${AgentSandboxImageRepository}:${RetoolVersion}'
           LogConfiguration:
             LogDriver: awslogs
             Options:
@@ -1743,14 +1944,14 @@ Resources:
               Value: postgres
             - Name: AGENT_SANDBOX_POSTGRES_URL
               Value: !Sub
-                - "postgres://${U}:${P}@${H}:5432/hammerhead_production"
+                - "postgres://${U}:${P}@${H}:5432/hammerhead_production?sslmode=no-verify"
                 - U: !Sub '{{resolve:secretsmanager:${RetoolRDSSecret}:SecretString:username}}'
                   P: !Sub '{{resolve:secretsmanager:${RetoolRDSSecret}:SecretString:password}}'
                   H: !GetAtt [RetoolRDSInstance, Endpoint.Address]
             - Name: AGENT_SANDBOX_POSTGRES_SCHEMA
               Value: agent_executor
             - Name: BACKEND_URL
-              Value: http://retool-backend.retoolsvc:3000
+              Value: !Sub 'http://retool-backend.${CloudMapNamespaceName}:3000'
             - Name: SANDBOX_PROXY_TIMEOUT_MS
               Value: "180000"
             - !If
@@ -1811,7 +2012,16 @@ Resources:
           Cpu: '2048'
           Memory: '4096'
           Essential: true
-          Image: !Sub tryretool/agent-sandbox-service:${RetoolVersion}
+          Image: !Sub '${AgentSandboxImageRepository}:${RetoolVersion}'
+          # Fully hardened despite running rootless gVisor: ECS task definitions
+          # cannot set custom seccomp profiles (DockerSecurityOptions rejects
+          # them), so the gVisor seccomp profile is installed as the Docker
+          # daemon default on the sandbox hosts (see SandboxLaunchTemplate) and
+          # inherited here. That profile allows the mount/pivot_root/unshare
+          # syscalls rootless gVisor + pasta need, while this container stays
+          # non-root, capability-less, no-new-privs, and device-cgroup'd to
+          # /dev/net/tun. Custom seccomp cannot be named per-task on ECS; the
+          # only alternatives (Privileged or CAP_SYS_ADMIN) are strictly weaker.
           User: "1001:1001"
           LinuxParameters:
             InitProcessEnabled: true
@@ -1823,7 +2033,6 @@ Resources:
                 Permissions: [read, write]
           DockerSecurityOptions:
             - "no-new-privileges"
-            - "seccomp=/etc/retool/gvisor-seccomp.json"
           LogConfiguration:
             LogDriver: awslogs
             Options:
@@ -1838,9 +2047,9 @@ Resources:
             - Name: SANDBOX_NETWORK_ENABLED
               Value: "true"
             - Name: SANDBOX_HTTP_PROXY
-              Value: http://agent-sandbox-proxy.retoolsvc:3019
+              Value: !Sub 'http://agent-sandbox-proxy.${CloudMapNamespaceName}:3019'
             - Name: SANDBOX_BACKEND_URL
-              Value: http://retool-backend.retoolsvc:3000
+              Value: !Sub 'http://retool-backend.${CloudMapNamespaceName}:3000'
             - Name: SANDBOX_IDLE_TIMEOUT_MS
               Value: "600000"
             - Name: S3_BUCKET
@@ -1867,12 +2076,18 @@ Resources:
           Cpu: '2048'
           Memory: '4096'
           Essential: true
-          Image: !Sub tryretool/js-executor-service:${RetoolVersion}
+          Image: !Sub '${JsExecutorImageRepository}:${RetoolVersion}'
+          # nsjail needs mount/pivot_root, which Docker's stock default seccomp
+          # profile blocks. ECS task definitions cannot set custom seccomp
+          # profiles, so this task is pinned to the sandbox host pool (placement
+          # constraint + SandboxCapacityProvider below), whose Docker daemon
+          # default is the relaxed profile installed by SandboxLaunchTemplate —
+          # the same profile the agent sandbox needs. nsjail itself still
+          # confines each function execution. NET_ADMIN is required for its
+          # per-jail network namespacing.
           LinuxParameters:
             Capabilities:
               Add: ["NET_ADMIN"]
-          DockerSecurityOptions:
-            - "seccomp=/etc/retool/nsjail-seccomp.json"
           LogConfiguration:
             LogDriver: awslogs
             Options:
@@ -1897,6 +2112,15 @@ Resources:
           AssignPublicIp: DISABLED
           SecurityGroups: [!GetAtt [RetoolSecurityGroup, GroupId]]
           Subnets: !Ref 'SubnetId'
+      # Pinned to the sandbox host pool: js-executor's nsjail needs the relaxed
+      # seccomp default those hosts carry (see JsExecutorTask). The cluster's
+      # default capacity-provider strategy (platform) is overridden here.
+      PlacementConstraints:
+        - Type: memberOf
+          Expression: "attribute:retool.sandbox == true"
+      CapacityProviderStrategy:
+        - CapacityProvider: !Ref 'SandboxCapacityProvider'
+          Weight: 1
       ServiceRegistries:
         - RegistryArn: !GetAtt [JsExecutorCloudmapService, Arn]
       Cluster: !Ref 'RetoolCluster'
@@ -1916,9 +2140,9 @@ Resources:
       ContainerDefinitions:
         - Name: 'r2-agent-worker'
           Cpu: '2048'
-          Memory: '4096'
+          Memory: '6144'
           Essential: true
-          Image: !Sub tryretool/backend:${RetoolVersion}
+          Image: !Sub '${BackendImageRepository}:${RetoolVersion}'
           LogConfiguration:
             LogDriver: awslogs
             Options:
@@ -1950,26 +2174,56 @@ Resources:
               Value: !Join ['', ['{{resolve:secretsmanager:', !Ref RetoolJWTSecret, ':SecretString:password}}' ]]
             - Name: ENCRYPTION_KEY
               Value: !Join ['', ['{{resolve:secretsmanager:', !Ref RetoolEncryptionKeySecret, ':SecretString:password}}' ]]
-            - Name: WORKFLOW_TEMPORAL_CLUSTER_FRONTEND_HOST
-              Value: temporal.retoolsvc
-            - Name: WORKFLOW_TEMPORAL_CLUSTER_FRONTEND_PORT
-              Value: "7233"
+            # In-cluster Temporal wiring only exists when TemporalBackend=self-hosted;
+            # unset means Retool-managed Temporal Cloud (or pg-boss for R2).
+            - Fn::If:
+                - TemporalSelfHosted
+                - Name: WORKFLOW_TEMPORAL_CLUSTER_FRONTEND_HOST
+                  Value: !Sub 'temporal.${CloudMapNamespaceName}'
+                - !Ref 'AWS::NoValue'
+            - Fn::If:
+                - TemporalSelfHosted
+                - Name: WORKFLOW_TEMPORAL_CLUSTER_FRONTEND_PORT
+                  Value: "7233"
+                - !Ref 'AWS::NoValue'
+            # pg-boss orchestration for R2 when no Temporal backend is deployed.
+            - Fn::If:
+                - TemporalDisabled
+                - Name: R2_ORCHESTRATION_BACKEND
+                  Value: postgres
+                - !Ref 'AWS::NoValue'
+            - Name: BASE_DOMAIN
+              Value: !If [HasBaseDomain, !Ref BaseDomain, !If [HasCertificate, !Sub 'https://${ECSALB.DNSName}', !Sub 'http://${ECSALB.DNSName}']]
             - Name: LICENSE_KEY
               Value: !Ref LicenseKey
             - Name: RR_AGENT_PUBSUB_BACKEND
               Value: postgres
             - Name: AGENT_SANDBOX_CONTROLLER_INGRESS_DOMAIN
-              Value: http://agent-sandbox-controller.retoolsvc:3018
+              Value: !Sub 'http://agent-sandbox-controller.${CloudMapNamespaceName}:3018'
             - Name: AGENT_SANDBOX_PROXY_INGRESS_DOMAIN
-              Value: http://agent-sandbox-proxy.retoolsvc:3019
+              Value: !Sub 'http://agent-sandbox-proxy.${CloudMapNamespaceName}:3019'
             - Name: AGENT_SANDBOX_POSTGRES_URL
               Value: !Sub
-                - "postgres://${U}:${P}@${H}:5432/hammerhead_production"
+                - "postgres://${U}:${P}@${H}:5432/hammerhead_production?sslmode=no-verify"
                 - U: !Sub '{{resolve:secretsmanager:${RetoolRDSSecret}:SecretString:username}}'
                   P: !Sub '{{resolve:secretsmanager:${RetoolRDSSecret}:SecretString:password}}'
                   H: !GetAtt [RetoolRDSInstance, Endpoint.Address]
             - Name: AGENT_SANDBOX_POSTGRES_SCHEMA
               Value: agent_executor
+            # --- R2 blob storage (snapshots + RR git), mirroring RetoolTask ---
+            # The r2-agent worker runs the sandbox provisioning activities
+            # (provisionAgentExecutorSandbox, snapshot restore, publish).
+            # Without these the blob-store factory falls back to RR_DEFAULT_S3_*
+            # and throws 'Required environment variable RR_DEFAULT_S3_BUCKET
+            # is not set' at provisioning time.
+            - Name: RR_SNAPSHOTS_S3_BUCKET
+              Value: !Ref 'RrSnapshotsBucket'
+            - Name: RR_SNAPSHOTS_S3_REGION
+              Value: !Ref 'AWS::Region'
+            - Name: RR_GIT_S3_BUCKET
+              Value: !Ref 'RrGitBucket'
+            - Name: RR_GIT_S3_REGION
+              Value: !Ref 'AWS::Region'
           Secrets:
             - Name: AGENT_SANDBOX_JWT_PRIVATE_KEY
               ValueFrom: !Ref AgentSandboxJwtPrivateKeySecret
@@ -2035,15 +2289,32 @@ Resources:
                   StringEquals:
                     ecs:cluster: !GetAtt [RetoolCluster, Arn]
                     aws:ResourceTag/retool-sandbox: "true"
-              # Scoped to the sandbox task family only: the credential-bearing
-              # platform task definitions (RetoolTask, R2AgentWorkerTask, ...)
-              # store CloudFormation-resolved PostgreSQL credentials in their
-              # Environment, so a wildcard DescribeTaskDefinition would let a
-              # compromised controller read those plaintext credentials. The
-              # controller only needs to inspect the sandbox task definition.
+              # DescribeTaskDefinition has no resource-level support in IAM:
+              # the request resource is always '*', so scoping this to the
+              # sandbox family silently denies the controller's lookup of the
+              # active revision. It then falls back to DEPLOYED_IMAGE_TAG (a
+              # Docker tag such as pr-4.58.0-...) and RunTask pins
+              # 'retool-agent-sandbox:<tag>' as a revision, which ECS rejects
+              # with 'Invalid revision number' and no prewarm sandbox starts.
+              # The wildcard below is therefore unavoidable. Note the residual
+              # exposure: a compromised controller can describe any task
+              # definition in the account, and the credential-bearing platform
+              # task definitions (RetoolTask, R2AgentWorkerTask, ...) carry
+              # CloudFormation-resolved PostgreSQL credentials in their
+              # Environment. Moving those credentials behind Secrets Manager
+              # references would close that gap.
               - Effect: Allow
                 Action: [ecs:DescribeTaskDefinition]
-                Resource: !Sub 'arn:${AWS::Partition}:ecs:${AWS::Region}:${AWS::AccountId}:task-definition/retool-agent-sandbox:*'
+                Resource: '*'
+              # propagateTags: TASK_DEFINITION (used by createSandbox) requires
+              # ecs:TagResource; the tags land on freshly created tasks, so the
+              # resource is '*' and the boundary is this stack's cluster.
+              - Effect: Allow
+                Action: [ecs:TagResource]
+                Resource: '*'
+                Condition:
+                  StringEquals:
+                    ecs:cluster: !GetAtt [RetoolCluster, Arn]
               # RunTask is scoped to the sandbox task family AND this stack's
               # cluster (matching the StopTask boundary) so a compromised
               # controller cannot launch the sandbox task (and its delegated S3
