@@ -137,20 +137,6 @@ services:
     security_opt:
       - seccomp=./nsjail-seccomp.json
 
-    # Option 1 (preferred): Grant NET_ADMIN so the executor can install
-    # iptables egress rules. Requires the host kernel to expose the
-    # netfilter `filter` table.
-    cap_add:
-      - NET_ADMIN
-
-    # Option 2: Skip iptables-based egress filtering. Use this if NET_ADMIN
-    # isn't available or the host kernel lacks netfilter support. nsjail still
-    # wraps user code; only the network-egress filter is skipped. Note: do
-    # not also drop to a non-root user here — the entrypoint uses `runuser`
-    # internally to drop privileges and that requires starting as root.
-    # environment:
-    #   - DISABLE_IPTABLES_SECURITY_CONFIGURATION=true
-
     networks:
       - js-executor
     restart: always
