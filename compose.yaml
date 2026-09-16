@@ -137,6 +137,17 @@ services:
     security_opt:
       - seccomp=./nsjail-seccomp.json
 
+    # Option 1 (preferred): Grant NET_ADMIN so the executor can install
+    # iptables egress rules. Requires the host kernel to expose the
+    # netfilter `filter` table.
+    cap_add:
+      - NET_ADMIN
+
+    # Option 2: Versions 4.57.0 and later do not require NET_ADMIN or
+    # iptables-based egress filtering for security.
+    environment:
+      - DISABLE_IPTABLES_SECURITY_CONFIGURATION=true
+
     networks:
       - js-executor
     restart: always
