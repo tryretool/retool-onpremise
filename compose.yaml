@@ -143,10 +143,15 @@ services:
     cap_add:
       - NET_ADMIN
 
-    # Option 2: Versions 4.57.0 and later do not require NET_ADMIN or
-    # iptables-based egress filtering for security.
-    environment:
-      - DISABLE_IPTABLES_SECURITY_CONFIGURATION=true
+    # Option 2: Skip iptables-based egress filtering. Use this if NET_ADMIN
+    # isn't available or the host kernel lacks netfilter support. nsjail still
+    # wraps user code; only the network-egress filter is skipped. Note: do
+    # not also drop to a non-root user here — the entrypoint uses `runuser`
+    # internally to drop privileges and that requires starting as root.
+    # Choose this for version 4.34 or later, as long as organization has not
+    # opted out of the jsExecutorTokenSwappingProxy feature flag.
+    # environment:
+    #   - DISABLE_IPTABLES_SECURITY_CONFIGURATION=true
 
     networks:
       - js-executor
