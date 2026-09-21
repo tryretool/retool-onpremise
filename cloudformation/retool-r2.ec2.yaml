@@ -723,15 +723,14 @@ Resources:
           # backend falls back to the org's base URL.
           - Name: AGENT_SANDBOX_PROXY_INGRESS_DOMAIN
             Value: !Sub 'http://agent-sandbox-proxy.${CloudMapNamespaceName}:3019'
-          # no-verify (not require): node-postgres maps sslmode=require to
-          # verification-on, which fails on RDS's self-signed CA. no-verify
-          # keeps the connection encrypted without cert verification. Once
-          # the agent-executor image ships the RDS CA bundle, switch to
-          # sslmode=verify-full and set NODE_EXTRA_CA_CERTS=<bundle path> on
-          # the controller/proxy/r2-agent-worker tasks.
+          # verify-full: the backend and agent-executor images ship the RDS
+          # global CA bundle and set NODE_EXTRA_CA_CERTS to it, so node-postgres
+          # verifies RDS's TLS chain end-to-end (no-verify kept the connection
+          # encrypted but unverified). Applies to every task with an
+          # AGENT_SANDBOX_POSTGRES_URL below.
           - Name: AGENT_SANDBOX_POSTGRES_URL
             Value: !Sub
-              - "postgres://${U}:${P}@${H}:5432/hammerhead_production?sslmode=no-verify"
+              - "postgres://${U}:${P}@${H}:5432/hammerhead_production?sslmode=verify-full"
               - U: !Sub '{{resolve:secretsmanager:${RetoolRDSSecret}:SecretString:username}}'
                 P: !Sub '{{resolve:secretsmanager:${RetoolRDSSecret}:SecretString:password}}'
                 H: !GetAtt [RetoolRDSInstance, Endpoint.Address]
@@ -1864,7 +1863,7 @@ Resources:
               Value: postgres
             - Name: AGENT_SANDBOX_POSTGRES_URL
               Value: !Sub
-                - "postgres://${U}:${P}@${H}:5432/hammerhead_production?sslmode=no-verify"
+                - "postgres://${U}:${P}@${H}:5432/hammerhead_production?sslmode=verify-full"
                 - U: !Sub '{{resolve:secretsmanager:${RetoolRDSSecret}:SecretString:username}}'
                   P: !Sub '{{resolve:secretsmanager:${RetoolRDSSecret}:SecretString:password}}'
                   H: !GetAtt [RetoolRDSInstance, Endpoint.Address]
@@ -1944,7 +1943,7 @@ Resources:
               Value: postgres
             - Name: AGENT_SANDBOX_POSTGRES_URL
               Value: !Sub
-                - "postgres://${U}:${P}@${H}:5432/hammerhead_production?sslmode=no-verify"
+                - "postgres://${U}:${P}@${H}:5432/hammerhead_production?sslmode=verify-full"
                 - U: !Sub '{{resolve:secretsmanager:${RetoolRDSSecret}:SecretString:username}}'
                   P: !Sub '{{resolve:secretsmanager:${RetoolRDSSecret}:SecretString:password}}'
                   H: !GetAtt [RetoolRDSInstance, Endpoint.Address]
@@ -2204,7 +2203,7 @@ Resources:
               Value: !Sub 'http://agent-sandbox-proxy.${CloudMapNamespaceName}:3019'
             - Name: AGENT_SANDBOX_POSTGRES_URL
               Value: !Sub
-                - "postgres://${U}:${P}@${H}:5432/hammerhead_production?sslmode=no-verify"
+                - "postgres://${U}:${P}@${H}:5432/hammerhead_production?sslmode=verify-full"
                 - U: !Sub '{{resolve:secretsmanager:${RetoolRDSSecret}:SecretString:username}}'
                   P: !Sub '{{resolve:secretsmanager:${RetoolRDSSecret}:SecretString:password}}'
                   H: !GetAtt [RetoolRDSInstance, Endpoint.Address]
