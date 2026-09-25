@@ -117,3 +117,47 @@ docker image prune -a -f
 ```
 
 <br>
+
+RetoolOS and Slack
+------
+
+After [Install](#install) and [Configure](#configure), use this section **instead of [Run](#run)** to start only the services RetoolOS needs. Confirm with Retool that your license includes RetoolOS. Add `IGNORE_CODE_EXECUTOR_STARTUP_CHECK=true` to `docker.env` before starting the containers. RetoolOS does not use `code-executor`, but `install.sh` configures its URL, so the API would otherwise refuse to start when it cannot reach that service. The flag skips this startup check; Code Executor-backed Workflows will not work until you start `code-executor` and remove the flag.
+
+Slack is optional. If you want to connect it, prepare the Slack app and `docker.env` **before** starting Retool:
+
+1. In `docker.env`, set `BASE_DOMAIN` to your public Retool HTTPS URL, for example `BASE_DOMAIN=https://retool.example.com`. Use that same URL for the Slack redirect URL in the next step.
+
+2. Create a Slack app in the workspace you want to connect. Under **OAuth & Permissions**, add `<your-BASE_DOMAIN>/api/os/messaging/slack/oauth/callback` as a redirect URL. For example, if `BASE_DOMAIN=https://retool.example.com`, use `https://retool.example.com/api/os/messaging/slack/oauth/callback`. Add the bot scopes `assistant:write`, `chat:write`, `im:history`, `im:write`, `users:read`, and `users:read.email`.
+
+3. Under **Basic Information → App-Level Tokens**, generate an `xapp-` token with `connections:write`, then enable [Socket Mode](https://docs.slack.dev/apis/events-api/using-socket-mode/). Under **Event Subscriptions**, enable events and add the bot event `message.im`. Enable **Interactivity & Shortcuts** for approval buttons. Socket Mode does not require an Events API or Interactivity request URL; the OAuth redirect URL from step 2 is still required.
+
+4. Under [App Home](https://docs.slack.dev/surfaces/app-home/), enable the Messages tab and allow users to send messages. In the app manifest, these settings are `messages_tab_enabled: true` and `messages_tab_read_only_enabled: false`. Without them, Slack may say “Sending messages to this app has been turned off.” Save your Slack app settings.
+
+5. Copy the Client ID, Client Secret, and Signing Secret from **Basic Information**, plus the `xapp-` token from step 3, into `docker.env`:
+
+   ```dotenv
+   RETOOLOS_SLACK_CLIENT_ID=YOUR_CLIENT_ID
+   RETOOLOS_SLACK_CLIENT_SECRET=YOUR_CLIENT_SECRET
+   RETOOLOS_SLACK_SIGNING_SECRET=YOUR_SIGNING_SECRET
+   RETOOLOS_SLACK_APP_TOKEN=xapp-YOUR_APP_TOKEN
+   ```
+
+   `install.sh` adds these empty entries on a new install. If you already have `docker.env`, add them yourself; the script does not overwrite that file. Keep `docker.env` private because it contains credentials.
+
+Once `docker.env` is ready, start RetoolOS:
+
+```sh
+docker compose config --quiet
+docker compose up -d \
+  api jobs-runner workflows-backend retoolos-temporal-worker \
+  js-executor temporal
+docker compose ps --all
+```
+
+Compose also starts `postgres`, `minio`, and `minio-init` because the selected services depend on them. Wait for Jobs Runner to finish migrations on a new database. The running services should stay up; `minio-init` exiting with code 0 is expected. If RetoolOS does not become ready, start with `docker compose logs --tail=100 api jobs-runner retoolos-temporal-worker` and inspect any other service shown as failed in `ps`. Use [Run](#run) for the full deployment.
+
+Sign in to Retool. Under **Resources**, configure an OpenAI, Anthropic, or Google Gemini resource with your provider credentials. Then, under **Settings → RetoolOS → Configure → Providers for new agents**, select a **Primary provider**. Open RetoolOS and send a short message; confirm you get a reply before connecting Slack. If you instead use Retool's model proxy and see `OPENAI_PROXY_API_TOKEN` missing, contact Retool Support for the token or use your own provider resource. Keep provider keys out of this repository.
+
+If you prepared Slack, finish connecting it now that Retool is running. As a Retool organization admin, open **Settings → RetoolOS → Configure → Messaging → Slack**, select **Add to Slack**, and approve the installation. You should see “Slack connected.” If you change bot scopes after installing the app, reconnect it through Retool to approve the new scopes. DM the bot from a Slack account whose profile email matches an enabled Retool user in this organization with RetoolOS access. A reply confirms the connection. If nothing happens, check `docker compose logs --tail=100 retoolos-temporal-worker`; `inbound sender maps to no Retool user; dropping message` means the email or user access needs fixing.
+
+<br>

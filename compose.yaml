@@ -106,6 +106,24 @@ services:
         condition: service_completed_successfully
     restart: always
 
+  # This process owns RetoolOS chat, Jobs, messaging, and search. The application registers
+  # their task queues itself; setting WORKER_TEMPORAL_TASKQUEUE would restrict it to one queue.
+  retoolos-temporal-worker:
+    build:
+      context: .
+    env_file: docker.env
+    environment:
+      - SERVICE_TYPE=RETOOLOS_TEMPORAL_WORKER
+    networks:
+      - backend
+      - js-executor
+    depends_on:
+      postgres:
+        condition: service_started
+      minio-init:
+        condition: service_completed_successfully
+    restart: always
+
   code-executor:
     build:
       context: .
