@@ -15,7 +15,7 @@ Below are the instructions for deploying with Docker Compose, see [our docs](htt
 Deploy with Docker Compose
 ------
 
-[Install](#install) &#8594; [Configure](#configure) &#8594; [Run](#run) &#8594; [RetoolOS and Slack](#retoolos-and-slack) &#8594; [Upgrade](#upgrade)
+[Install](#install) &#8594; [Configure](#configure) &#8594; [Run](#run) &#8594; [Upgrade](#upgrade)
 
 <br>
 
@@ -91,6 +91,33 @@ docker compose logs
 
 <br>
 
+Upgrade
+------
+
+Set the new version in `Dockerfile`, and either run `./upgrade.sh` or follow the below steps:
+
+> [!NOTE]
+> The `mcp` service reads `OAUTH_MAIN_DOMAIN`, `MCP_SERVICE_EXTERNAL_URL`, and `OAUTH_INTROSPECTION_AUTH_TOKEN` from `docker.env`. `install.sh` only writes these on a fresh install, so if you are upgrading an existing deployment add them yourself (see step 7 under [Configure](#configure)). Without them the `mcp` container still starts but MCP clients fail to authenticate.
+
+1. Download and build the new images
+
+```
+docker compose build
+```
+
+2. Bring up the new containers to replace the old ones
+
+```
+docker compose up -d
+```
+
+3. Remove the old images from the system
+```
+docker image prune -a -f
+```
+
+<br>
+
 RetoolOS and Slack
 ------
 
@@ -132,32 +159,5 @@ Compose also starts `postgres`, `minio`, and `minio-init` because the selected s
 Sign in to Retool. Under **Resources**, configure an OpenAI, Anthropic, or Google Gemini resource with your provider credentials. Then, under **Settings → RetoolOS → Configure → Providers for new agents**, select a **Primary provider**. Open RetoolOS and send a short message; confirm you get a reply before connecting Slack. If you instead use Retool's model proxy and see `OPENAI_PROXY_API_TOKEN` missing, contact Retool Support for the token or use your own provider resource. Keep provider keys out of this repository.
 
 If you prepared Slack, finish connecting it now that Retool is running. As a Retool organization admin, open **Settings → RetoolOS → Configure → Messaging → Slack**, select **Add to Slack**, and approve the installation. You should see “Slack connected.” If you change bot scopes after installing the app, reconnect it through Retool to approve the new scopes. DM the bot from a Slack account whose profile email matches an enabled Retool user in this organization with RetoolOS access. A reply confirms the connection. If nothing happens, check `docker compose logs --tail=100 retoolos-temporal-worker`; `inbound sender maps to no Retool user; dropping message` means the email or user access needs fixing.
-
-<br>
-
-Upgrade
-------
-
-Set the new version in `Dockerfile`, and either run `./upgrade.sh` or follow the below steps:
-
-> [!NOTE]
-> The `mcp` service reads `OAUTH_MAIN_DOMAIN`, `MCP_SERVICE_EXTERNAL_URL`, and `OAUTH_INTROSPECTION_AUTH_TOKEN` from `docker.env`. `install.sh` only writes these on a fresh install, so if you are upgrading an existing deployment add them yourself (see step 7 under [Configure](#configure)). Without them the `mcp` container still starts but MCP clients fail to authenticate.
-
-1. Download and build the new images
-
-```
-docker compose build
-```
-
-2. Bring up the new containers to replace the old ones
-
-```
-docker compose up -d
-```
-
-3. Remove the old images from the system
-```
-docker image prune -a -f
-```
 
 <br>
