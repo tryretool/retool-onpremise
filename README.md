@@ -15,7 +15,7 @@ Below are the instructions for deploying with Docker Compose, see [our docs](htt
 Deploy with Docker Compose
 ------
 
-[Install](#install) &#8594; [Configure](#configure) &#8594; [Run](#run) &#8594; [Upgrade](#upgrade)
+[Install](#install) &#8594; [Configure](#configure) &#8594; [Run](#run) &#8594; [RetoolOS and Slack](#retoolos-and-slack) &#8594; [Upgrade](#upgrade)
 
 <br>
 
@@ -88,6 +88,40 @@ docker compose logs
 ```
 
 4. Go to your domain or IP in a browser and click `Sign up` to initialize and log into the new instance
+
+<br>
+
+RetoolOS and Slack
+------
+
+Before you start, confirm with Retool that your license includes RetoolOS and which released image version supports the RetoolOS worker and Postgres streaming. Set that version in `Dockerfile` as described under [Configure](#configure). The default Compose setup includes the worker and its dependencies; you do not need to add Redis.
+
+1. Start the full deployment with `docker compose up -d` as described under [Run](#run). Check it with `docker compose config --quiet` and `docker compose ps --all`. In particular, `api`, `jobs-runner`, `workflows-backend`, `retoolos-temporal-worker`, `js-executor`, `code-executor`, `postgres`, `minio`, and `temporal` should be running. `minio-init` should exit with code 0. On a new database, wait for Jobs Runner to finish migrations. If RetoolOS does not become ready, start with `docker compose logs --tail=100 api jobs-runner retoolos-temporal-worker`; inspect any other service shown as failed in `ps` as well.
+
+2. Sign in to Retool. Under **Resources**, configure an OpenAI, Anthropic, or Google Gemini resource with your provider credentials. Then, under **Settings → RetoolOS → Configure → Providers for new agents**, select a **Primary provider**. Open RetoolOS and send a short message; confirm you get a reply before setting up Slack. If you instead use Retool's model proxy and see `OPENAI_PROXY_API_TOKEN` missing, contact Retool Support for the token or use your own provider resource. Keep provider keys out of this repository.
+
+Slack is optional. To connect it, Retool must be reachable at a public HTTPS URL. In `docker.env`, set `DOMAINS=<your-domain> -> http://api:3000` and `BASE_DOMAIN=https://<your-domain>` to the host you actually open in your browser, and enable HTTPS as described under [Configure](#configure). If another proxy terminates TLS, it must forward the original `Host` and `X-Forwarded-Proto` headers. A temporary tunnel is fine for testing if its URL stays the same throughout setup.
+
+1. Create a Slack app in the workspace you want to connect. Under **OAuth & Permissions**, add `https://<your-domain>/api/os/messaging/slack/oauth/callback` as a redirect URL, using your actual Retool host. Add the bot scopes `assistant:write`, `chat:write`, `im:history`, `im:write`, `users:read`, and `users:read.email`.
+
+2. Under **Basic Information → App-Level Tokens**, generate an `xapp-` token with `connections:write`, then enable [Socket Mode](https://docs.slack.dev/apis/events-api/using-socket-mode/). Under **Event Subscriptions**, enable events and add the bot event `message.im`. Enable **Interactivity & Shortcuts** for approval buttons. Socket Mode does not require an Events API or Interactivity request URL; the OAuth redirect URL from step 1 is still required.
+
+3. Under [App Home](https://docs.slack.dev/surfaces/app-home/), enable the Messages tab and allow users to send messages. In the app manifest, these settings are `messages_tab_enabled: true` and `messages_tab_read_only_enabled: false`. Without them, Slack may say “Sending messages to this app has been turned off.” Save your Slack app settings.
+
+4. Copy the Client ID, Client Secret, and Signing Secret from **Basic Information**, plus the `xapp-` token from step 2, into `docker.env`:
+
+   ```dotenv
+   RETOOLOS_SLACK_CLIENT_ID=YOUR_CLIENT_ID
+   RETOOLOS_SLACK_CLIENT_SECRET=YOUR_CLIENT_SECRET
+   RETOOLOS_SLACK_SIGNING_SECRET=YOUR_SIGNING_SECRET
+   RETOOLOS_SLACK_APP_TOKEN=xapp-YOUR_APP_TOKEN
+   ```
+
+   `install.sh` adds these empty entries on a new install. If you already have `docker.env`, add them yourself; the script does not overwrite that file. Keep `docker.env` private because it contains credentials.
+
+5. Apply the new settings with `docker compose up -d --no-deps api retoolos-temporal-worker`. As a Retool organization admin, open **Settings → RetoolOS → Configure → Messaging → Slack**, select **Add to Slack**, and approve the installation. You should see “Slack connected.” If you change bot scopes after installing the app, reconnect it through Retool to approve the new scopes.
+
+6. DM the bot from a Slack account whose profile email matches an enabled Retool user in this organization with RetoolOS access. A reply confirms the connection. If nothing happens, check `docker compose logs --tail=100 retoolos-temporal-worker`; `inbound sender maps to no Retool user; dropping message` means the email or user access needs fixing.
 
 <br>
 

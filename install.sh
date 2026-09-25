@@ -197,6 +197,14 @@ DOMAINS=$hostname -> http://api:3000
 # Retool tries to guess this, but it can be incorrect if using a proxy in front of the instance
 BASE_DOMAIN=https://$hostname
 
+# Optional RetoolOS Slack app. Leave these empty if you do not use Slack. For Socket Mode,
+# the app-level token needs connections:write; Retool obtains the bot token when an admin
+# connects the workspace from RetoolOS Settings.
+RETOOLOS_SLACK_CLIENT_ID=
+RETOOLOS_SLACK_CLIENT_SECRET=
+RETOOLOS_SLACK_SIGNING_SECRET=
+RETOOLOS_SLACK_APP_TOKEN=
+
 # Retool MCP server (the "mcp" service). Requires HTTPS to work end to end.
 # Public host serving OAuth metadata and /api/oauth2/* (your Retool domain, no scheme)
 OAUTH_MAIN_DOMAIN=$hostname
