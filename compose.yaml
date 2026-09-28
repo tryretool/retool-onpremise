@@ -249,7 +249,8 @@ services:
     restart: always
 
   minio:
-    image: minio/minio:latest
+    image: cgr.dev/chainguard/minio:latest
+    user: root
     command: server /data --console-address ":9001"
     env_file: docker.env
     environment:
@@ -269,7 +270,7 @@ services:
     restart: always
 
   minio-init:
-    image: minio/mc:latest
+    image: cgr.dev/chainguard/minio-client:latest-dev
     env_file: docker.env
     depends_on:
       - minio
