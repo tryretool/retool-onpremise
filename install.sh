@@ -115,8 +115,9 @@ random() { cat /dev/urandom | base64 | head -c "$1" | tr -d +/ ; }
 
 postgres_password=$(random 64)
 
-minio_root_user=retool
-minio_root_password=$(random 32)
+# Garage enforces its credential format: access key GK + 24 hex, secret 64 hex.
+garage_access_key=GK$(openssl rand -hex 12)
+garage_secret_key=$(openssl rand -hex 32)
 
 oauth_introspection_token=$(random 64)
 
@@ -160,22 +161,26 @@ STATE_BACKEND=postgres
 AGENT_EXECUTOR_POSTGRES_URL=postgres://retool_internal_user:$postgres_password@postgres:5432/hammerhead_production
 AGENT_EXECUTOR_POSTGRES_SCHEMA=agent_executor
 
-# Blob storage (bundled MinIO defaults)
+# Blob storage (bundled Garage defaults)
 # For production, replace these with your external S3-compatible object store.
 # Leave RR_DEFAULT_S3_ENDPOINT and AWS_ENDPOINT_URL unset for AWS S3.
 # Set both to the same endpoint for R2, MinIO, or other custom endpoints.
 RR_BLOB_STORAGE_PROVIDER=s3
 RR_DEFAULT_S3_BUCKET=retool-blob-storage
-RR_DEFAULT_S3_ACCESS_KEY_ID=$minio_root_user
-RR_DEFAULT_S3_SECRET_ACCESS_KEY=$minio_root_password
+RR_DEFAULT_S3_ACCESS_KEY_ID=$garage_access_key
+RR_DEFAULT_S3_SECRET_ACCESS_KEY=$garage_secret_key
 RR_DEFAULT_S3_REGION=us-east-1
-RR_DEFAULT_S3_ENDPOINT=http://minio:9000
-AWS_ENDPOINT_URL=http://minio:9000
+RR_DEFAULT_S3_ENDPOINT=http://garage:9000
+AWS_ENDPOINT_URL=http://garage:9000
 
-# Bundled MinIO root credentials. The minio and minio-init services read these
-# from docker.env; they must match the RR_DEFAULT_S3_* access key/secret above.
-MINIO_ROOT_USER=$minio_root_user
-MINIO_ROOT_PASSWORD=$minio_root_password
+# Bundled Garage credentials. The garage service reads these from docker.env;
+# they must match the RR_DEFAULT_S3_* access key/secret above.
+GARAGE_DEFAULT_BUCKET=retool-blob-storage
+GARAGE_DEFAULT_ACCESS_KEY=$garage_access_key
+GARAGE_DEFAULT_SECRET_KEY=$garage_secret_key
+
+# Garage's inter-node RPC secret, required even for a single node.
+GARAGE_RPC_SECRET=$(openssl rand -hex 32)
 
 # Comment out below to use Retool-managed Temporal (Enterprise license)
 WORKFLOW_TEMPORAL_CLUSTER_FRONTEND_HOST=temporal

@@ -19,8 +19,8 @@ services:
     depends_on:
       postgres:
         condition: service_started
-      minio-init:
-        condition: service_completed_successfully
+      garage:
+        condition: service_healthy
     restart: always
 
   jobs-runner:
@@ -48,8 +48,8 @@ services:
     depends_on:
       postgres:
         condition: service_started
-      minio-init:
-        condition: service_completed_successfully
+      garage:
+        condition: service_healthy
     restart: always
 
   workflows-worker:
@@ -66,8 +66,8 @@ services:
     depends_on:
       postgres:
         condition: service_started
-      minio-init:
-        condition: service_completed_successfully
+      garage:
+        condition: service_healthy
     restart: always
 
   agent-worker:
@@ -84,8 +84,8 @@ services:
     depends_on:
       postgres:
         condition: service_started
-      minio-init:
-        condition: service_completed_successfully
+      garage:
+        condition: service_healthy
     restart: always
 
   agent-eval-worker:
@@ -102,8 +102,8 @@ services:
     depends_on:
       postgres:
         condition: service_started
-      minio-init:
-        condition: service_completed_successfully
+      garage:
+        condition: service_healthy
     restart: always
 
   code-executor:
@@ -219,8 +219,8 @@ services:
     depends_on:
       postgres:
         condition: service_started
-      minio-init:
-        condition: service_completed_successfully
+      garage:
+        condition: service_healthy
     restart: always
 
   # Retool MCP server. Lets external MCP clients drive Retool over the Model
@@ -244,47 +244,50 @@ services:
     depends_on:
       postgres:
         condition: service_started
-      minio-init:
-        condition: service_completed_successfully
+      garage:
+        condition: service_healthy
     restart: always
 
-  minio:
-    image: cgr.dev/chainguard/minio:latest
-    user: root
-    command: server /data --console-address ":9001"
+  garage:
+    image: dxflrs/garage:v2.3.0
+    command: /garage server --single-node --default-bucket
     env_file: docker.env
-    environment:
-      - MINIO_DOMAIN=minio
     ports:
       - 127.0.0.1:9000:9000
-      - 127.0.0.1:9001:9001
     networks:
       backend:
         aliases:
-          - retool-blob-storage.minio
+          - retool-blob-storage.garage
       agent-sandbox:
         aliases:
-          - retool-blob-storage.minio
+          - retool-blob-storage.garage
+    configs:
+      - source: garage-toml
+        target: /etc/garage.toml
     volumes:
-      - minio-data:/data
+      - garage-meta:/var/lib/garage/meta
+      - garage-data:/var/lib/garage/data
+    healthcheck:
+      test: ["CMD", "/garage", "status"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
     restart: always
 
-  minio-init:
-    image: cgr.dev/chainguard/minio-client:latest-dev
+  # The previous bundled blob store. Exists only so deployments with data in
+  # the minio-data volume can start it to migrate to garage:
+  #   docker compose --profile legacy up -d minio
+  minio:
+    profiles: ["legacy"]
+    image: cgr.dev/chainguard/minio:latest
+    user: root
+    command: server /data
     env_file: docker.env
-    depends_on:
-      - minio
-    entrypoint: >
-      /bin/sh -c "
-      until mc alias set local http://minio:9000 \"$$MINIO_ROOT_USER\" \"$$MINIO_ROOT_PASSWORD\"; do
-        echo 'Waiting for MinIO to be ready...';
-        sleep 2;
-      done;
-      mc mb --ignore-existing local/retool-blob-storage;
-      echo 'Bucket created successfully';
-      "
     networks:
       - backend
+    volumes:
+      - minio-data:/data
 
   # Retool's internal DB, we recommend using an externally hosted database: https://docs.retool.com/docs/configuring-retools-storage-database
   postgres:
@@ -372,4 +375,30 @@ networks:
 volumes:
   data:
   retooldb-data:
+  garage-meta:
+  garage-data:
   minio-data:
+
+configs:
+  garage-toml:
+    content: |
+      metadata_dir = "/var/lib/garage/meta"
+      data_dir     = "/var/lib/garage/data"
+      db_engine    = "lmdb"
+
+      replication_factor = 1
+
+      rpc_bind_addr   = "[::]:3901"
+      rpc_public_addr = "127.0.0.1:3901"
+
+      [s3_api]
+      s3_region = "us-east-1"
+
+      # Bind 9000 rather than Garage's default 3900 so the endpoint matches the
+      # port the old bundled MinIO used.
+      api_bind_addr = "[::]:9000"
+
+      # Virtual-hosted-style addressing: the AWS SDK sends Host: <bucket>.garage:9000
+      # and Garage strips this suffix to recover the bucket name. Matches the
+      # retool-blob-storage.garage network aliases above.
+      root_domain = ".garage"
