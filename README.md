@@ -99,6 +99,9 @@ Set the new version in `Dockerfile`, and either run `./upgrade.sh` or follow the
 > [!NOTE]
 > The `mcp` service reads `OAUTH_MAIN_DOMAIN`, `MCP_SERVICE_EXTERNAL_URL`, and `OAUTH_INTROSPECTION_AUTH_TOKEN` from `docker.env`. `install.sh` only writes these on a fresh install, so if you are upgrading an existing deployment add them yourself (see step 7 under [Configure](#configure)). Without them the `mcp` container still starts but MCP clients fail to authenticate.
 
+> [!NOTE]
+> Deployments set up with bundled MinIO must follow [Migrating from MinIO to Garage](docs/migrate-blob-storage.md) before upgrading, or the new containers fail to start.
+
 1. Download and build the new images
 
 ```

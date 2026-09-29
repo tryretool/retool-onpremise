@@ -275,20 +275,6 @@ services:
       start_period: 10s
     restart: always
 
-  # The previous bundled blob store. Exists only so deployments with data in
-  # the minio-data volume can start it to migrate to garage:
-  #   docker compose --profile legacy up -d minio
-  minio:
-    profiles: ["legacy"]
-    image: cgr.dev/chainguard/minio:latest
-    user: root
-    command: server /data
-    env_file: docker.env
-    networks:
-      - backend
-    volumes:
-      - minio-data:/data
-
   # Retool's internal DB, we recommend using an externally hosted database: https://docs.retool.com/docs/configuring-retools-storage-database
   postgres:
     image: postgres:16.8
@@ -363,6 +349,47 @@ services:
     networks:
       - frontend
     restart: always
+
+  # The previous bundled blob store. Exists only so deployments with data in
+  # the minio-data volume can start it to migrate to garage:
+  #   docker compose --profile legacy up -d minio
+  minio:
+    profiles: ["legacy"]
+    image: cgr.dev/chainguard/minio:latest
+    user: root
+    command: server /data
+    env_file: docker.env
+    networks:
+      - backend
+    volumes:
+      - minio-data:/data
+
+  # Migration helper for MinIO & Garage to help migrate data:
+  #   docker compose run --rm rclone lsf old:
+  rclone:
+    profiles: ["legacy"]
+    image: rclone/rclone:1.75
+    env_file: docker.env
+    environment:
+      - RCLONE_CONFIG=/dev/null
+      - RCLONE_CONFIG_OLD_TYPE=s3
+      - RCLONE_CONFIG_OLD_PROVIDER=Minio
+      - RCLONE_CONFIG_OLD_ENDPOINT=http://minio:9000
+      - RCLONE_CONFIG_NEW_TYPE=s3
+      - RCLONE_CONFIG_NEW_PROVIDER=Other
+      - RCLONE_CONFIG_NEW_ENDPOINT=http://garage:9000
+    entrypoint:
+      - /bin/sh
+      - -c
+      - >
+        export RCLONE_CONFIG_OLD_ACCESS_KEY_ID="$$MINIO_ROOT_USER"
+        RCLONE_CONFIG_OLD_SECRET_ACCESS_KEY="$$MINIO_ROOT_PASSWORD"
+        RCLONE_CONFIG_NEW_ACCESS_KEY_ID="$$GARAGE_DEFAULT_ACCESS_KEY"
+        RCLONE_CONFIG_NEW_SECRET_ACCESS_KEY="$$GARAGE_DEFAULT_SECRET_KEY";
+        exec rclone "$$@"
+      - rclone
+    networks:
+      - backend
 
 networks:
   frontend:
