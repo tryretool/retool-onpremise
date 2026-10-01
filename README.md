@@ -49,7 +49,7 @@ Configure
 
 1. Check the generated `.env` files to make sure the license key and randomized keys were set as expected during the installation.
 
-2. Review the blob storage settings in `docker.env`. The generated defaults use bundled MinIO through `RR_BLOB_STORAGE_PROVIDER=s3` and `RR_DEFAULT_S3_*` variables. For production, replace these with your external object store credentials. For AWS S3, remove `RR_DEFAULT_S3_ENDPOINT` and `AWS_ENDPOINT_URL`; for S3-compatible providers such as MinIO, set both endpoint variables to the provider endpoint.
+2. Review the blob storage settings in `docker.env`. The generated defaults use bundled [Garage](https://garagehq.deuxfleurs.fr/) through `RR_BLOB_STORAGE_PROVIDER=s3` and `RR_DEFAULT_S3_*` variables. For production, replace these with your external object store credentials. For AWS S3, remove `RR_DEFAULT_S3_ENDPOINT` and `AWS_ENDPOINT_URL`; for other S3-compatible providers, set both endpoint variables to the provider endpoint.
 
 3. Save off the `ENCRYPTION_KEY` value, since this is needed to encrypt/decrypt values saved into the Postgres database the Retool instance runs on.
 
@@ -98,6 +98,9 @@ Set the new version in `Dockerfile`, and either run `./upgrade.sh` or follow the
 
 > [!NOTE]
 > The `mcp` service reads `OAUTH_MAIN_DOMAIN`, `MCP_SERVICE_EXTERNAL_URL`, and `OAUTH_INTROSPECTION_AUTH_TOKEN` from `docker.env`. `install.sh` only writes these on a fresh install, so if you are upgrading an existing deployment add them yourself (see step 7 under [Configure](#configure)). Without them the `mcp` container still starts but MCP clients fail to authenticate.
+
+> [!NOTE]
+> Deployments set up with bundled MinIO must follow [Migrating from MinIO to Garage](docs/migrate-blob-storage.md) before upgrading, or the new containers fail to start.
 
 1. Download and build the new images
 
