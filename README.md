@@ -8,7 +8,7 @@
 
 <br>
 
-Below are the instructions for deploying with Docker Compose, see [our docs](https://docs.retool.com/docs/deploy-guide-overview) for more specific details for [AWS](https://docs.retool.com/docs/deploy-with-aws-ec2), [GCP](https://docs.retool.com/docs/deploy-with-gcp), or [Azure](https://docs.retool.com/docs/deploy-with-azure-vm), as well as for deploying with [Helm](https://docs.retool.com/docs/deploy-with-helm), [Kubernetes](https://docs.retool.com/docs/deploy-with-kubernetes), or [ECS](https://docs.retool.com/docs/deploy-with-ecs-fargate). Check out our [Community Forums](https://community.retool.com/) if you have questions or issues, and see our [deprecated-onpremise repo](https://github.com/tryretool/deprecated-onpremise) if you need to reference legacy deployment instructions. 
+Below are the instructions for deploying with Docker Compose, see [our docs](https://docs.retool.com/self-hosted) for more specific details, including deploying with [Kubernetes](https://docs.retool.com/self-hosted/self-managed/tutorials/kubernetes) or [Helm](https://docs.retool.com/self-hosted/self-managed/tutorials/kubernetes/kubernetes-helm). Check out our [Community Forums](https://community.retool.com/) if you have questions or issues, and see our [deprecated-onpremise repo](https://github.com/tryretool/deprecated-onpremise) if you need to reference legacy deployment instructions. 
 
 <br>
 
@@ -38,7 +38,7 @@ git clone https://github.com/tryretool/retool-onpremise retool && cd retool
 The script will create `docker.env` and `retooldb.env` if successful, else it should call out potential issues to address before rerunning.
 
 > [!WARNING]  
-> We now assume Compose v2 is installed as a plugin accessed through `docker compose`, we no longer use the legacy v1 `docker-compose` syntax. You may need to use the latter based on your OS and installation, see [Docker's docs](https://docs.docker.com/compose/releases/migrate/) for more context on the migration.
+> We now assume Compose v2 is installed as a plugin accessed through `docker compose`, we no longer use the legacy v1 `docker-compose` syntax. You may need to use the latter based on your OS and installation, see [Docker's docs](https://docs.docker.com/compose/intro/history/) for more context on the versions.
 
 <br>
 
@@ -60,7 +60,7 @@ Configure
 > [!WARNING]  
 > You must set `COOKIE_INSECURE=true` in `docker.env` to allow logging into Retool without HTTPS configured (not recommended)
 
-6. By default, the deployment will include a Temporal container for Workflows. If you have an Enterprise license and would like to instead use Retool's managed Temporal cluster, comment out the `include` block in `compose.yaml` and the `WORKFLOW_TEMPORAL_...` environment variables in `docker.env`. Check out [our docs](https://docs.retool.com/self-hosted/concepts/temporal) for more information on Temporal deployment options.
+6. By default, the deployment will include a Temporal container for Workflows. If you have an Enterprise license and would like to instead use Retool's managed Temporal cluster, comment out the `include` block in `compose.yaml` and the `WORKFLOW_TEMPORAL_...` environment variables in `docker.env`. Check out [our docs](https://docs.retool.com/self-hosted/self-managed/concepts/temporal) for more information on Temporal deployment options.
 
 7. The deployment includes an `mcp` container that serves Retool's [MCP server](https://docs.retool.com/org-users/guides/mcp) at `/mcp`, letting external MCP clients connect to your instance. It needs HTTPS and the `OAUTH_MAIN_DOMAIN`, `MCP_SERVICE_EXTERNAL_URL`, and `OAUTH_INTROSPECTION_AUTH_TOKEN` variables in `docker.env` (all set by `install.sh`). The `https-portal` container routes `/mcp` to it via `CUSTOM_NGINX_SERVER_CONFIG_BLOCK`; the OAuth metadata and introspection endpoints it depends on are served by the `api` service. To disable MCP, remove the `mcp` service and that nginx block from `compose.yaml`. Point your MCP client at `https://<your-domain>/mcp`.
 
