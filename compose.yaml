@@ -106,8 +106,18 @@ services:
         condition: service_completed_successfully
     restart: always
 
-  # This process owns RetoolOS chat, Jobs, messaging, and search. The application registers
-  # their task queues itself; setting WORKER_TEMPORAL_TASKQUEUE would restrict it to one queue.
+  # RetoolOS requires a license key that enables it. This is a monolithic worker that runs
+  # the agent loop, Jobs, messaging, and search. It reuses the RR_DEFAULT_* object store
+  # in docker.env under a retoolos/ prefix, so no separate bucket is needed.
+  #
+  # Search requires RETOOLOS_SEARCH_ENABLED=true in docker.env and a Postgres server with
+  # pgvector. install.sh configures both for new installations; existing installations must
+  # add the setting and make pgvector available before starting this worker.
+  #
+  # After startup, configure an AI provider and optional Slack app under
+  # Settings > RetoolOS > Configure. Slack credentials entered there are encrypted in
+  # Postgres, and self-hosted deployments use outbound-only Socket Mode by default.
+  # Do not set WORKER_TEMPORAL_TASKQUEUE: this process polls several queues itself.
   retoolos-temporal-worker:
     build:
       context: .
@@ -305,7 +315,7 @@ services:
 
   # Retool's internal DB, we recommend using an externally hosted database: https://docs.retool.com/docs/configuring-retools-storage-database
   postgres:
-    image: postgres:16.8
+    image: pgvector/pgvector:0.8.6-pg16-bookworm
     env_file: docker.env
     command: -c 'max_connections=200'
     networks:

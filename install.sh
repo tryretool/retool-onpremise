@@ -172,6 +172,10 @@ RR_DEFAULT_S3_REGION=us-east-1
 RR_DEFAULT_S3_ENDPOINT=http://minio:9000
 AWS_ENDPOINT_URL=http://minio:9000
 
+# RetoolOS search is shared by the API, Jobs Runner, and RetoolOS worker.
+# It's a feature of RetoolOS that should be on by default. This flag is left as a kill switch
+RETOOLOS_SEARCH_ENABLED=true
+
 # Bundled MinIO root credentials. The minio and minio-init services read these
 # from docker.env; they must match the RR_DEFAULT_S3_* access key/secret above.
 MINIO_ROOT_USER=$minio_root_user
@@ -196,14 +200,6 @@ DOMAINS=$hostname -> http://api:3000
 # Used to create links like user invitations and password resets
 # Retool tries to guess this, but it can be incorrect if using a proxy in front of the instance
 BASE_DOMAIN=https://$hostname
-
-# Optional RetoolOS Slack app. Leave these empty if you do not use Slack. For Socket Mode,
-# the app-level token needs connections:write; Retool obtains the bot token when an admin
-# connects the workspace from RetoolOS Settings.
-RETOOLOS_SLACK_CLIENT_ID=
-RETOOLOS_SLACK_CLIENT_SECRET=
-RETOOLOS_SLACK_SIGNING_SECRET=
-RETOOLOS_SLACK_APP_TOKEN=
 
 # Retool MCP server (the "mcp" service). Requires HTTPS to work end to end.
 # Public host serving OAuth metadata and /api/oauth2/* (your Retool domain, no scheme)
