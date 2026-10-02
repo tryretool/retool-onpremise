@@ -172,6 +172,10 @@ RR_DEFAULT_S3_REGION=us-east-1
 RR_DEFAULT_S3_ENDPOINT=http://minio:9000
 AWS_ENDPOINT_URL=http://minio:9000
 
+# RetoolOS search is shared by the API, Jobs Runner, and RetoolOS worker.
+# It's a feature of RetoolOS that should be on by default. This flag is left as a kill switch
+RETOOLOS_SEARCH_ENABLED=true
+
 # Bundled MinIO root credentials. The minio and minio-init services read these
 # from docker.env; they must match the RR_DEFAULT_S3_* access key/secret above.
 MINIO_ROOT_USER=$minio_root_user
