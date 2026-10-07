@@ -148,6 +148,8 @@ services:
     # wraps user code; only the network-egress filter is skipped. Note: do
     # not also drop to a non-root user here — the entrypoint uses `runuser`
     # internally to drop privileges and that requires starting as root.
+    # Choose this for version 4.34 or later, as long as organization has not
+    # opted out of the jsExecutorTokenSwappingProxy feature flag.
     # environment:
     #   - DISABLE_IPTABLES_SECURITY_CONFIGURATION=true
 
