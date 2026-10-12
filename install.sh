@@ -52,7 +52,7 @@ if [ -f /etc/os-release ]; then
             SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
             if [ -f "${SCRIPT_DIR}/appArmor/usr.bin.nsjail" ]; then
                 sudo cp "${SCRIPT_DIR}/appArmor/usr.bin.nsjail" /etc/apparmor.d/usr.bin.nsjail
-                sudo apparmor_parser /etc/apparmor.d/usr.bin.nsjail || true
+                sudo apparmor_parser -r /etc/apparmor.d/usr.bin.nsjail || true
                 echo "  ✅ AppArmor profile for nsjail installed"
             else
                 echo "  ⚠️ Could not find appArmor/usr.bin.nsjail; skipping AppArmor profile setup"
@@ -98,7 +98,7 @@ fi
 
 echo ""
 
-[[ -f docker.env ]] && echo "⚠️ docker.env file already exists, skipping initializing it!" && exit 1
+[[ -f docker.env ]] && echo "ℹ️ docker.env already exists, so it was left unchanged. The host setup steps above still ran." && exit 1
 
 echo "Prompting for optional configuration..."
 
