@@ -5,7 +5,7 @@ Description: >-
   gVisor-ready bridge-networked sandbox pool), the agent-sandbox controller/proxy,
   the pre-registered sandbox task definition the controller RunTasks, the
   js-executor and r2-agent Temporal worker, S3 snapshot/git buckets, and an
-  optional EventBridge->SQS task-state watcher.
+  EventBridge->SQS task-state watcher for fast sandbox reconciliation.
 Parameters:
   Environment:
     Type: String
@@ -59,6 +59,59 @@ Parameters:
     Type: Number
     Description: Default number of tasks to run for Retool Code Executor containers
     Default: 1
+  DesiredJsExecutorCount:
+    Type: Number
+    Description: Default number of tasks to run for Retool JS Executor containers
+    Default: 1
+  # --- Code-executor / js-executor service autoscaling -------------------------
+  # ECS service target-tracking scaling (the HPA analog). Enabled per service
+  # via the Enable* flag; Min is the Desired*Count and Max the *MaxCount param.
+  # When enabling, set *MaxCount > the Desired*Count (MinCapacity must not
+  # exceed MaxCapacity) and leave headroom on the owning capacity pool (the
+  # platform ASG for code-executor, the sandbox ASG for js-executor — its
+  # capacity provider managed-scales on PENDING tasks). The controller, proxy,
+  # and ephemeral sandboxes are deliberately NOT autoscaled: the controller
+  # reconciles the global prewarm pool (replicas would race on RunTask), the
+  # proxy is a stateless forwarder sized statically, and sandboxes are
+  # RunTask'd per session with the ASG as their scaling story.
+  EnableCodeExecutorAutoscaling:
+    Type: String
+    AllowedValues: ["true", "false"]
+    Default: "false"
+    Description: >-
+      Enable ECS service autoscaling for the code-executor (target-tracking
+      on CPU, CodeExecutorAutoscalingTargetCpu). Min is
+      DesiredCodeExecutorCount, Max is CodeExecutorAutoscalingMaxCount.
+  CodeExecutorAutoscalingMaxCount:
+    Type: Number
+    Description: Max tasks for the code-executor service when autoscaling is enabled.
+    Default: 4
+  CodeExecutorAutoscalingTargetCpu:
+    Type: Number
+    Description: CPU utilization (%) the code-executor service scales toward. Only used when EnableCodeExecutorAutoscaling=true.
+    Default: 70
+    MinValue: 10
+    MaxValue: 90
+  EnableJsExecutorAutoscaling:
+    Type: String
+    AllowedValues: ["true", "false"]
+    Default: "false"
+    Description: >-
+      Enable ECS service autoscaling for the js-executor (target-tracking on
+      CPU, JsExecutorAutoscalingTargetCpu) — the analog of the helm chart's
+      jsExecutor HPA. js-executor is pinned to the sandbox pool, so scale-out
+      drives the sandbox ASG. Min is DesiredJsExecutorCount, Max is
+      JsExecutorAutoscalingMaxCount.
+  JsExecutorAutoscalingMaxCount:
+    Type: Number
+    Description: Max tasks for the js-executor service when autoscaling is enabled.
+    Default: 4
+  JsExecutorAutoscalingTargetCpu:
+    Type: Number
+    Description: CPU utilization (%) the js-executor service scales toward. Only used when EnableJsExecutorAutoscaling=true.
+    Default: 70
+    MinValue: 10
+    MaxValue: 90
   EnableWorkflows:
     Type: String
     AllowedValues: ["true", "false"]
@@ -83,6 +136,24 @@ Parameters:
       none: no Temporal anywhere; R2 orchestration runs on pg-boss against the
       main Postgres (R2_ORCHESTRATION_BACKEND=postgres). Requires
       EnableWorkflows=false.
+  EnableAgents:
+    Type: String
+    AllowedValues: ["true", "false"]
+    Default: "false"
+    Description: >-
+      Deploy the Retool Agents workers: agent-worker (Temporal taskqueue
+      `agent`) and agent-eval-worker (taskqueue `agent-eval`), matching
+      retool-agents.fargate.yaml. Agent runs and eval runs are Temporal
+      workflows with no pg-boss fallback, so this requires a Temporal backend
+      (TemporalBackend=self-hosted or retool-managed). When false, keep the
+      "AI Agents" toggle off in Settings -> AI (fresh orgs default to off);
+      DesiredAgentsCount is inert. Note the Agents product itself is gated by
+      the org-level aiAgentsEnabledByCustomer feature flag (Settings -> AI),
+      not by an environment variable.
+  DesiredAgentsCount:
+    Type: Number
+    Description: Default number of tasks to run for each Retool Agents worker (agent-worker, agent-eval-worker)
+    Default: 1
   MaximumPercent:
     Type: Number
     Description: Maximum percentage of tasks to run during a deployment
@@ -175,6 +246,20 @@ Parameters:
       removes old minor versions, so check aws rds describe-db-engine-versions
       --engine postgres if deployment fails with "Cannot find version".
     Default: "15.19"
+  RdsDeletionProtection:
+    Type: String
+    AllowedValues: ["true", "false"]
+    Default: "true"
+    Description: >-
+      Enable RDS-native DeletionProtection on the main Retool Postgres instance
+      and (when TemporalBackend=self-hosted) the internal Temporal Aurora
+      cluster. This guards against direct deletion via the console/CLI
+      (delete-db-instance refuses until protection is explicitly disabled) and
+      composes with the stack-level DeletionPolicy: Retain on both resources.
+      Caveat: with protection on, any intentional replacement update (e.g. a
+      forced engine change) requires first setting this to false, updating, then
+      re-enabling — otherwise the replacement fails. Set false only for
+      disposable sandbox stacks.
   TemporalPostgresEngineVersion:
     Type: String
     Description: >-
@@ -218,7 +303,10 @@ Parameters:
     Default: 10
   SandboxAsgDesiredCapacity:
     Type: Number
-    Description: Provision enough instances to hold the prewarm pool + js-executor tasks (DesiredCodeExecutorCount) plus headroom (each m5.2xlarge holds ~4 tasks).
+    Description: >-
+      Provision enough instances to hold the prewarm pool + js-executor tasks
+      (DesiredJsExecutorCount, or JsExecutorAutoscalingMaxCount when
+      autoscaling) plus headroom (each m5.2xlarge holds ~4 tasks).
     Default: 2
   SandboxInstanceVolumeSize:
     Type: Number
@@ -247,13 +335,6 @@ Parameters:
     Description: Optional comma-separated allowlist of external domains sandboxes may reach via the proxy (e.g. api.openai.com,api.anthropic.com). Empty allows all non-blocked egress.
     Default: ""
 
-  # --- Watcher --------------------------------------------------------------
-  EnableTaskEventWatcher:
-    Type: String
-    AllowedValues: ["true", "false"]
-    Default: "false"
-    Description: Create an EventBridge->SQS pipeline for ECS task-state changes so the controller reconciles faster. When false, the controller falls back to its 5s reconcile poll.
-
 Rules:
   RequireTlsForPublicAlb:
     Assertions:
@@ -274,18 +355,34 @@ Rules:
           TemporalBackend to self-hosted (in-cluster Temporal) or
           retool-managed (Temporal Cloud), or set EnableWorkflows=false to
           deploy the minimal R2 stack on pg-boss.
+  AgentsRequireTemporal:
+    Assertions:
+      - Assert: !Or
+          - !Equals [!Ref EnableAgents, "false"]
+          - !Not [!Equals [!Ref TemporalBackend, "none"]]
+        AssertDescription: >-
+          EnableAgents=true requires a Temporal backend. Agent runs and eval
+          runs are Temporal workflows on the `agent` / `agent-eval` taskqueues
+          and have no pg-boss fallback. Set TemporalBackend to self-hosted or
+          retool-managed, or leave EnableAgents=false.
 
 Conditions:
   HasKeyName: !Not [!Equals [!Ref KeyName, ""]]
   HasAllowedDomains: !Not [!Equals [!Ref AllowedDomains, ""]]
   HasCertificate: !Not [!Equals [!Ref CertificateArn, ""]]
-  EnableWatcher: !Equals [!Ref EnableTaskEventWatcher, "true"]
   WorkflowsEnabled: !Equals [!Ref EnableWorkflows, "true"]
+  AgentsEnabled: !Equals [!Ref EnableAgents, "true"]
   TemporalSelfHosted: !Equals [!Ref TemporalBackend, "self-hosted"]
   TemporalDisabled: !Equals [!Ref TemporalBackend, "none"]
   HasBaseDomain: !Not [!Equals [!Ref BaseDomain, ""]]
   HasAlbIngressSg: !Not [!Equals [!Ref AlbIngressSourceSecurityGroupId, ""]]
   RdsEncrypted: !Equals [!Ref RdsStorageEncrypted, "true"]
+  RdsProtected: !Equals [!Ref RdsDeletionProtection, "true"]
+  # Service autoscaling is opt-in per service via the Enable* string params.
+  # When disabled the service runs the fixed Desired*Count and no
+  # ScalableTarget/ScalingPolicy is created.
+  CodeExecutorAutoscalingEnabled: !Equals [!Ref EnableCodeExecutorAutoscaling, "true"]
+  JsExecutorAutoscalingEnabled: !Equals [!Ref EnableJsExecutorAutoscaling, "true"]
 
 Resources:
   # ===========================================================================
@@ -745,6 +842,16 @@ Resources:
             Value: !Ref 'RrGitBucket'
           - Name: RR_GIT_S3_REGION
             Value: !Ref 'AWS::Region'
+          # --- MCP server (R2) ---
+          # The backend relays /mcp + /mcp/* (and the frontend server on :3000
+          # forwards /mcp, /.well-known/oauth-* to the backend API on :3001) to
+          # the standalone MCP service — no dedicated ALB listener rule needed.
+          - Name: MCP_SERVICE_INGRESS_DOMAIN
+            Value: !Sub 'http://mcp.${CloudMapNamespaceName}:4010'
+          # Shared bearer token protecting /api/oauth2/introspect and the MCP
+          # audit-event ingest between the backend and the MCP service.
+          - Name: OAUTH_INTROSPECTION_AUTH_TOKEN
+            Value: !Join ['', ['{{resolve:secretsmanager:', !Ref McpIntrospectionSecret, ':SecretString:password}}' ]]
         Secrets:
           - Name: AGENT_SANDBOX_JWT_PRIVATE_KEY
             ValueFrom: !Ref AgentSandboxJwtPrivateKeySecret
@@ -944,6 +1051,156 @@ Resources:
             Value: !Ref LicenseKey
         Command: ["./docker_scripts/start_api.sh"]
 
+  # Retool Agents (the product) workers — optional, EnableAgents=true. Mirrors
+  # retool-agents.fargate.yaml and the k8s agent-worker/agent-eval-worker
+  # manifests: agent-worker runs the same workflowsExecutor process as the
+  # workflows worker with the taskqueue overridden to `agent`; agent-eval-worker
+  # runs the dedicated eval worker (SERVICE_TYPE AGENT_EVAL_TEMPORAL_WORKER) on
+  # `agent-eval`. Both require a Temporal backend (enforced by the
+  # AgentsRequireTemporal rule); eval test data falls back to Postgres unless
+  # AGENT_EVALS_S3_* is supplied out-of-band.
+  RetoolAgentsWorkerTask:
+    Type: AWS::ECS::TaskDefinition
+    Condition: AgentsEnabled
+    Properties:
+      Family: 'retool-agents-worker'
+      TaskRoleArn: !Ref 'RetoolTaskRole'
+      NetworkMode: awsvpc
+      ContainerDefinitions:
+      - Name: 'retool-agents-worker'
+        Cpu: '2048'
+        Memory: '6144'
+        Essential: 'true'
+        Image: !Sub '${BackendImageRepository}:${RetoolVersion}'
+        LogConfiguration:
+          LogDriver: awslogs
+          Options:
+            awslogs-group: !Ref 'CloudwatchLogsGroup'
+            awslogs-region: !Ref 'AWS::Region'
+            awslogs-stream-prefix: "SERVICE_RETOOL"
+        Environment:
+          - Name: DEPLOYMENT_TEMPLATE_TYPE
+            Value: "aws-ecs-ec2"
+          - Name: NODE_ENV
+            Value: production
+          - Name: SERVICE_TYPE
+            Value: WORKFLOW_TEMPORAL_WORKER
+          - Name: WORKER_TEMPORAL_TASKQUEUE
+            Value: agent
+          - Name: "FORCE_DEPLOYMENT"
+            Value: !Ref "Force"
+          - Name: POSTGRES_DB
+            Value: hammerhead_production
+          - Name: POSTGRES_HOST
+            Value: !GetAtt [RetoolRDSInstance, Endpoint.Address]
+          - Name: POSTGRES_SSL_ENABLED
+            Value: "true"
+          - Name: POSTGRES_PORT
+            Value: "5432"
+          - Name: POSTGRES_USER
+            Value: !Join ['', ['{{resolve:secretsmanager:', !Ref RetoolRDSSecret, ':SecretString:username}}' ]]
+          - Name: POSTGRES_PASSWORD
+            Value: !Join ['', ['{{resolve:secretsmanager:', !Ref RetoolRDSSecret, ':SecretString:password}}' ]]
+          - Name: JWT_SECRET
+            Value: !Join ['', ['{{resolve:secretsmanager:', !Ref RetoolJWTSecret, ':SecretString:password}}' ]]
+          - Name: ENCRYPTION_KEY
+            Value: !Join ['', ['{{resolve:secretsmanager:', !Ref RetoolEncryptionKeySecret, ':SecretString:password}}' ]]
+          # In-cluster Temporal only when TemporalBackend=self-hosted; unset
+          # selects the Retool-managed Temporal Cloud path.
+          - Fn::If:
+              - TemporalSelfHosted
+              - Name: WORKFLOW_TEMPORAL_CLUSTER_FRONTEND_HOST
+                Value: !Sub 'temporal.${CloudMapNamespaceName}'
+              - !Ref 'AWS::NoValue'
+          - Fn::If:
+              - TemporalSelfHosted
+              - Name: WORKFLOW_TEMPORAL_CLUSTER_FRONTEND_PORT
+                Value: "7233"
+              - !Ref 'AWS::NoValue'
+          # Agents embed workflow blocks, which execute against the Workflows
+          # backend; omit when EnableWorkflows=false (those blocks will fail).
+          - Fn::If:
+              - WorkflowsEnabled
+              - Name: WORKFLOW_BACKEND_HOST
+                Value: !Sub 'http://workflows-backend.${CloudMapNamespaceName}:3000'
+              - !Ref 'AWS::NoValue'
+          - Name: CODE_EXECUTOR_INGRESS_DOMAIN
+            Value: !Sub 'http://code-executor.${CloudMapNamespaceName}:3004'
+          - Name: BASE_DOMAIN
+            Value: !If [HasBaseDomain, !Ref BaseDomain, !If [HasCertificate, !Sub 'https://${ECSALB.DNSName}', !Sub 'http://${ECSALB.DNSName}']]
+          - Name: LICENSE_KEY
+            Value: !Ref LicenseKey
+        Command: ["./docker_scripts/start_api.sh"]
+
+  RetoolAgentsEvalWorkerTask:
+    Type: AWS::ECS::TaskDefinition
+    Condition: AgentsEnabled
+    Properties:
+      Family: 'retool-agents-eval-worker'
+      TaskRoleArn: !Ref 'RetoolTaskRole'
+      NetworkMode: awsvpc
+      ContainerDefinitions:
+      - Name: 'retool-agents-eval-worker'
+        Cpu: '2048'
+        Memory: '6144'
+        Essential: 'true'
+        Image: !Sub '${BackendImageRepository}:${RetoolVersion}'
+        LogConfiguration:
+          LogDriver: awslogs
+          Options:
+            awslogs-group: !Ref 'CloudwatchLogsGroup'
+            awslogs-region: !Ref 'AWS::Region'
+            awslogs-stream-prefix: "SERVICE_RETOOL"
+        Environment:
+          - Name: DEPLOYMENT_TEMPLATE_TYPE
+            Value: "aws-ecs-ec2"
+          - Name: NODE_ENV
+            Value: production
+          - Name: SERVICE_TYPE
+            Value: AGENT_EVAL_TEMPORAL_WORKER
+          - Name: WORKER_TEMPORAL_TASKQUEUE
+            Value: agent-eval
+          - Name: "FORCE_DEPLOYMENT"
+            Value: !Ref "Force"
+          - Name: POSTGRES_DB
+            Value: hammerhead_production
+          - Name: POSTGRES_HOST
+            Value: !GetAtt [RetoolRDSInstance, Endpoint.Address]
+          - Name: POSTGRES_SSL_ENABLED
+            Value: "true"
+          - Name: POSTGRES_PORT
+            Value: "5432"
+          - Name: POSTGRES_USER
+            Value: !Join ['', ['{{resolve:secretsmanager:', !Ref RetoolRDSSecret, ':SecretString:username}}' ]]
+          - Name: POSTGRES_PASSWORD
+            Value: !Join ['', ['{{resolve:secretsmanager:', !Ref RetoolRDSSecret, ':SecretString:password}}' ]]
+          - Name: JWT_SECRET
+            Value: !Join ['', ['{{resolve:secretsmanager:', !Ref RetoolJWTSecret, ':SecretString:password}}' ]]
+          - Name: ENCRYPTION_KEY
+            Value: !Join ['', ['{{resolve:secretsmanager:', !Ref RetoolEncryptionKeySecret, ':SecretString:password}}' ]]
+          - Fn::If:
+              - TemporalSelfHosted
+              - Name: WORKFLOW_TEMPORAL_CLUSTER_FRONTEND_HOST
+                Value: !Sub 'temporal.${CloudMapNamespaceName}'
+              - !Ref 'AWS::NoValue'
+          - Fn::If:
+              - TemporalSelfHosted
+              - Name: WORKFLOW_TEMPORAL_CLUSTER_FRONTEND_PORT
+                Value: "7233"
+              - !Ref 'AWS::NoValue'
+          - Fn::If:
+              - WorkflowsEnabled
+              - Name: WORKFLOW_BACKEND_HOST
+                Value: !Sub 'http://workflows-backend.${CloudMapNamespaceName}:3000'
+              - !Ref 'AWS::NoValue'
+          - Name: CODE_EXECUTOR_INGRESS_DOMAIN
+            Value: !Sub 'http://code-executor.${CloudMapNamespaceName}:3004'
+          - Name: BASE_DOMAIN
+            Value: !If [HasBaseDomain, !Ref BaseDomain, !If [HasCertificate, !Sub 'https://${ECSALB.DNSName}', !Sub 'http://${ECSALB.DNSName}']]
+          - Name: LICENSE_KEY
+            Value: !Ref LicenseKey
+        Command: ["./docker_scripts/start_api.sh"]
+
   RetoolCodeExecutorTask:
     Type: AWS::ECS::TaskDefinition
     Properties:
@@ -1032,6 +1289,21 @@ Resources:
       Description: 'Agent sandbox encryption key (user-supplied)'
       SecretString: !Ref AgentSandboxEncryptionKey
 
+  # Bearer token shared between the backend (/api/oauth2/introspect, MCP audit
+  # event ingest) and the MCP service (token introspection + audit event
+  # emitter). Auto-generated: no operator action needed, but rotating it means
+  # updating both the backend and mcp task definitions. Excludes the space
+  # (breaks Authorization header parsing) and the URL-unsafe set.
+  McpIntrospectionSecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Description: !Sub '${AWS::StackName} MCP <-> backend OAuth introspection bearer token'
+      GenerateSecretString:
+        SecretStringTemplate: '{}'
+        GenerateStringKey: 'password'
+        PasswordLength: 32
+        ExcludeCharacters: '"@/\ '
+
 
   RetoolRDSInstance:
     Type: AWS::RDS::DBInstance
@@ -1044,6 +1316,7 @@ Resources:
       EngineVersion: !Ref PostgresEngineVersion
       DBName: "hammerhead_production"
       StorageEncrypted: !If [RdsEncrypted, true, false]
+      DeletionProtection: !If [RdsProtected, true, false]
       MasterUsername: !Join ['', ['{{resolve:secretsmanager:', !Ref RetoolRDSSecret, ':SecretString:username}}' ]]
       MasterUserPassword: !Join ['', ['{{resolve:secretsmanager:', !Ref RetoolRDSSecret, ':SecretString:password}}' ]]
       Port: "5432"
@@ -1062,8 +1335,14 @@ Resources:
       Name: !Join ['-', [!Ref 'AWS::StackName', 'lb']]
       Scheme: !Ref AlbScheme
       LoadBalancerAttributes:
+      # 600s (not the 60s default): MCP streamable-HTTP responses are SSE
+      # streams that can sit quiet while a long tool call runs — R2
+      # react-app generation takes minutes — and the ALB would cut them
+      # at 60s idle. Matches the 600s proxy_read_timeout the compose
+      # nginx config sets for /mcp. Applies ALB-wide; long app/workflow
+      # requests benefit equally.
       - Key: idle_timeout.timeout_seconds
-        Value: '60'
+        Value: '600'
       Subnets: !Ref 'ALBSubnetId'
       SecurityGroups: [!GetAtt [ALBSecurityGroup, GroupId]]
 
@@ -1190,6 +1469,40 @@ Resources:
         MinimumHealthyPercent: !Ref 'MinimumHealthyPercent'
       TaskDefinition: !Ref 'RetoolWorkflowsWorkerTask'
 
+  RetoolAgentsWorkerECSService:
+    Type: AWS::ECS::Service
+    Condition: AgentsEnabled
+    DependsOn: ClusterCapacityProviderAssociations
+    Properties:
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: DISABLED # must be run in private subnet with NAT gateway
+          SecurityGroups: [!GetAtt [RetoolSecurityGroup, GroupId]]
+          Subnets: !Ref 'SubnetId'
+      Cluster: !Ref 'RetoolCluster'
+      DesiredCount: !Ref 'DesiredAgentsCount'
+      DeploymentConfiguration:
+        MaximumPercent: !Ref 'MaximumPercent'
+        MinimumHealthyPercent: !Ref 'MinimumHealthyPercent'
+      TaskDefinition: !Ref 'RetoolAgentsWorkerTask'
+
+  RetoolAgentsEvalWorkerECSService:
+    Type: AWS::ECS::Service
+    Condition: AgentsEnabled
+    DependsOn: ClusterCapacityProviderAssociations
+    Properties:
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: DISABLED # must be run in private subnet with NAT gateway
+          SecurityGroups: [!GetAtt [RetoolSecurityGroup, GroupId]]
+          Subnets: !Ref 'SubnetId'
+      Cluster: !Ref 'RetoolCluster'
+      DesiredCount: !Ref 'DesiredAgentsCount'
+      DeploymentConfiguration:
+        MaximumPercent: !Ref 'MaximumPercent'
+        MinimumHealthyPercent: !Ref 'MinimumHealthyPercent'
+      TaskDefinition: !Ref 'RetoolAgentsEvalWorkerTask'
+
   RetoolWorkflowsBackendECSService:
     Condition: WorkflowsEnabled
     DependsOn: [RetoolWorkflowBackendServiceCloudmapService, ClusterCapacityProviderAssociations]
@@ -1226,6 +1539,37 @@ Resources:
         MaximumPercent: !Ref 'MaximumPercent'
         MinimumHealthyPercent: !Ref 'MinimumHealthyPercent'
       TaskDefinition: !Ref 'RetoolCodeExecutorTask'
+
+  # Service autoscaling (HPA equivalent) for the code-executor. Target-tracking
+  # on average CPU utilization across the service's tasks, measured against
+  # the task definition's Cpu reservation (2048). Scale-out is fast (user code
+  # queues behind it); scale-in slow (avoid thrash mid-burst). Host capacity
+  # follows automatically: the platform capacity provider managed-scales its
+  # ASG when tasks go PENDING due to insufficient CPU/ENIs.
+  # Only created when EnableCodeExecutorAutoscaling=true.
+  CodeExecutorScalableTarget:
+    Type: AWS::ApplicationAutoScaling::ScalableTarget
+    Condition: CodeExecutorAutoscalingEnabled
+    Properties:
+      MaxCapacity: !Ref CodeExecutorAutoscalingMaxCount
+      MinCapacity: !Ref DesiredCodeExecutorCount
+      ResourceId: !Sub 'service/${RetoolCluster}/${RetoolCodeExecutorECSService.Name}'
+      ScalableDimension: 'ecs:service:DesiredCount'
+      ServiceNamespace: ecs
+
+  CodeExecutorCpuScalingPolicy:
+    Type: AWS::ApplicationAutoScaling::ScalingPolicy
+    Condition: CodeExecutorAutoscalingEnabled
+    Properties:
+      PolicyName: !Sub '${AWS::StackName}-code-executor-cpu-tracking'
+      PolicyType: TargetTrackingScaling
+      ScalingTargetId: !Ref CodeExecutorScalableTarget
+      TargetTrackingScalingPolicyConfiguration:
+        PredefinedMetricSpecification:
+          PredefinedMetricType: ECSServiceAverageCPUUtilization
+        TargetValue: !Ref CodeExecutorAutoscalingTargetCpu
+        ScaleOutCooldown: 60
+        ScaleInCooldown: 300
 
   RetoolServiceRole:
     Type: AWS::IAM::Role
@@ -1373,6 +1717,7 @@ Resources:
       Engine: "aurora-postgresql"
       EngineVersion: !Ref TemporalPostgresEngineVersion
       StorageEncrypted: !If [RdsEncrypted, true, false]
+      DeletionProtection: !If [RdsProtected, true, false]
       MasterUsername: !Join ['', ['{{resolve:secretsmanager:', !Ref RetoolTemporalRDSSecret, ':SecretString:username}}' ]]
       MasterUserPassword: !Join ['', ['{{resolve:secretsmanager:', !Ref RetoolTemporalRDSSecret, ':SecretString:password}}' ]]
       Port: "5432"
@@ -1821,6 +2166,20 @@ Resources:
       Name: js-executor
       NamespaceId: !GetAtt [WorkflowsCloudMapNamespace, Id]
 
+  McpServiceCloudmapService:
+    Type: AWS::ServiceDiscovery::Service
+    Properties:
+      DnsConfig:
+        DnsRecords:
+          - TTL: 60
+            Type: A
+        NamespaceId: !GetAtt [WorkflowsCloudMapNamespace, Id]
+        RoutingPolicy: MULTIVALUE
+      HealthCheckCustomConfig:
+        FailureThreshold: 1
+      Name: mcp
+      NamespaceId: !GetAtt [WorkflowsCloudMapNamespace, Id]
+
   AgentSandboxControllerTask:
     Type: AWS::ECS::TaskDefinition
     Properties:
@@ -1879,11 +2238,11 @@ Resources:
               Value: "50"
             - Name: MAX_CONCURRENT_CREATES
               Value: "3"
-            - !If
-              - EnableWatcher
-              - Name: ECS_TASK_EVENTS_SQS_URL
-                Value: !Ref 'SandboxTaskEventsQueue'
-              - !Ref 'AWS::NoValue'
+            # Reconcile trigger: task-state changes land in the EventBridge->SQS
+            # queue below, so the controller reacts in ~seconds instead of its
+            # 5s poll. The queue always exists (see SandboxTaskEventsQueue).
+            - Name: ECS_TASK_EVENTS_SQS_URL
+              Value: !Ref 'SandboxTaskEventsQueue'
           Secrets:
             - Name: AGENT_SANDBOX_JWT_PUBLIC_KEY
               ValueFrom: !Ref AgentSandboxJwtPublicKeySecret
@@ -2123,11 +2482,43 @@ Resources:
       ServiceRegistries:
         - RegistryArn: !GetAtt [JsExecutorCloudmapService, Arn]
       Cluster: !Ref 'RetoolCluster'
-      DesiredCount: !Ref 'DesiredCodeExecutorCount'
+      DesiredCount: !Ref 'DesiredJsExecutorCount'
       DeploymentConfiguration:
         MaximumPercent: !Ref 'MaximumPercent'
         MinimumHealthyPercent: !Ref 'MinimumHealthyPercent'
       TaskDefinition: !Ref 'JsExecutorTask'
+
+  # Service autoscaling for the js-executor — the ECS analog of the helm
+  # chart's jsExecutor HPA (which scales on CPU/memory utilization; here
+  # target-tracking on CPU alone, measured against the task's 2048 Cpu
+  # reservation). js-executor is pinned to the sandbox pool, so scale-out
+  # drives the sandbox ASG (its capacity provider managed-scales when tasks
+  # go PENDING for CPU/RAM). Leave headroom on the pool for the ephemeral
+  # sandboxes that share it.
+  # Only created when EnableJsExecutorAutoscaling=true.
+  JsExecutorScalableTarget:
+    Type: AWS::ApplicationAutoScaling::ScalableTarget
+    Condition: JsExecutorAutoscalingEnabled
+    Properties:
+      MaxCapacity: !Ref JsExecutorAutoscalingMaxCount
+      MinCapacity: !Ref DesiredJsExecutorCount
+      ResourceId: !Sub 'service/${RetoolCluster}/${JsExecutorService.Name}'
+      ScalableDimension: 'ecs:service:DesiredCount'
+      ServiceNamespace: ecs
+
+  JsExecutorCpuScalingPolicy:
+    Type: AWS::ApplicationAutoScaling::ScalingPolicy
+    Condition: JsExecutorAutoscalingEnabled
+    Properties:
+      PolicyName: !Sub '${AWS::StackName}-js-executor-cpu-tracking'
+      PolicyType: TargetTrackingScaling
+      ScalingTargetId: !Ref JsExecutorScalableTarget
+      TargetTrackingScalingPolicyConfiguration:
+        PredefinedMetricSpecification:
+          PredefinedMetricType: ECSServiceAverageCPUUtilization
+        TargetValue: !Ref JsExecutorAutoscalingTargetCpu
+        ScaleOutCooldown: 60
+        ScaleInCooldown: 300
 
   R2AgentWorkerTask:
     Type: AWS::ECS::TaskDefinition
@@ -2248,6 +2639,98 @@ Resources:
         MinimumHealthyPercent: !Ref 'MinimumHealthyPercent'
       TaskDefinition: !Ref 'R2AgentWorkerTask'
 
+  # MCP server (backend image, SERVICE_TYPE=MCP_SERVER, port 4010). Serves the
+  # Model Context Protocol streamable-HTTP transport + OAuth discovery metadata
+  # for external MCP clients; reached same-origin at <base-domain>/mcp via the
+  # backend relay (MCP_SERVICE_INGRESS_DOMAIN on RetoolTask) — it is NOT
+  # attached to the ALB. Authenticates bearer tokens by introspecting them
+  # against the backend (/api/oauth2/introspect) using the shared
+  # OAUTH_INTROSPECTION_AUTH_TOKEN. AGENT_SANDBOX_PROXY_INGRESS_DOMAIN wires the
+  # R2 react-app-generation tools to the in-cluster sandbox proxy (without it
+  # those tools are disabled at startup with a warning).
+  RetoolMcpTask:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: 'retool-mcp-server'
+      TaskRoleArn: !Ref 'RetoolTaskRole'
+      NetworkMode: awsvpc
+      ContainerDefinitions:
+        - Name: 'retool-mcp-server'
+          Cpu: '1024'
+          Memory: '2048'
+          Essential: true
+          Image: !Sub '${BackendImageRepository}:${RetoolVersion}'
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Ref 'CloudwatchLogsGroup'
+              awslogs-region: !Ref 'AWS::Region'
+              awslogs-stream-prefix: "SERVICE_RETOOL"
+          Environment:
+            - Name: DEPLOYMENT_TEMPLATE_TYPE
+              Value: "aws-ecs-ec2"
+            - Name: NODE_ENV
+              Value: production
+            - Name: SERVICE_TYPE
+              Value: MCP_SERVER
+            - Name: MCP_PORT
+              Value: "4010"
+            # Pins introspection + API calls to the in-cluster backend (bypasses
+            # the ALB) while preserving the client-facing Host for origin routing.
+            - Name: RETOOL_BACKEND_URL
+              Value: !Sub 'http://retool-backend.${CloudMapNamespaceName}:3000'
+            # R2 tools: proxy WebSocket/Vite traffic for react-app generation
+            # through the in-cluster agent sandbox proxy.
+            - Name: AGENT_SANDBOX_PROXY_INGRESS_DOMAIN
+              Value: !Sub 'http://agent-sandbox-proxy.${CloudMapNamespaceName}:3019'
+            - Name: POSTGRES_DB
+              Value: hammerhead_production
+            - Name: POSTGRES_HOST
+              Value: !GetAtt [RetoolRDSInstance, Endpoint.Address]
+            - Name: POSTGRES_SSL_ENABLED
+              Value: "true"
+            - Name: POSTGRES_PORT
+              Value: "5432"
+            - Name: POSTGRES_USER
+              Value: !Join ['', ['{{resolve:secretsmanager:', !Ref RetoolRDSSecret, ':SecretString:username}}' ]]
+            - Name: POSTGRES_PASSWORD
+              Value: !Join ['', ['{{resolve:secretsmanager:', !Ref RetoolRDSSecret, ':SecretString:password}}' ]]
+            - Name: JWT_SECRET
+              Value: !Join ['', ['{{resolve:secretsmanager:', !Ref RetoolJWTSecret, ':SecretString:password}}' ]]
+            - Name: ENCRYPTION_KEY
+              Value: !Join ['', ['{{resolve:secretsmanager:', !Ref RetoolEncryptionKeySecret, ':SecretString:password}}' ]]
+            # Shared with RetoolTask: protects the introspection call the MCP
+            # service makes on every bearer token it receives.
+            - Name: OAUTH_INTROSPECTION_AUTH_TOKEN
+              Value: !Join ['', ['{{resolve:secretsmanager:', !Ref McpIntrospectionSecret, ':SecretString:password}}' ]]
+            - Name: BASE_DOMAIN
+              Value: !If [HasBaseDomain, !Ref BaseDomain, !If [HasCertificate, !Sub 'https://${ECSALB.DNSName}', !Sub 'http://${ECSALB.DNSName}']]
+            - Name: LICENSE_KEY
+              Value: !Ref LicenseKey
+          PortMappings:
+            - ContainerPort: 4010
+          Command: ["./docker_scripts/start_api.sh"]
+
+  RetoolMcpService:
+    Type: AWS::ECS::Service
+    DependsOn: [McpServiceCloudmapService, ClusterCapacityProviderAssociations]
+    Properties:
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: DISABLED
+          SecurityGroups: [!GetAtt [RetoolSecurityGroup, GroupId]]
+          Subnets: !Ref 'SubnetId'
+      # Registered in Cloud Map so the backend relay can reach it at
+      # mcp.<namespace>:4010.
+      ServiceRegistries:
+        - RegistryArn: !GetAtt [McpServiceCloudmapService, Arn]
+      Cluster: !Ref 'RetoolCluster'
+      DesiredCount: 1
+      DeploymentConfiguration:
+        MaximumPercent: !Ref 'MaximumPercent'
+        MinimumHealthyPercent: !Ref 'MinimumHealthyPercent'
+      TaskDefinition: !Ref 'RetoolMcpTask'
+
 # ===========================================================================
 # R2 supporting resources: IAM, security groups, S3, proxy ingress, watcher
 # ===========================================================================
@@ -2330,10 +2813,9 @@ Resources:
                   - !GetAtt [SandboxTaskRole, Arn]
                   - !GetAtt [SandboxExecutionRole, Arn]
 
-  # SQS permissions are scoped to the watcher queue and only attached when the
-  # watcher is enabled (the queue is conditionally created). See EnableWatcher.
+  # SQS permissions for the watcher queue, scoped to the three actions the
+  # controller's reconcile loop uses.
   AgentSandboxControllerSqsPolicy:
-    Condition: EnableWatcher
     Type: AWS::IAM::Policy
     Properties:
       Roles:
@@ -2488,17 +2970,17 @@ Resources:
           - ServerSideEncryptionByDefault:
               SSEAlgorithm: AES256
 
-  # EventBridge -> SQS task-state watcher (optional; controller polls otherwise).
+  # EventBridge -> SQS task-state watcher: ECS task-state changes for the
+  # sandbox group are pushed to the queue, and the controller consumes them
+  # for ~second reconcile latency (it still polls every 5s as a fallback).
   SandboxTaskEventsQueue:
     Type: AWS::SQS::Queue
-    Condition: EnableWatcher
     Properties:
       MessageRetentionPeriod: 3600
       VisibilityTimeout: 60
 
   SandboxTaskEventsQueuePolicy:
     Type: AWS::SQS::QueuePolicy
-    Condition: EnableWatcher
     Properties:
       Queues: [!Ref 'SandboxTaskEventsQueue']
       PolicyDocument:
@@ -2514,7 +2996,6 @@ Resources:
 
   SandboxTaskStateRule:
     Type: AWS::Events::Rule
-    Condition: EnableWatcher
     Properties:
       Description: ECS task-state changes for the agent sandbox group.
       EventPattern:
