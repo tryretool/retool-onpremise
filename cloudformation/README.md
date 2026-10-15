@@ -228,9 +228,11 @@ BackendImageRepository / CodeExecutorImageRepository / AgentSandboxImageReposito
 PlatformInstanceType / PlatformAsgMinSize / PlatformAsgMaxSize / PlatformAsgDesiredCapacity
 
 # Sandbox pool sizing. Sandboxes are 2 vCPU / 4 GB and bridge-networked, so they
-# binpack to the CPU/RAM limit. Size DesiredCapacity for the prewarm pool +
-# js-executor tasks (DesiredJsExecutorCount, or JsExecutorAutoscalingMaxCount
-# when its autoscaling is enabled) + headroom.
+# binpack to the CPU/RAM limit. DesiredCapacity sizes the starting pool for the
+# prewarm pool + js-executor tasks (DesiredJsExecutorCount, or
+# JsExecutorAutoscalingMaxCount when its autoscaling is enabled) + headroom;
+# managed scaling grows the pool from there as sandboxes queue (each sandbox
+# task joins the sandbox capacity provider), bounded by MaxSize.
 SandboxInstanceType / SandboxAsgMinSize / SandboxAsgMaxSize / SandboxAsgDesiredCapacity / SandboxInstanceVolumeSize
 
 # Per-service task counts. The two executors are independent services with
@@ -254,9 +256,11 @@ DesiredCount / DesiredWorkflowsCount / DesiredCodeExecutorCount / DesiredJsExecu
 #
 # Deliberately NOT autoscaled: the agent-sandbox controller (it reconciles the
 # global prewarm pool; replicas would race on RunTask — bump DesiredCount
-# manually if ever needed), the proxy (stateless forwarder), and the ephemeral
-# sandboxes themselves (RunTask'd per session; the sandbox ASG is their scaling
-# story). The helm chart likewise autoscales only the js-executor.
+# manually if ever needed) and the proxy (stateless forwarder). The ephemeral
+# sandboxes themselves are RunTask'd per session and join the sandbox capacity
+# provider (ECS_CAPACITY_PROVIDER on the controller), so ECS managed scaling
+# grows the sandbox ASG as sandboxes queue up — set SandboxAsgMinSize to your
+# steady-state pool size so a scale-in can't shrink below it.
 
 # Agent sandbox secrets (see Prerequisites).
 AgentSandboxJwtPublicKey / AgentSandboxJwtPrivateKey / AgentSandboxEncryptionKey

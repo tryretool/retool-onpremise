@@ -2243,6 +2243,13 @@ Resources:
               Value: !Ref 'RetoolCluster'
             - Name: ECS_TASK_DEFINITION_FAMILY
               Value: retool-agent-sandbox
+            # Sandbox RunTasks join the sandbox capacity provider so ECS managed scaling
+            # reacts to sandbox demand: standalone tasks without a capacity provider
+            # strategy are ignored by capacity providers, so a saturated pool would
+            # otherwise never scale the ASG out. Ref returns the provider name, which
+            # is what the strategy expects.
+            - Name: ECS_CAPACITY_PROVIDER
+              Value: !Ref 'SandboxCapacityProvider'
             - Name: ECS_CONTAINER_NAME
               Value: agent-executor
             - Name: ECS_TASK_GROUP
