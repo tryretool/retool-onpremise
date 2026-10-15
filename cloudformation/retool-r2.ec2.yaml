@@ -632,6 +632,30 @@ Resources:
       ToPort: '3000'
       SourceSecurityGroupId: !GetAtt [ALBSecurityGroup, GroupId]
 
+  # Sandboxes are served same-origin: the frontend/backend on :3000 relays
+  # /sandbox/* to the agent-sandbox proxy, so anything that drives a sandbox
+  # over the browser-facing URL — the agent-executor load test's WebSocket and
+  # its Vite preview fetches — must be able to reach the ALB itself. On
+  # Tailscale-gated deployments GlobalHttp/HttpsInbound allow only the relay's
+  # security group, so tasks in RetoolSecurityGroup need an explicit allow.
+  AlbHttpIngressFromTasks:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !GetAtt [ALBSecurityGroup, GroupId]
+      IpProtocol: tcp
+      FromPort: '80'
+      ToPort: '80'
+      SourceSecurityGroupId: !GetAtt [RetoolSecurityGroup, GroupId]
+
+  AlbHttpsIngressFromTasks:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !GetAtt [ALBSecurityGroup, GroupId]
+      IpProtocol: tcp
+      FromPort: '443'
+      ToPort: '443'
+      SourceSecurityGroupId: !GetAtt [RetoolSecurityGroup, GroupId]
+
   RetoolSelfIngress:
     Type: AWS::EC2::SecurityGroupIngress
     Properties:
@@ -809,6 +833,13 @@ Resources:
             Value: !If [HasCertificate, "false", "true"]
           # --- R2 / agent sandbox integration ---
           - Name: AGENT_SANDBOX_ENABLED
+            Value: "true"
+          # Opt-in for the R2 agent-executor load-test endpoints
+          # (POST /api/ai/retool-next-agent/load-test/{start,status}) and the
+          # Temporal workflow behind them. Cloud envs enable load testing via
+          # their NODE_ENV stage; this stack runs NODE_ENV=production, so the
+          # explicit opt-in is what exposes the endpoint here. Admin-only.
+          - Name: AGENT_SANDBOX_LOAD_TEST_ENABLED
             Value: "true"
           - Name: RR_AGENT_PUBSUB_BACKEND
             Value: postgres
@@ -2600,6 +2631,11 @@ Resources:
                   H: !GetAtt [RetoolRDSInstance, Endpoint.Address]
             - Name: AGENT_SANDBOX_POSTGRES_SCHEMA
               Value: agent_executor
+            # Load-test opt-in, mirroring RetoolTask. The load-test activities
+            # run on this worker (r2-agent queue) and throw nonRetryable when
+            # the gate is off, so the env var must be set here as well.
+            - Name: AGENT_SANDBOX_LOAD_TEST_ENABLED
+              Value: "true"
             # --- R2 blob storage (snapshots + RR git), mirroring RetoolTask ---
             # The r2-agent worker runs the sandbox provisioning activities
             # (provisionAgentExecutorSandbox, snapshot restore, publish).
