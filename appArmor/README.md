@@ -17,7 +17,7 @@ sudo apt install apparmor-profiles
 3) Load the profile:
 
 ```
-sudo apparmor_parser /etc/apparmor.d/usr.bin.nsjail
+sudo apparmor_parser -r /etc/apparmor.d/usr.bin.nsjail
 ```
 
 ## Agent Sandbox: replacing `docker-default`
@@ -59,7 +59,7 @@ It is idempotent and skips cleanly on hosts without AppArmor (e.g. macOS Docker 
 2. Loads it into the kernel with `apparmor_parser -r` so new containers pick it up.
 3. Installs a systemd drop-in at `/etc/systemd/system/docker.service.d/retool-apparmor.conf` containing `ExecStartPre=-/usr/sbin/apparmor_parser -r /etc/apparmor.d/docker-default`. This makes the docker daemon re-apply our profile on every start, so the override survives `systemctl restart docker` and host reboots without manual intervention.
 
-`./install.sh` invokes this script automatically; only run it directly if you're applying the AppArmor change to an existing install or to a host where `install.sh` was run on an older version of this repo.
+`./install.sh` and `./upgrade.sh` run this script when the profile is missing. Only run it directly if you're applying the AppArmor change without running either of them.
 
 You do **not** need to restart Docker after a first-time install — already-running containers keep their existing profile, and any new container will use the replaced version.
 
