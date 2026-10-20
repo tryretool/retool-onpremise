@@ -100,7 +100,7 @@ Pull the latest `master` of this repo first, so you have the newest scripts and 
 > The `mcp` service reads `OAUTH_MAIN_DOMAIN`, `MCP_SERVICE_EXTERNAL_URL`, and `OAUTH_INTROSPECTION_AUTH_TOKEN` from `docker.env`. `install.sh` only writes these on a fresh install, so if you are upgrading an existing deployment add them yourself (see step 7 under [Configure](#configure)). Without them the `mcp` container still starts but MCP clients fail to authenticate.
 
 > [!NOTE]
-> On hosts with AppArmor, such as Ubuntu, the agent sandbox needs the bundled `docker-default` AppArmor profile. Installs set up with an older `install.sh` don't have it, and without it the agent sandbox fails to start. `./upgrade.sh` installs it when it's missing. Re-running `./install.sh` also works and is safe on an existing install: it reapplies the host setup, including the AppArmor profiles, and leaves `docker.env` unchanged. See [appArmor/README.md](appArmor/README.md).
+> On hosts with AppArmor, such as Ubuntu, the agent sandbox needs the bundled `docker-default` AppArmor profile. Installs set up with an older `install.sh` don't have it, and without it the agent sandbox fails to start. `./upgrade.sh` installs it when it's missing. On Ubuntu 24.04 and later, Code Executor also needs the `usr.bin.nsjail` profile, which `upgrade.sh` doesn't install. If your install predates it, follow the nsjail steps in [appArmor/README.md](appArmor/README.md).
 
 1. Install or reapply the agent sandbox's AppArmor profile. This skips hosts without AppArmor. On hosts with AppArmor, it reloads the profile even when already installed and requires sudo for non-root users.
 

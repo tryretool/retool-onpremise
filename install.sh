@@ -98,7 +98,7 @@ fi
 
 echo ""
 
-[[ -f docker.env ]] && echo "ℹ️ docker.env already exists, so it was left unchanged. The host setup steps above still ran." && exit 1
+[[ -f docker.env ]] && echo "⚠️ docker.env file already exists, skipping initializing it! To upgrade an existing install, run ./upgrade.sh instead." && exit 1
 
 echo "Prompting for optional configuration..."
 
