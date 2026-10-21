@@ -1,0 +1,36 @@
+name: AppArmor
+
+on:
+  pull_request:
+    paths:
+      - appArmor/docker-default
+      - scripts/setup-docker-apparmor.sh
+      - scripts/test-docker-apparmor.sh
+      - .github/workflows/apparmor.yml
+  push:
+    branches: [master]
+    paths:
+      - appArmor/docker-default
+      - scripts/setup-docker-apparmor.sh
+      - scripts/test-docker-apparmor.sh
+      - .github/workflows/apparmor.yml
+  # Weekly, to catch Docker releases that change how the daemon loads docker-default.
+  schedule:
+    - cron: "0 14 * * 1"
+  workflow_dispatch:
+
+jobs:
+  profile-survives-docker-restart:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-22.04, ubuntu-24.04]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install the latest Docker
+        run: |
+          sudo apt-mark unhold docker-ce docker-ce-cli containerd.io >/dev/null 2>&1 || true
+          curl -fsSL https://get.docker.com | sudo sh
+      - name: Check the profile survives a Docker restart
+        run: sudo ./scripts/test-docker-apparmor.sh --yes
