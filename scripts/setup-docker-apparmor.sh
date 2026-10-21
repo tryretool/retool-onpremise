@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 # Installs the Retool-customized docker-default AppArmor profile and a
-# systemd drop-in that auto-reloads it on every docker.service start.
+# systemd drop-in that auto-reloads it after every docker.service start.
 #
-# Why this exists: the Docker daemon resets its built-in `docker-default`
-# AppArmor profile every time it starts, so without the drop-in our overrides
-# revert on any `systemctl restart docker` or host reboot. The drop-in calls
-# apparmor_parser -r on each docker start so the right profile is always live.
+# Why this exists: since Docker 29.5 the daemon reloads its built-in
+# `docker-default` AppArmor profile every time it starts, so without the drop-in
+# our overrides revert on any `systemctl restart docker` or host reboot. The
+# drop-in calls apparmor_parser -r once the daemon is up, so ours replaces it.
 #
 # Assumes system Docker (docker.service). Rootless Docker uses a different
 # unit and would need a different drop-in path.
@@ -54,12 +54,12 @@ fi
 read -r -d '' DESIRED_DROPIN_CONTENT <<EOF || true
 [Service]
 # Auto-installed by retool-onpremise scripts/setup-docker-apparmor.sh.
-# Re-loads the Retool-customized docker-default AppArmor profile on every
-# Docker daemon start. The daemon resets the in-kernel docker-default at
-# startup, so without this, our override reverts after every restart.
+# Re-loads the Retool-customized docker-default AppArmor profile after every
+# Docker daemon start. The daemon loads its own docker-default while starting,
+# so this must run after it (ExecStartPost); ExecStartPre gets overwritten.
 # Leading '-' makes systemd ignore failure (e.g. profile file missing) so
-# docker can still start.
-ExecStartPre=-/usr/sbin/apparmor_parser -r ${DST_PROFILE}
+# docker keeps running.
+ExecStartPost=-/usr/sbin/apparmor_parser -r ${DST_PROFILE}
 EOF
 
 SUDO=""

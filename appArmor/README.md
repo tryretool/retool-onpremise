@@ -57,7 +57,7 @@ It is idempotent and skips cleanly on hosts without AppArmor (e.g. macOS Docker 
 
 1. Copies the bundled `docker-default` profile to `/etc/apparmor.d/docker-default`.
 2. Loads it into the kernel with `apparmor_parser -r` so new containers pick it up.
-3. Installs a systemd drop-in at `/etc/systemd/system/docker.service.d/retool-apparmor.conf` containing `ExecStartPre=-/usr/sbin/apparmor_parser -r /etc/apparmor.d/docker-default`. This makes the docker daemon re-apply our profile on every start, so the override survives `systemctl restart docker` and host reboots without manual intervention.
+3. Installs a systemd drop-in at `/etc/systemd/system/docker.service.d/retool-apparmor.conf` containing `ExecStartPost=-/usr/sbin/apparmor_parser -r /etc/apparmor.d/docker-default`. Since Docker 29.5 the daemon reloads its built-in `docker-default` every time it starts, so the drop-in re-applies our profile right after each start. That keeps the override in place across `systemctl restart docker` and host reboots without manual intervention. Hosts that installed the older `ExecStartPre` version lose the override on every restart; `./upgrade.sh` detects the old drop-in and offers to rewrite it.
 
 `./install.sh` and `./upgrade.sh` run this script when the profile is missing. Only run it directly if you're applying the AppArmor change without running either of them.
 
