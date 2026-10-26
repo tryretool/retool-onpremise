@@ -15,10 +15,10 @@ Parameters:
     Type: String
     Description: >-
       Retool version tag used for backend, code-executor, js-executor, and
-      agent-sandbox-service images. Must be 4.34.10-stable or 4.78-edge or
+      agent-sandbox-service images. Must be 4.34.12-stable or 4.81.0-edge or
       later; older versions publish the agent-sandbox images but do not support
       the ECS orchestrator this template uses.
-    Default: 4.34.10-stable
+    Default: 4.34.12-stable
   BackendImageRepository:
     Type: String
     Description: >-

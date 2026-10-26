@@ -5,7 +5,7 @@ ECS cluster and EC2 capacity** because the R2 agent sandbox runs gVisor
 (`runsc --rootless`) inside ephemeral containers, which needs `/dev/net/tun`
 and a relaxed seccomp profile on the host (see *ECS seccomp limitation* below).
 
-> **Retool version requirement:** use `4.34.10-stable` or `4.78-edge` or later.
+> **Retool version requirement:** use `4.34.12-stable` or `4.81.0-edge` or later.
 > Older versions do not support the ECS orchestrator this template uses.
 
 On top of the standard Retool + Workflows + Temporal services it adds:
@@ -107,8 +107,8 @@ That's it — there is no separate proxy domain or certificate to provision (see
 # ECS-optimized AMI; default resolves the latest Amazon Linux 2023 ECS AMI.
 EcsAmiId
 
-# Retool version tag used for every Retool image. Must be 4.34.10-stable or
-# 4.78-edge or later; older versions do not support the ECS orchestrator.
+# Retool version tag used for every Retool image. Must be 4.34.12-stable or
+# 4.81.0-edge or later; older versions do not support the ECS orchestrator.
 RetoolVersion
 
 # Image repository overrides. Tag is always RetoolVersion; defaults are the
@@ -409,7 +409,7 @@ aws cloudformation create-stack \
     ParameterKey=VpcId,ParameterValue=vpc-xxxx \
     ParameterKey=SubnetId,ParameterValue='"subnet-a,subnet-b"' \
     ParameterKey=ALBSubnetId,ParameterValue='"subnet-pub-a,subnet-pub-b"' \
-    ParameterKey=RetoolVersion,ParameterValue=4.34.10-stable \
+    ParameterKey=RetoolVersion,ParameterValue=4.34.12-stable \
     ParameterKey=LicenseKey,ParameterValue=YOUR_LICENSE_KEY \
     ParameterKey=RdsStorageEncrypted,ParameterValue=true \
     ParameterKey=AgentSandboxJwtPublicKey,ParameterValue="$(cat ae.pub)" \
