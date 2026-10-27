@@ -20,10 +20,16 @@ if [ -x "$APPARMOR_SCRIPT" ] && ! "$APPARMOR_SCRIPT" --check; then
 fi
 
 echo "Downloading and building new images..."
-docker compose build
+if ! docker compose build; then
+    echo "❌ docker compose build failed. Fix the error above and rerun ./upgrade.sh."
+    exit 1
+fi
 
 echo "Bringing up new containers to replace existing ones..."
-docker compose up -d
+if ! docker compose up -d; then
+    echo "❌ docker compose up -d failed. Fix the error above and rerun ./upgrade.sh."
+    exit 1
+fi
 
 # Compose doesn't replace sandbox containers. Removing them first lets the prune delete their image.
 echo "Removing old agent sandbox containers..."
