@@ -61,7 +61,7 @@ It is idempotent and skips cleanly on hosts without AppArmor (e.g. macOS Docker 
 
 `./install.sh` and `./upgrade.sh` run this script when the profile is missing. Only run it directly if you're applying the AppArmor change without running either of them.
 
-You do **not** need to restart Docker after a first-time install — already-running containers keep their existing profile, and any new container will use the replaced version.
+You do **not** need to restart Docker after a first-time install. Replacing the profile also applies it to running containers, and new containers start with it.
 
 ### Verifying it's in effect
 

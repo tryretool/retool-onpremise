@@ -94,7 +94,17 @@ docker compose logs
 Upgrade
 ------
 
-Pull the latest `master` of this repo first, so you have the newest scripts and `compose.yaml`, and reconcile it with any local changes. Then set the new version in `Dockerfile`, and either run `./upgrade.sh` or follow the below steps:
+Pull the latest `master` of this repo first, so you have the newest scripts and `compose.yaml`. Stash your local changes, such as the version you set in `Dockerfile`, before you pull, because `git pull` stops when it would change a file you edited:
+
+```
+git stash
+git pull origin master
+```
+
+Run `git stash show -p` to see what you stashed, and re-apply what you still need. Then set the new version in `Dockerfile`, and either run `./upgrade.sh` or follow the below steps:
+
+> [!WARNING]
+> The `postgres` and `retooldb-postgres` services in `compose.yaml` use PostgreSQL 16, and PostgreSQL can't start on data from an older major version. If `docker compose ps` shows either one on an older image, such as `postgres:11.13`, set its `image` in `compose.yaml` back to that image.
 
 > [!NOTE]
 > The `mcp` service reads `OAUTH_MAIN_DOMAIN`, `MCP_SERVICE_EXTERNAL_URL`, and `OAUTH_INTROSPECTION_AUTH_TOKEN` from `docker.env`. `install.sh` only writes these on a fresh install, so if you are upgrading an existing deployment add them yourself (see step 7 under [Configure](#configure)). Without them the `mcp` container still starts but MCP clients fail to authenticate.
@@ -120,15 +130,15 @@ docker compose build
 docker compose up -d
 ```
 
-4. Remove the old images from the system
-```
-docker image prune -a -f
-```
-
-5. If step 1 installed the profile, remove the sandbox containers that already existed, so new ones start with it
+4. Remove the agent sandbox containers. The agent sandbox controller creates them outside Compose, so step 3 doesn't replace them, and it can assign the old version's to new sessions. It starts new ones on the new version.
 
 ```
 docker rm -f $(docker ps -aq --filter label=com.retool.agent-executor.role=sandbox)
+```
+
+5. Remove the old images from the system
+```
+docker image prune -a -f
 ```
 
 <br>
