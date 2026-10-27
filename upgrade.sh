@@ -20,14 +20,21 @@ if [ -x "$APPARMOR_SCRIPT" ] && ! "$APPARMOR_SCRIPT" --check; then
 fi
 
 echo "Downloading and building new images..."
-docker compose build
+if ! docker compose build; then
+    echo "❌ docker compose build failed. Fix the error above and rerun ./upgrade.sh."
+    exit 1
+fi
 
 echo "Bringing up new containers to replace existing ones..."
-docker compose up -d
+if ! docker compose up -d; then
+    echo "❌ docker compose up -d failed. Fix the error above and rerun ./upgrade.sh."
+    exit 1
+fi
 
 # Compose doesn't replace sandbox containers. Removing them first lets the prune delete their image.
 echo "Removing old agent sandbox containers..."
 docker ps -aq --filter label=com.retool.agent-executor.role=sandbox | xargs -r docker rm -f
 
-echo "Removing unused images..."
-docker image prune -a -f
+# Compose labels the images it builds with the project name, so other images on the host stay.
+echo "Removing old images built for this deployment..."
+docker image prune -a -f --filter "label=com.docker.compose.project=$(docker compose config | sed -n 's/^name: //p')"

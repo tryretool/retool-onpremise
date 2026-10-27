@@ -94,17 +94,21 @@ docker compose logs
 Upgrade
 ------
 
-Pull the latest `master` of this repo first, so you have the newest scripts and `compose.yaml`. Stash your local changes, such as the version you set in `Dockerfile`, before you pull, because `git pull` stops when it would change a file you edited:
+Pull the latest `master` of this repo first, so you have the newest scripts and `compose.yaml`. Before you pull, note the images your `postgres` and `retooldb-postgres` services run, and stash your local changes, such as the version you set in `Dockerfile`, because `git pull --rebase` won't run with uncommitted changes:
 
 ```
+docker compose ps postgres retooldb-postgres
 git stash
-git pull origin master
+git pull --rebase origin master
+
+# Review and re-apply still necessary changes
+git stash show -p
 ```
 
-Run `git stash show -p` to see what you stashed, and re-apply what you still need. Then set the new version in `Dockerfile`, and either run `./upgrade.sh` or follow the below steps:
+Then set the new version in `Dockerfile`, and either run `./upgrade.sh` or follow the below steps:
 
 > [!WARNING]
-> The `postgres` and `retooldb-postgres` services in `compose.yaml` use PostgreSQL 16, and PostgreSQL can't start on data from an older major version. If `docker compose ps` shows either one on an older image, such as `postgres:11.13`, set its `image` in `compose.yaml` back to that image.
+> PostgreSQL can't start on data from an older major version. If the new `compose.yaml` runs `postgres` or `retooldb-postgres` on a different PostgreSQL major version than the image you noted, set that service's `image` back to the one you noted. If your PostgreSQL is older than the [minimum Retool supports](https://docs.retool.com/self-hosted/self-managed/guides/storage-database#prerequisites), upgrade it before you upgrade Retool. RetoolOS search needs pgvector, which the reference `postgres` image includes. If your `postgres` image doesn't include it, leave `RETOOLOS_SEARCH_ENABLED` off, or Retool won't start.
 
 > [!NOTE]
 > The `mcp` service reads `OAUTH_MAIN_DOMAIN`, `MCP_SERVICE_EXTERNAL_URL`, and `OAUTH_INTROSPECTION_AUTH_TOKEN` from `docker.env`. `install.sh` only writes these on a fresh install, so if you are upgrading an existing deployment add them yourself (see step 7 under [Configure](#configure)). Without them the `mcp` container still starts but MCP clients fail to authenticate.
@@ -133,12 +137,12 @@ docker compose up -d
 4. Remove the agent sandbox containers. The agent sandbox controller creates them outside Compose, so step 3 doesn't replace them, and it can assign the old version's to new sessions. It starts new ones on the new version.
 
 ```
-docker rm -f $(docker ps -aq --filter label=com.retool.agent-executor.role=sandbox)
+docker ps -aq --filter label=com.retool.agent-executor.role=sandbox | xargs -r docker rm -f
 ```
 
-5. Remove the old images from the system
+5. Remove the old images Compose built for this deployment. Compose labels each image it builds with the project name, so other images on the host stay.
 ```
-docker image prune -a -f
+docker image prune -a -f --filter "label=com.docker.compose.project=$(docker compose config | sed -n 's/^name: //p')"
 ```
 
 <br>
