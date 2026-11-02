@@ -103,8 +103,7 @@ fi
 # --- Load it into the kernel now ---------------------------------------
 
 # apparmor_parser -r is idempotent for the same content; replaces the
-# in-kernel docker-default with ours. Already-running containers keep their
-# previously-loaded profile; any new container picks up the replacement.
+# in-kernel docker-default with ours. Running containers switch to it too.
 echo "  🔄 Loading docker-default profile into the kernel..."
 $SUDO apparmor_parser -r "$DST_PROFILE"
 
