@@ -168,6 +168,14 @@ services:
     # Option 1 (preferred): Grant NET_ADMIN so the executor can install
     # iptables egress rules. Requires the host kernel to expose the
     # netfilter `filter` table.
+    #
+    # Version note: js-executor 4.58.0 and later no longer install iptables
+    # rules (network isolation moved to a per-execution proxy), so NET_ADMIN is
+    # not needed and you can remove `cap_add` entirely. On 4.34 through 4.57,
+    # start.sh still runs iptables and exits 1 if it fails, so removing
+    # NET_ADMIN there also requires the Option 2 environment variable below.
+    # That is only safe while the jsExecutorTokenSwappingProxy flag is on
+    # (the default on-prem since 4.34); if it was turned off, keep NET_ADMIN.
     cap_add:
       - NET_ADMIN
 
