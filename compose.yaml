@@ -168,6 +168,14 @@ services:
     # Option 1 (preferred): Grant NET_ADMIN so the executor can install
     # iptables egress rules. Requires the host kernel to expose the
     # netfilter `filter` table.
+    #
+    # Version notes:
+    # Retool version 4.58.0 and later no longer install iptables rules
+    # so NET_ADMIN is not needed and you can remove `cap_add` entirely.
+    # Retool versions 4.34 through 4.57, optionally install iptables and exits 1 on failure,
+    # so removing NET_ADMIN there also requires the Option 2 environment
+    # variable below and for the jsExecutorTokenSwappingProxy to be enabled
+    # (the on-prem default since 4.34).
     cap_add:
       - NET_ADMIN
 
